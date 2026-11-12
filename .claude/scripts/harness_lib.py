@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import re as _re
+import shlex as _shlex
 from pathlib import Path
 
 REQ = "requerimiento.md"
@@ -446,3 +447,89 @@ def rf_sin_test(raiz: Path, rutas: list[str], ids: list[str]) -> list[str]:
         if not pendientes:
             break
     return sorted(pendientes)
+
+
+# ---------------------------------------------------------------- análisis de Bash (heurístico)
+
+
+_SEPARADORES = {";", "&&", "||", "|", "&", "|&"}
+_REDIRECCIONES = {">", ">>", ">|", "&>", "&>>"}
+NO_PARSEABLE = "<no-parseable>"
+
+
+def _segmentos(comando: str) -> list[list[str]]:
+    segs: list[list[str]] = []
+    for linea in comando.replace("\\\n", " ").split("\n"):
+        lex = _shlex.shlex(linea, posix=True, punctuation_chars=";&|<>")
+        lex.whitespace_split = True
+        actual: list[str] = []
+        for tok in lex:
+            if tok in _SEPARADORES:
+                segs.append(actual)
+                actual = []
+            else:
+                actual.append(tok)
+        segs.append(actual)
+    return [s for s in segs if s]
+
+
+def _sin_flags(args: list[str]) -> list[str]:
+    return [a for a in args if not a.startswith("-")]
+
+
+def _destinos_segmento(seg: list[str]) -> tuple[list[str], list[str]]:
+    """Devuelve (destinos, argv sin redirecciones)."""
+    destinos, argv, i = [], [], 0
+    while i < len(seg):
+        tok = seg[i]
+        if tok in _REDIRECCIONES and i + 1 < len(seg):
+            destinos.append(seg[i + 1])
+            i += 2
+            continue
+        if tok in ("<", "<<", "<<<") and i + 1 < len(seg):
+            i += 2
+            continue
+        argv.append(tok)
+        i += 1
+    while argv and ("=" in argv[0] and not argv[0].startswith("-") or argv[0] in ("sudo", "env", "command")):
+        argv.pop(0)
+    # descriptor numérico pegado a la redirección (2>, 1>>): queda como último arg suelto
+    if destinos and argv and argv[-1].isdigit():
+        argv.pop()
+    if not argv:
+        return destinos, argv
+    cmd, args = Path(argv[0]).name, argv[1:]
+    if cmd == "tee":
+        destinos += _sin_flags(args)
+    elif cmd == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args):
+        destinos += _sin_flags(args)[-1:]
+    elif cmd in ("cp", "mv", "install", "ln", "rsync", "truncate"):
+        destinos += _sin_flags(args)[-1:]
+    elif cmd in ("rm", "rmdir", "touch", "mkdir", "shred", "unlink"):
+        destinos += _sin_flags(args)
+    elif cmd == "dd":
+        destinos += [a[3:] for a in args if a.startswith("of=")]
+    elif cmd == "git" and args:
+        if args[0] == "checkout" and "--" in args:
+            destinos += args[args.index("--") + 1:]
+        elif args[0] == "restore":
+            destinos += _sin_flags(args[1:])
+    return destinos, argv
+
+
+def destinos_escritura(comando: str) -> list[str]:
+    try:
+        segs = _segmentos(comando)
+    except ValueError:
+        return [NO_PARSEABLE]
+    destinos: list[str] = []
+    for seg in segs:
+        destinos += _destinos_segmento(seg)[0]
+    return [d for d in destinos if d not in ("/dev/null", "/dev/stdout", "/dev/stderr")]
+
+
+def cambia_directorio(comando: str) -> bool:
+    try:
+        return any(seg and seg[0] in ("cd", "pushd") for seg in _segmentos(comando))
+    except ValueError:
+        return True
