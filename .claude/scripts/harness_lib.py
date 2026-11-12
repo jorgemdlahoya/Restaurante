@@ -387,3 +387,30 @@ def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
         return None
     return (f"Bloqueado: '{rel}' no está en rutas_codigo ni rutas_libres de {CONFIG}. "
             "Si debe permitirse, el usuario debe añadirla a mano.")
+
+
+# ---------------------------------------------------------------- aprobación y config
+
+def aprobar_docs(fdir: Path, nombres: list[str]) -> None:
+    data = cargar_aprobaciones(fdir)
+    for n in nombres:
+        data[n] = {"sha256": sha256(fdir / n), "fecha": ahora()}
+    guardar_aprobaciones(fdir, data)
+
+
+def revocar_doc(fdir: Path, nombre: str) -> bool:
+    data = cargar_aprobaciones(fdir)
+    if nombre in data:
+        del data[nombre]
+        guardar_aprobaciones(fdir, data)
+        return True
+    return False
+
+
+def escribir_config(raiz: Path) -> dict:
+    cands = sorted(specs_dir(raiz).glob("000-*"))
+    if not cands or not (doc_aprobado(cands[0], REQ) and doc_aprobado(cands[0], DIS)):
+        raise HarnessError("La constitución no está aprobada; no se puede generar la config.")
+    cfg = {"constitucion": "aprobada", **extraer_config(leer(cands[0] / DIS))}
+    _escribir_json(raiz / CONFIG, cfg)
+    return cfg
