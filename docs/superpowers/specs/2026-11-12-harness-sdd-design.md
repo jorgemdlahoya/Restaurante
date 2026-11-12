@@ -200,7 +200,9 @@ Todos en `.claude/commands/*.md`, en español.
 - Front-matter `disable-model-invocation: true`.
 - Ejecuta `aprobar.py` mediante `!` (antes de que intervenga el modelo).
 - Aprueba los documentos de la fase actual que estén en borrador: primero
-  `requerimiento.md` + `diseno.md`; si ya lo están, `tareas.md`.
+  `requerimiento.md` + `diseno.md`; si ya lo están, `tareas.md`. Re-aprobar
+  requerimiento + diseño borra la aprobación de `tareas.md` (el plan debe
+  revisarse contra el nuevo diseño).
 - Valida antes de aprobar: IDs bien formados, "Preguntas abiertas" vacía, en
   `tareas.md` todo `RF` tiene tarea y toda tarea referencia un `RF` existente.
   Si falla, no aprueba y muestra el motivo.
@@ -218,7 +220,8 @@ Todos en `.claude/commands/*.md`, en español.
 - Requiere los tres documentos aprobados.
 - Invoca `superpowers:subagent-driven-development` (un subagente por tarea,
   `test-driven-development`, `requesting-code-review` entre tareas).
-- Los tests llevan el ID del RF en el nombre (`"RF-02: ..."`).
+- Los tests llevan el ID calificado del RF en el nombre (`"003/RF-02: ..."`), para
+  que no colisionen IDs de features distintas.
 - Cada tarea termina con `completar-tarea.py T-NN`; si falla, aplica
   `superpowers:systematic-debugging`, nunca la marca.
 - Al terminar, pide `/aceptar HU-NN` por cada HU implementada. Con todas
@@ -239,7 +242,7 @@ alterado.
 
 1. Verifica que los tres documentos sigan aprobados.
 2. Lee los `RF` de la tarea en `tareas.md`.
-3. Busca en `rutas_codigo` tests cuyo texto contenga cada `RF-NN`; si falta
+3. Busca en `rutas_codigo` archivos cuyo texto contenga cada `NNN/RF-NN`; si falta
    alguno → falla.
 4. Ejecuta `comando_test` de la config; exit ≠ 0 → falla.
 5. Registra la tarea como `hecha` con fecha y `git rev-parse HEAD` (si hay git).
