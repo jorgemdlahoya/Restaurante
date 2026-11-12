@@ -45,6 +45,13 @@ escribir código.
 
 - El análisis de Bash es heurístico: un comando ofuscado (p. ej. Python inline que escribe
   archivos) puede eludirlo. `CLAUDE.md` lo prohíbe explícitamente.
+- **Verificación pendiente:** la documentación de Claude Code no aclara si los comandos `!`
+  de `/aprobar` y `/aceptar` pasan por los hooks PreToolUse. Pruébalo una vez: crea la
+  constitución con `/analizar` y ejecuta `/aprobar 000`. Si ves *"Sólo el usuario puede
+  aprobar o aceptar"*, el gate de Bash bloqueó el comando: avísame para cambiar el
+  mecanismo de aprobación a un hook `UserPromptSubmit`.
+- `MultiEdit` figura en el matcher por compatibilidad con versiones antiguas; si la
+  herramienta ya no existe, la entrada simplemente no se activa.
 - Para cambiar `.claude/`, `CLAUDE.md` o `harness.config.json`, edítalos tú a mano.
 
 ## Pruebas del harness
