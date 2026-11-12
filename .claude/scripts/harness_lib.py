@@ -346,10 +346,11 @@ def _relativa(raiz: Path, ruta: str) -> str | None:
 
 
 def _es_protegido(rel: str) -> bool:
-    nombre = rel.rsplit("/", 1)[-1]
-    return (rel.startswith(".claude/") or rel == ".claude"
-            or rel in (CONFIG, "CLAUDE.md", "specs/.activa")
-            or (rel.startswith("specs/") and nombre in (APROBACIONES, PROGRESO)))
+    r = rel.casefold()
+    nombre = r.rsplit("/", 1)[-1]
+    return (r.startswith(".claude/") or r == ".claude"
+            or r in (CONFIG.casefold(), "claude.md", "specs/.activa")
+            or (r.startswith("specs/") and nombre in (APROBACIONES, PROGRESO)))
 
 
 def motivo_docs(fdir: Path) -> str:
@@ -370,7 +371,7 @@ def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
     if _es_protegido(rel):
         return (f"Bloqueado: '{rel}' está protegido por el harness SDD. Sólo lo modifica el usuario "
                 "(o los comandos /aprobar, /aceptar y los scripts del harness).")
-    if _coincide(rel, ["specs/", "docs/"]):
+    if _coincide(rel, ["specs/", "docs/", ".superpowers/"]):
         return None
     if not constitucion_aprobada(raiz):
         return (f"Bloqueado: '{rel}' — la constitución (000) no está aprobada, así que aún no hay "
@@ -380,6 +381,9 @@ def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
         fdir = feature_activa(raiz)
         if fdir is None:
             return f"Bloqueado: '{rel}' es código y no hay feature activa. Usa /analizar."
+        if es_constitucion(fdir):
+            return (f"Bloqueado: '{rel}' es código y la feature activa es la constitución, que no "
+                    "lleva código. Usa /analizar para crear una feature.")
         pendientes = motivo_docs(fdir)
         if pendientes:
             return (f"Bloqueado: '{rel}' es código y {fdir.name} no tiene la spec aprobada: "
@@ -451,34 +455,134 @@ def rf_sin_test(raiz: Path, rutas: list[str], ids: list[str]) -> list[str]:
 
 # ---------------------------------------------------------------- análisis de Bash (heurístico)
 
-
 _SEPARADORES = {";", "&&", "||", "|", "&", "|&"}
 _REDIRECCIONES = {">", ">>", ">|", "&>", "&>>"}
 NO_PARSEABLE = "<no-parseable>"
+ARBOL = "<arbol-git>"   # la operación puede reescribir cualquier archivo versionado
+_RE_HEREDOC = _re.compile(r"<<-?\s*(['\"]?)([A-Za-z_][A-Za-z0-9_]*)\1")
+_GIT_ARBOL = {"apply", "am", "merge", "pull", "cherry-pick", "rebase", "revert"}
+SCRIPTS_USUARIO = ("aprobar.py", "aceptar.py")
+
+
+def _quitar_heredocs(comando: str) -> str:
+    """Elimina los cuerpos de heredoc (no son comandos) y une líneas con ';'."""
+    lineas, fuera, fin = comando.replace("\\\n", " ").split("\n"), [], None
+    for linea in lineas:
+        if fin is not None:
+            if linea.strip() == fin:
+                fin = None
+            continue
+        fuera.append(linea)
+        m = _RE_HEREDOC.search(linea.replace("<<<", "   "))
+        if m:
+            fin = m.group(2)
+    return " ;\n".join(fuera)
 
 
 def _segmentos(comando: str) -> list[list[str]]:
-    segs: list[list[str]] = []
-    for linea in comando.replace("\\\n", " ").split("\n"):
-        lex = _shlex.shlex(linea, posix=True, punctuation_chars=";&|<>")
-        lex.whitespace_split = True
-        actual: list[str] = []
-        for tok in lex:
-            if tok in _SEPARADORES:
-                segs.append(actual)
-                actual = []
-            else:
-                actual.append(tok)
-        segs.append(actual)
+    lex = _shlex.shlex(_quitar_heredocs(comando), posix=True, punctuation_chars=";&|<>")
+    lex.whitespace_split = True
+    segs: list[list[str]] = [[]]
+    for tok in lex:
+        if tok in _SEPARADORES:
+            segs.append([])
+        else:
+            segs[-1].append(tok)
     return [s for s in segs if s]
 
 
-def _sin_flags(args: list[str]) -> list[str]:
-    return [a for a in args if not a.startswith("-")]
+def _sin_flags(args: list[str], con_valor: tuple[str, ...] = ()) -> list[str]:
+    """Argumentos no-flag, saltando el valor de los flags indicados."""
+    res, saltar = [], False
+    for a in args:
+        if saltar:
+            saltar = False
+            continue
+        if a in con_valor:
+            saltar = True
+            continue
+        if not a.startswith("-") or a == "-":
+            res.append(a)
+    return res
 
 
-def _destinos_segmento(seg: list[str]) -> tuple[list[str], list[str]]:
-    """Devuelve (destinos, argv sin redirecciones)."""
+def _valor_flag(args: list[str], cortos: tuple[str, ...], largos: tuple[str, ...]) -> list[str]:
+    res = []
+    for i, a in enumerate(args):
+        if a in cortos + largos and i + 1 < len(args):
+            res.append(args[i + 1])
+        for l in largos:
+            if a.startswith(l + "="):
+                res.append(a[len(l) + 1:])
+    return res
+
+
+def _nombre_url(url: str) -> list[str]:
+    nombre = url.split("?")[0].rstrip("/").rsplit("/", 1)[-1]
+    return [nombre] if nombre else []
+
+
+def _destinos_comando(cmd: str, args: list[str]) -> list[str]:
+    if cmd == "tee":
+        return _sin_flags(args)
+    if cmd == "sed" and any(a.startswith("-i") or a.startswith("--in-place") for a in args):
+        archivos = _sin_flags(args, ("-e", "-f", "--expression", "--file"))
+        con_script = any(a in ("-e", "-f", "--expression", "--file") or a.startswith("--expression=")
+                         for a in args)
+        return archivos if con_script else archivos[1:]
+    if cmd == "perl" and any(_re.fullmatch(r"-\w*i\S*", a) for a in args):
+        archivos = _sin_flags(args, ("-e", "-E", "-M"))
+        return archivos if any(a in ("-e", "-E") or _re.fullmatch(r"-\w*e", a) for a in args) else archivos[1:]
+    if cmd in ("awk", "gawk") and "inplace" in args:
+        return _sin_flags(args, ("-i", "-f", "-v", "-F"))[1:]
+    if cmd in ("cp", "install", "ln", "rsync"):
+        objetivo = _valor_flag(args, ("-t",), ("--target-directory",))
+        return objetivo or _sin_flags(args, ("-t",))[-1:]
+    if cmd == "truncate":
+        return _sin_flags(args, ("-s", "--size", "-r", "--reference"))
+    if cmd in ("mv", "rm", "rmdir", "touch", "mkdir", "shred", "unlink"):
+        return _valor_flag(args, ("-t",), ("--target-directory",)) + _sin_flags(args, ("-t",))
+    if cmd == "dd":
+        return [a[3:] for a in args if a.startswith("of=")]
+    if cmd == "curl":
+        res = _valor_flag(args, ("-o",), ("--output",))
+        if any(a in ("-O", "--remote-name") or _re.fullmatch(r"-\w*O\w*", a) for a in args):
+            res += [n for u in _sin_flags(args, ("-o", "--output", "-H", "-d", "-X"))
+                    if "://" in u for n in _nombre_url(u)]
+        return res
+    if cmd == "wget":
+        res = _valor_flag(args, ("-O", "-P"), ("--output-document", "--directory-prefix"))
+        return res or [n for u in _sin_flags(args) if "://" in u for n in _nombre_url(u)]
+    if cmd == "unzip":
+        return _valor_flag(args, ("-d",), ()) or ["."]
+    if cmd == "tar" and args and ("x" in args[0].lstrip("-") and not args[0].startswith("--")
+                                  or "--extract" in args or "-x" in args):
+        return _valor_flag(args, ("-C",), ("--directory",)) or ["."]
+    if cmd == "patch":
+        return [ARBOL]
+    if cmd == "git" and args:
+        sub, resto = args[0], args[1:]
+        if sub in _GIT_ARBOL:
+            return [ARBOL]
+        if sub == "stash" and resto[:1] and resto[0] in ("pop", "apply"):
+            return [ARBOL]
+        if sub == "reset" and "--hard" in resto:
+            return [ARBOL]
+        if sub in ("checkout", "restore"):
+            if "--" in resto:
+                return resto[resto.index("--") + 1:]
+            if sub == "restore":
+                return _sin_flags(resto, ("-s", "--source"))
+            # checkout <rama> <rutas...>: sólo cuentan como destino los que parecen rutas
+            libres = _sin_flags(resto, ("-b", "-B"))
+            return [a for a in libres[1:]] if len(libres) > 1 else []
+        if sub == "mv":
+            return _sin_flags(resto)
+    return []
+
+
+def _argv(seg: list[str]) -> tuple[list[str], list[str]]:
+    """(destinos de redirección, argv sin redirecciones ni asignaciones)."""
     destinos, argv, i = [], [], 0
     while i < len(seg):
         tok = seg[i]
@@ -486,34 +590,16 @@ def _destinos_segmento(seg: list[str]) -> tuple[list[str], list[str]]:
             destinos.append(seg[i + 1])
             i += 2
             continue
-        if tok in ("<", "<<", "<<<") and i + 1 < len(seg):
+        if tok in ("<", "<<", "<<<", "<<-") and i + 1 < len(seg):
             i += 2
             continue
         argv.append(tok)
         i += 1
-    while argv and ("=" in argv[0] and not argv[0].startswith("-") or argv[0] in ("sudo", "env", "command")):
-        argv.pop(0)
-    # descriptor numérico pegado a la redirección (2>, 1>>): queda como último arg suelto
-    if destinos and argv and argv[-1].isdigit():
+    if destinos and argv and argv[-1].isdigit():   # 2> / 1>> : el descriptor queda suelto
         argv.pop()
-    if not argv:
-        return destinos, argv
-    cmd, args = Path(argv[0]).name, argv[1:]
-    if cmd == "tee":
-        destinos += _sin_flags(args)
-    elif cmd == "sed" and any(a.startswith("-i") or a == "--in-place" for a in args):
-        destinos += _sin_flags(args)[-1:]
-    elif cmd in ("cp", "mv", "install", "ln", "rsync", "truncate"):
-        destinos += _sin_flags(args)[-1:]
-    elif cmd in ("rm", "rmdir", "touch", "mkdir", "shred", "unlink"):
-        destinos += _sin_flags(args)
-    elif cmd == "dd":
-        destinos += [a[3:] for a in args if a.startswith("of=")]
-    elif cmd == "git" and args:
-        if args[0] == "checkout" and "--" in args:
-            destinos += args[args.index("--") + 1:]
-        elif args[0] == "restore":
-            destinos += _sin_flags(args[1:])
+    while argv and (("=" in argv[0] and not argv[0].startswith("-"))
+                    or argv[0] in ("sudo", "env", "command", "exec", "nohup", "time")):
+        argv.pop(0)
     return destinos, argv
 
 
@@ -524,12 +610,38 @@ def destinos_escritura(comando: str) -> list[str]:
         return [NO_PARSEABLE]
     destinos: list[str] = []
     for seg in segs:
-        destinos += _destinos_segmento(seg)[0]
+        redir, argv = _argv(seg)
+        destinos += redir
+        if argv:
+            destinos += _destinos_comando(Path(argv[0]).name, argv[1:])
     return [d for d in destinos if d not in ("/dev/null", "/dev/stdout", "/dev/stderr")]
 
 
 def cambia_directorio(comando: str) -> bool:
     try:
-        return any(seg and seg[0] in ("cd", "pushd") for seg in _segmentos(comando))
+        return any(_argv(seg)[1][:1] in (["cd"], ["pushd"]) for seg in _segmentos(comando))
     except ValueError:
         return True
+
+
+def ejecuta_script_usuario(comando: str) -> bool:
+    """¿Algún segmento ejecuta aprobar.py / aceptar.py (directamente o con un intérprete)?"""
+    try:
+        segs = _segmentos(comando)
+    except ValueError:
+        return any(n in comando for n in SCRIPTS_USUARIO)
+    for seg in segs:
+        argv = _argv(seg)[1]
+        if not argv:
+            continue
+        nombres = [Path(a).name for a in argv]
+        if nombres[0] in SCRIPTS_USUARIO:
+            return True
+        if _re.fullmatch(r"(python|python3(\.\d+)?|py|bash|sh|exec|source|\.)", nombres[0]) \
+                and any(n in SCRIPTS_USUARIO for n in nombres[1:]):
+            return True
+    return False
+
+
+def calcula_hashes_aprobacion(comando: str) -> bool:
+    return ".aprobaciones" in comando and bool(_re.search(r"sha256|hashlib|shasum|openssl", comando))

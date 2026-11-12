@@ -48,8 +48,6 @@ def test_permitidos(sin_aprobar, cmd):
     "git restore apps/a.ts",
     "python3 .claude/scripts/aprobar.py",
     "python3 .claude/scripts/aceptar.py HU-01",
-    "cat specs/001-x/.aprobaciones.json",
-    "cat specs/001-x/progreso.json",
     "echo '{' > harness.config.json",
     "echo x > .claude/settings.json",
     "cd apps; echo x > a.ts",

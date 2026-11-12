@@ -12,7 +12,14 @@ argument-hint: "[T-NN]"
    `tareas.md`, en orden.
 3. Invoca `superpowers:subagent-driven-development` sobre `tareas.md` (un subagente por tarea,
    con `superpowers:test-driven-development` y revisión con `superpowers:requesting-code-review`
-   entre tareas). Indica a cada subagente:
+   entre tareas), con estas preferencias del usuario:
+   - **No crees un git worktree**: trabaja en una rama del propio proyecto
+     (`git checkout -b feat/NNN-slug`). El gate SDD sólo reconoce las rutas del proyecto.
+   - Todos los planes se llaman `tareas.md`: si `.superpowers/sdd/tareas/progress.md` existe y
+     su primera línea no nombra la ruta de **esta** feature, borra `.superpowers/sdd/tareas/`
+     antes de empezar (es un espacio de trabajo temporal, ignorado por git).
+
+   Indica a cada subagente:
    - los tests llevan el RF calificado en el nombre: `NNN/RF-NN: ...`;
    - no puede editar `specs/` ni `.claude/`.
 4. Al terminar cada tarea, ejecuta:

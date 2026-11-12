@@ -42,7 +42,10 @@ def main(argv: list[str]) -> int:
         return 1
     texto = " ".join(args)
     raiz = h.raiz()
-    activa = h.feature_activa(raiz)
+    try:
+        activa = h.feature_activa(raiz)
+    except h.HarnessError:
+        activa = None  # .activa apunta a algo inexistente: se reemplaza
 
     constit = sorted(h.specs_dir(raiz).glob("000-*"))
     if not constit:
