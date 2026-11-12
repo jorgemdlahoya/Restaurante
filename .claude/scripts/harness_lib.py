@@ -314,3 +314,76 @@ def fase(fdir: Path) -> str:
     if estados and all(e == "aceptada" for e in estados.values()):
         return "cerrada"
     return "implementando" if tareas_hechas(fdir) else "plan-aprobado"
+
+
+# ---------------------------------------------------------------- reglas de escritura
+
+def _coincide(rel: str, patrones: list[str]) -> bool:
+    for p in patrones:
+        p = p.strip()
+        if p.startswith("./"):
+            p = p[2:]
+        if not p:
+            continue
+        if p.endswith("/"):
+            if rel.startswith(p):
+                return True
+        elif rel == p or rel.startswith(p + "/"):
+            return True
+    return False
+
+
+def _relativa(raiz: Path, ruta: str) -> str | None:
+    base = raiz.resolve()
+    p = Path(ruta)
+    destino = (p if p.is_absolute() else base / p).resolve()
+    try:
+        return destino.relative_to(base).as_posix()
+    except ValueError:
+        return None
+
+
+def _es_protegido(rel: str) -> bool:
+    nombre = rel.rsplit("/", 1)[-1]
+    return (rel.startswith(".claude/") or rel == ".claude"
+            or rel in (CONFIG, "CLAUDE.md", "specs/.activa")
+            or (rel.startswith("specs/") and nombre in (APROBACIONES, PROGRESO)))
+
+
+def motivo_docs(fdir: Path) -> str:
+    faltan = []
+    for d in docs_requeridos(fdir):
+        if doc_alterado(fdir, d):
+            faltan.append(f"{d} (cambió desde la aprobación)")
+        elif not doc_aprobado(fdir, d):
+            faltan.append(f"{d} (sin aprobar)")
+    return ", ".join(faltan)
+
+
+def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
+    """None = permitido; str = motivo del bloqueo (español, con la acción sugerida)."""
+    rel = _relativa(raiz, ruta)
+    if rel is None:
+        return f"Bloqueado: '{ruta}' está fuera del proyecto."
+    if _es_protegido(rel):
+        return (f"Bloqueado: '{rel}' está protegido por el harness SDD. Sólo lo modifica el usuario "
+                "(o los comandos /aprobar, /aceptar y los scripts del harness).")
+    if _coincide(rel, ["specs/", "docs/"]):
+        return None
+    if not constitucion_aprobada(raiz):
+        return (f"Bloqueado: '{rel}' — la constitución (000) no está aprobada, así que aún no hay "
+                "rutas de código. Completa /analizar y pide al usuario /aprobar 000.")
+    cfg = cargar_config(raiz)
+    if _coincide(rel, list(cfg.get("rutas_codigo", []))):
+        fdir = feature_activa(raiz)
+        if fdir is None:
+            return f"Bloqueado: '{rel}' es código y no hay feature activa. Usa /analizar."
+        pendientes = motivo_docs(fdir)
+        if pendientes:
+            return (f"Bloqueado: '{rel}' es código y {fdir.name} no tiene la spec aprobada: "
+                    f"{pendientes}. Pide al usuario ejecutar /aprobar {fdir.name[:3]}.")
+        return None
+    if _coincide(rel, list(cfg.get("rutas_libres", []))):
+        return None
+    return (f"Bloqueado: '{rel}' no está en rutas_codigo ni rutas_libres de {CONFIG}. "
+            "Si debe permitirse, el usuario debe añadirla a mano.")
