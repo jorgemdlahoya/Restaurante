@@ -294,7 +294,8 @@ def estado_hus(fdir: Path) -> dict[str, str]:
         propias = {t for t, trfs in tareas.items() if set(trfs) & set(rfs)}
         if hu in aceptadas:
             res[hu] = "aceptada"
-        elif propias and propias <= hechas:
+        elif propias and propias <= hechas and all(
+                any(rf in trfs for trfs in tareas.values()) for rf in rfs):
             res[hu] = "implementada"
         elif propias & hechas:
             res[hu] = "en-curso"
@@ -414,3 +415,34 @@ def escribir_config(raiz: Path) -> dict:
     cfg = {"constitucion": "aprobada", **extraer_config(leer(cands[0] / DIS))}
     _escribir_json(raiz / CONFIG, cfg)
     return cfg
+
+
+# ---------------------------------------------------------------- trazabilidad de tests
+
+IGNORAR = {"node_modules", ".git", "dist", "build", ".venv", "venv", "__pycache__", "target"}
+MAX_BYTES = 2_000_000
+
+
+def textos_de_codigo(raiz: Path, rutas: list[str]):
+    for r in rutas:
+        base = raiz / r.rstrip("/")
+        archivos = [base] if base.is_file() else (base.rglob("*") if base.is_dir() else [])
+        for p in archivos:
+            if not p.is_file() or IGNORAR & set(p.relative_to(raiz).parts):
+                continue
+            try:
+                if p.stat().st_size <= MAX_BYTES:
+                    yield p.read_text(encoding="utf-8")
+            except (UnicodeDecodeError, OSError):
+                continue
+
+
+def rf_sin_test(raiz: Path, rutas: list[str], ids: list[str]) -> list[str]:
+    pendientes = set(ids)
+    for texto in textos_de_codigo(raiz, rutas):
+        for i in list(pendientes):
+            if _re.search(_re.escape(i) + r"(?!\d)", texto):
+                pendientes.discard(i)
+        if not pendientes:
+            break
+    return sorted(pendientes)

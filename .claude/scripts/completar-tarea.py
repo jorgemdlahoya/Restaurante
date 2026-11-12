@@ -12,35 +12,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import harness_lib as h  # noqa: E402
 
-IGNORAR = {"node_modules", ".git", "dist", "build", ".venv", "venv", "__pycache__", "target"}
-MAX_BYTES = 2_000_000
-
-
-def textos_de_codigo(raiz: Path, rutas: list[str]):
-    for r in rutas:
-        base = raiz / r.rstrip("/")
-        archivos = [base] if base.is_file() else (base.rglob("*") if base.is_dir() else [])
-        for p in archivos:
-            if not p.is_file() or IGNORAR & set(p.relative_to(raiz).parts):
-                continue
-            try:
-                if p.stat().st_size <= MAX_BYTES:
-                    yield p.read_text(encoding="utf-8")
-            except (UnicodeDecodeError, OSError):
-                continue
-
-
-def rf_sin_test(raiz: Path, rutas: list[str], ids: list[str]) -> list[str]:
-    pendientes = set(ids)
-    for texto in textos_de_codigo(raiz, rutas):
-        for i in list(pendientes):
-            if re.search(re.escape(i) + r"(?!\d)", texto):
-                pendientes.discard(i)
-        if not pendientes:
-            break
-    return sorted(pendientes)
-
-
 def commit_actual(raiz: Path):
     try:
         r = subprocess.run(["git", "rev-parse", "HEAD"], cwd=raiz, capture_output=True, text=True)
@@ -68,7 +39,7 @@ def main(argv: list[str]) -> int:
         return 1
     cfg = h.cargar_config(raiz)
     ids = [f"{fdir.name[:3]}/{rf}" for rf in tareas[tarea]]
-    faltan = rf_sin_test(raiz, cfg.get("rutas_codigo", []), ids)
+    faltan = h.rf_sin_test(raiz, cfg.get("rutas_codigo", []), ids)
     if faltan:
         print(f"No se puede completar {tarea}: no hay tests que referencien {', '.join(faltan)}. "
               "Nombra los tests como \"NNN/RF-NN: ...\".", file=sys.stderr)
