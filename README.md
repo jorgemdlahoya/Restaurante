@@ -1,4 +1,4 @@
-# Harness SDD + Superpowers — Sistema de restaurante
+# Harness SDD + Superpowers para proyectos React — Sistema de restaurante
 
 Configuración de proyecto para **Claude Code** que obliga a desarrollar con
 *Spec-Driven Development*: cada requerimiento se analiza con
@@ -29,6 +29,23 @@ escribir código.
 | 7 | `/implementar` | Claude | TDD por tarea, `completar-tarea.py` con tests en verde |
 | 8 | `/aceptar HU-01` | tú | historia aceptada; con todas, la feature se cierra |
 | — | `/estado [NNN\|todas]` | cualquiera | matriz HU → RF → T → tests y huecos |
+
+## Preset React y principios innegociables
+
+- **Frontend fijo:** React + TypeScript + Vite + Vitest (+ Testing Library) en `apps/web/`.
+  La constitución (`000`) se crea con una plantilla que ya lo declara, y `/aprobar 000` rechaza
+  el bloque `harness-config` si falta `"frontend": "react-ts-vite-vitest"`, la ruta `apps/web/`
+  o un `comando_test` que ejecute `vitest`.
+- **Principios:** la constitución incluye `constitucion.md` (seguridad sin secretos, TDD, diseño
+  con inyección de dependencias, verificar antes de declarar terminado, y documentación del API
+  si aplica). Se aprueba junto al resto y no se pueden quitar los Art. 1–4.
+- Las constituciones aprobadas antes de estos cambios siguen valiendo hasta que se re-aprueben.
+
+### Cambiar el preset
+
+Edita `PRESET_FRONTEND` en `.claude/scripts/harness_lib.py` y la plantilla
+`specs/_plantillas/constitucion/diseno.md` (sección "Frontend" y bloque `harness-config`).
+Los principios se ajustan en `specs/_plantillas/constitucion/constitucion.md`.
 
 ## Cómo se hace cumplir
 

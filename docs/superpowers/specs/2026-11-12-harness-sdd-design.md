@@ -24,8 +24,8 @@ usuario**.
   aceptar historias de usuario.
 - CE-4: En todo momento `/estado` muestra qué HU, RF y tareas están pendientes,
   en curso, implementadas o aceptadas.
-- CE-5: El harness es agnóstico al stack; el stack se decide en la feature
-  `000-constitucion`.
+- CE-5: El frontend es fijo (React + TypeScript + Vite + Vitest en `apps/web/`, ver
+  `2026-11-14-preset-react-design.md`); el resto del stack se decide en `000-constitucion`.
 
 ### Decisiones tomadas (con el usuario)
 
@@ -34,7 +34,7 @@ usuario**.
 | Forma | Configuración de proyecto para Claude Code (sin programa propio) |
 | Artefactos SDD | 3 documentos por feature: requerimiento, diseño, tareas |
 | Rigidez | Bloqueo duro con hooks |
-| Stack | Agnóstico; se define en `000-constitucion` → `harness.config.json` |
+| Stack | Frontend fijo React + TS + Vite + Vitest (preset, 2026-11-14); el resto en `000-constitucion` → `harness.config.json` |
 | Dominio | Sin dominio precargado; el contexto viene de cada requerimiento |
 | Integración | Comandos que orquestan los skills de Superpowers (no se copian) |
 | Aprobación | Por hash SHA-256, sólo vía comandos que ejecuta el usuario |
@@ -302,6 +302,10 @@ reglas en `CLAUDE.md` refuerzan que el agente no debe intentarlo.
   tests, prohibición de eludir los gates, idioma español.
 
 ## 8. Constitución (`000-constitucion`)
+
+> Actualizado el 2026-11-14: la constitución tiene además `constitucion.md` (principios
+> innegociables) y el bloque `harness-config` exige el preset de frontend. Ver
+> `docs/superpowers/specs/2026-11-14-preset-react-design.md`.
 
 - Se crea con `/analizar "constitución del proyecto"`; mismo brainstorming,
   centrado en stack, arquitectura general, principios y convenciones.
