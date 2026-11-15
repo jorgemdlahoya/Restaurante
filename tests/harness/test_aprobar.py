@@ -1,7 +1,7 @@
 import json
 
 import harness_lib as h
-from conftest import correr, crear_feature, constitucion_aprobada, REQ_OK, DIS_OK, TAR_OK, CONFIG_BLOQUE
+from conftest import correr, crear_feature, constitucion_aprobada, REQ_OK, DIS_OK, TAR_OK, CONFIG_BLOQUE, CONS_OK
 
 
 def test_aprueba_req_diseno_y_luego_tareas(proyecto):
@@ -47,7 +47,8 @@ def test_reaprobar_invalida_tareas(proyecto):
 
 
 def test_constitucion_genera_config(proyecto):
-    crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_OK + CONFIG_BLOQUE})
+    crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_OK + CONFIG_BLOQUE,
+                                                 h.CONS: CONS_OK})
     r = correr("aprobar.py", "000", raiz=proyecto)
     assert r.returncode == 0, r.stderr
     cfg = json.loads((proyecto / "harness.config.json").read_text())

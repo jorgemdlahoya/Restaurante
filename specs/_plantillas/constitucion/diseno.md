@@ -62,12 +62,13 @@ El brainstorming decide backend, arquitectura, datos, despliegue y convenciones.
 - "frontend" y "apps/web/" son fijos del harness: no los quites.
 - Añade las rutas del backend a "rutas_codigo" (p. ej. "apps/api/").
 - Si el backend tiene tests, añádelos a "comando_test" con &&,
-  p. ej. "npm --prefix apps/web exec vitest run && pytest apps/api". -->
+  p. ej. "npm --prefix apps/web exec vitest run --passWithNoTests && pytest apps/api".
+- --passWithNoTests permite cerrar tareas de backend mientras apps/web aún no tiene tests. -->
 
 ```harness-config
 { "stack": "React + TypeScript + Vite + Vitest; backend: {{backend_corto}}",
   "frontend": "react-ts-vite-vitest",
   "rutas_codigo": ["apps/web/"],
   "rutas_libres": ["package.json", "README.md"],
-  "comando_test": "npm --prefix apps/web exec vitest run" }
+  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests" }
 ```

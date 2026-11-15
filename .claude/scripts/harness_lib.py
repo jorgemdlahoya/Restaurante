@@ -109,11 +109,11 @@ def es_constitucion(fdir: Path) -> bool:
 def docs_requeridos(fdir: Path) -> list[str]:
     if not es_constitucion(fdir):
         return [REQ, DIS, TAR]
-    # constitucion.md se exige si existe o si ya fue aprobado (borrarlo no lo exime);
-    # las constituciones anteriores a este documento siguen valiendo sin él.
-    if (fdir / CONS).exists() or CONS in cargar_aprobaciones(fdir):
-        return [REQ, DIS, CONS]
-    return [REQ, DIS]
+    # constitucion.md se exige siempre, salvo en constituciones aprobadas antes de que existiera
+    # (tienen aprobación de requerimiento.md y nunca tuvieron constitucion.md).
+    aprob = cargar_aprobaciones(fdir)
+    antigua = REQ in aprob and CONS not in aprob and not (fdir / CONS).exists()
+    return [REQ, DIS] if antigua else [REQ, DIS, CONS]
 
 
 # ---------------------------------------------------------------- aprobaciones
@@ -233,9 +233,13 @@ def _validar_preset(cfg: dict) -> None:
                            f"explícita, p. ej. \"npm --prefix apps/web exec vitest run\" ({fijo}).")
 
 
+def sin_comentarios(texto: str) -> str:
+    return _RE_COMENT.sub("", texto)
+
+
 def _placeholders(fdir: Path, nombres: list[str]) -> list[str]:
     return [f"{n}: quedan placeholders {{{{...}}}} de la plantilla"
-            for n in nombres if (fdir / n).exists() and "{{" in leer(fdir / n)]
+            for n in nombres if (fdir / n).exists() and "{{" in sin_comentarios(leer(fdir / n))]
 
 
 def validar_req_diseno(fdir: Path) -> list[str]:
@@ -275,8 +279,8 @@ def validar_req_diseno(fdir: Path) -> list[str]:
 
 def _validar_constitucion(fdir: Path) -> list[str]:
     if not (fdir / CONS).exists():
-        return [f"Falta {CONS} (fue aprobado y se borró)."]
-    texto = leer(fdir / CONS)
+        return [f"Falta {CONS}: los principios innegociables son obligatorios en la constitución."]
+    texto = sin_comentarios(leer(fdir / CONS))
     errores = _placeholders(fdir, [CONS])
     for n in range(1, 5):
         if not _re.search(rf"^###\s+Artículo {n}\b", texto, _re.M):

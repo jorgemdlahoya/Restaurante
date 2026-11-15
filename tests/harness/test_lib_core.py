@@ -19,7 +19,7 @@ def test_doc_no_registrado_no_aprobado(proyecto):
 def test_docs_requeridos_constitucion(proyecto):
     c = crear_feature(proyecto, "000-constitucion", {})
     f = crear_feature(proyecto, "001-x", {})
-    assert h.docs_requeridos(c) == [h.REQ, h.DIS]
+    assert h.docs_requeridos(c) == [h.REQ, h.DIS, h.CONS]
     assert h.docs_requeridos(f) == [h.REQ, h.DIS, h.TAR]
 
 

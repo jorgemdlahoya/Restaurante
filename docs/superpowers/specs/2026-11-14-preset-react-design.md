@@ -78,9 +78,10 @@ documentación ejecutable del API, condicional). Deben venir de serie en toda co
   `constitucion.md`. `/aprobar 000` los valida y aprueba juntos; editar cualquiera lo devuelve
   a borrador. Validación extra: `constitucion.md` existe, no tiene `{{`, y conserva los
   encabezados `### Artículo 1` a `### Artículo 4` (el núcleo no se puede quitar).
-- **Compatibilidad:** una constitución aprobada antes de este cambio (sin `constitucion.md` ni
-  entrada de aprobación) sigue aprobada. `constitucion.md` se exige si el archivo existe o si
-  ya tuvo aprobación; borrarlo después de aprobado deja la constitución sin aprobar.
+- **Compatibilidad:** `constitucion.md` es obligatorio en toda constitución, salvo en las
+  aprobadas antes de este cambio (con aprobación de `requerimiento.md` y sin haber tenido nunca
+  `constitucion.md`), que siguen aprobadas. Borrarlo, antes o después de aprobar, impide aprobar.
+  Los comentarios HTML no cuentan para placeholders ni para los encabezados del núcleo.
 - **Uso en el flujo:** `/analizar` (constitución) rellena `constitucion.md` en el brainstorming;
   `/analizar` de otras features, `/planificar` e `/implementar` leen
   `specs/000-constitucion/constitucion.md` y comprueban que el diseño, el plan y el código lo

@@ -49,3 +49,35 @@ def test_borrar_constitucion_aprobada_bloquea(proyecto):
     assert h.constitucion_aprobada(proyecto) is True
     (f / h.CONS).unlink()
     assert h.constitucion_aprobada(proyecto) is False
+
+
+# --- revisión final ---
+
+def test_constitucion_nueva_sin_cons_no_se_aprueba(proyecto):
+    crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_000})
+    r = correr("aprobar.py", "000", raiz=proyecto)
+    assert r.returncode == 1 and "Falta constitucion.md" in r.stdout
+    assert h.constitucion_aprobada(proyecto) is False
+
+
+def test_comentarios_no_cuentan_como_placeholders(proyecto):
+    cons = CONS_OK.replace("# Constitución: principios innegociables",
+                           "# Constitución: principios innegociables\n<!-- No dejes ningún {{...}}. -->")
+    req = REQ_OK.replace("## Historias de usuario", "## Historias de usuario\n<!-- usa {{...}} -->")
+    crear_feature(proyecto, "000-constitucion", {h.REQ: req, h.DIS: DIS_000, h.CONS: cons})
+    r = correr("aprobar.py", "000", raiz=proyecto)
+    assert r.returncode == 0, r.stdout
+
+
+def test_articulo_dentro_de_comentario_no_cuenta(proyecto):
+    cons = CONS_OK.replace("### Artículo 2", "<!--\n### Artículo 2").replace(
+        "### Artículo 3", "-->\n### Artículo 3")
+    crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_000, h.CONS: cons})
+    r = correr("aprobar.py", "000", raiz=proyecto)
+    assert r.returncode == 1 and "Artículo 2" in r.stdout
+
+
+def test_plantilla_tolera_sin_tests_web(proyecto):
+    correr("nueva-feature.py", "x", raiz=proyecto)
+    cfg = h.extraer_config((proyecto / "specs" / "000-constitucion" / h.DIS).read_text())
+    assert "--passWithNoTests" in cfg["comando_test"]
