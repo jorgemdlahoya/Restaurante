@@ -14,14 +14,18 @@ import harness_lib as h  # noqa: E402
 def main(argv: list[str]) -> int:
     raiz = h.raiz()
     fdir = h.buscar_feature(raiz, argv[0] if argv else None)
-    if not (h.doc_aprobado(fdir, h.REQ) and h.doc_aprobado(fdir, h.DIS)):
+    constit = h.es_constitucion(fdir)
+    pendiente = (not h.docs_aprobados(fdir)) if constit else \
+        not (h.doc_aprobado(fdir, h.REQ) and h.doc_aprobado(fdir, h.DIS))
+    if pendiente:
         errores = h.validar_req_diseno(fdir)
         if errores:
             print(f"No se aprobó {fdir.name}. Corrige:")
             print("\n".join(f"  - {e}" for e in errores))
             return 1
-        h.aprobar_docs(fdir, [h.REQ, h.DIS])
-        print(f"Aprobados requerimiento.md y diseno.md de {fdir.name}.")
+        docs = h.docs_requeridos(fdir) if constit else [h.REQ, h.DIS]
+        h.aprobar_docs(fdir, docs)
+        print(f"Aprobados {', '.join(docs)} de {fdir.name}.")
         if h.revocar_doc(fdir, h.TAR):
             print("Aviso: tareas.md perdió su aprobación; revisa el plan contra el nuevo diseño "
                   "(/planificar) y vuelve a /aprobar.")

@@ -15,6 +15,7 @@ from pathlib import Path
 REQ = "requerimiento.md"
 DIS = "diseno.md"
 TAR = "tareas.md"
+CONS = "constitucion.md"
 APROBACIONES = ".aprobaciones.json"
 PROGRESO = "progreso.json"
 CONFIG = "harness.config.json"
@@ -106,7 +107,13 @@ def es_constitucion(fdir: Path) -> bool:
 
 
 def docs_requeridos(fdir: Path) -> list[str]:
-    return [REQ, DIS] if es_constitucion(fdir) else [REQ, DIS, TAR]
+    if not es_constitucion(fdir):
+        return [REQ, DIS, TAR]
+    # constitucion.md se exige si existe o si ya fue aprobado (borrarlo no lo exime);
+    # las constituciones anteriores a este documento siguen valiendo sin él.
+    if (fdir / CONS).exists() or CONS in cargar_aprobaciones(fdir):
+        return [REQ, DIS, CONS]
+    return [REQ, DIS]
 
 
 # ---------------------------------------------------------------- aprobaciones
@@ -261,6 +268,19 @@ def validar_req_diseno(fdir: Path) -> list[str]:
             extraer_config(dis)
         except HarnessError as e:
             errores.append(str(e))
+        if CONS in docs_requeridos(fdir):
+            errores += _validar_constitucion(fdir)
+    return errores
+
+
+def _validar_constitucion(fdir: Path) -> list[str]:
+    if not (fdir / CONS).exists():
+        return [f"Falta {CONS} (fue aprobado y se borró)."]
+    texto = leer(fdir / CONS)
+    errores = _placeholders(fdir, [CONS])
+    for n in range(1, 5):
+        if not _re.search(rf"^###\s+Artículo {n}\b", texto, _re.M):
+            errores.append(f"{CONS}: falta el Artículo {n} (núcleo innegociable).")
     return errores
 
 
@@ -324,10 +344,10 @@ def estado_hus(fdir: Path) -> dict[str, str]:
 
 
 def fase(fdir: Path) -> str:
+    if es_constitucion(fdir):
+        return "cerrada" if docs_aprobados(fdir) else "analisis"
     if not (doc_aprobado(fdir, REQ) and doc_aprobado(fdir, DIS)):
         return "analisis"
-    if es_constitucion(fdir):
-        return "cerrada"
     if not doc_aprobado(fdir, TAR):
         return "diseno-aprobado"
     estados = estado_hus(fdir)

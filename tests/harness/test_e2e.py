@@ -5,7 +5,7 @@ import shutil
 import subprocess
 
 import harness_lib as h
-from conftest import REPO, correr, hook, REQ_OK, DIS_OK, TAR_OK
+from conftest import REPO, correr, hook, REQ_OK, DIS_OK, TAR_OK, CONS_OK
 
 CONFIG = """
 ```harness-config
@@ -46,6 +46,7 @@ def test_flujo_completo(tmp_path, monkeypatch):
     c = raiz / "specs" / "000-constitucion"
     (c / h.REQ).write_text(REQ_OK)
     (c / h.DIS).write_text(DIS_OK + CONFIG)
+    (c / h.CONS).write_text(CONS_OK)
     assert escribir(raiz, "apps/web/x.py").returncode == 2
     assert hook("gate-bash.py", raiz, "Bash",
                 {"command": "python3 .claude/scripts/aprobar.py 000"}).returncode == 2

@@ -86,6 +86,31 @@ TAR_OK = """# Tareas
 ### T-02 [RF-02]: Validar N
 """
 
+CONS_OK = """---
+feature: 000-constitucion
+estado: borrador
+---
+# Constitución: principios innegociables
+
+**Regla rectora:** aplican al código nuevo y al alcance de cualquier flujo que se toque.
+
+### Artículo 1 — Seguridad: cero secretos en el repositorio
+1. Prohibido hardcodear credenciales.
+
+### Artículo 2 — Pruebas (TDD para código nuevo)
+1. Todo código nuevo se escribe dirigido por pruebas.
+
+### Artículo 3 — Diseño acotado e inyección de dependencias
+1. Una responsabilidad por archivo.
+
+### Artículo 4 — Verificar antes de declarar terminado
+1. Nada se declara hecho sin evidencia.
+
+## Artículos del proyecto
+
+- Ninguno.
+"""
+
 CONFIG_BLOQUE = """
 ```harness-config
 {"stack": "react + python", "frontend": "react-ts-vite-vitest",
@@ -98,8 +123,9 @@ CONFIG_BLOQUE = """
 def constitucion_aprobada(raiz, rutas_codigo=("apps/",), comando_test=None):
     """Crea 000-constitucion aprobada y la config correspondiente."""
     crear_feature(raiz, "000-constitucion",
-                  {"requerimiento.md": REQ_OK, "diseno.md": DIS_OK + CONFIG_BLOQUE},
-                  aprobar=["requerimiento.md", "diseno.md"], activa=False)
+                  {"requerimiento.md": REQ_OK, "diseno.md": DIS_OK + CONFIG_BLOQUE,
+                   "constitucion.md": CONS_OK},
+                  aprobar=["requerimiento.md", "diseno.md", "constitucion.md"], activa=False)
     cfg = {"constitucion": "aprobada", "stack": "python", "frontend": "react-ts-vite-vitest",
            "rutas_codigo": list(rutas_codigo),
            "rutas_libres": ["README.md"],
