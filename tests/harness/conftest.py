@@ -88,8 +88,9 @@ TAR_OK = """# Tareas
 
 CONFIG_BLOQUE = """
 ```harness-config
-{"stack": "python", "rutas_codigo": ["apps/"], "rutas_libres": ["README.md"],
- "comando_test": "python3 -c \\"import sys; sys.exit(0)\\""}
+{"stack": "react + python", "frontend": "react-ts-vite-vitest",
+ "rutas_codigo": ["apps/web/", "apps/api/"], "rutas_libres": ["README.md"],
+ "comando_test": "npm --prefix apps/web exec vitest run"}
 ```
 """
 
@@ -99,7 +100,8 @@ def constitucion_aprobada(raiz, rutas_codigo=("apps/",), comando_test=None):
     crear_feature(raiz, "000-constitucion",
                   {"requerimiento.md": REQ_OK, "diseno.md": DIS_OK + CONFIG_BLOQUE},
                   aprobar=["requerimiento.md", "diseno.md"], activa=False)
-    cfg = {"constitucion": "aprobada", "stack": "python", "rutas_codigo": list(rutas_codigo),
+    cfg = {"constitucion": "aprobada", "stack": "python", "frontend": "react-ts-vite-vitest",
+           "rutas_codigo": list(rutas_codigo),
            "rutas_libres": ["README.md"],
            "comando_test": comando_test or 'python3 -c "import sys; sys.exit(0)"'}
     (raiz / "harness.config.json").write_text(json.dumps(cfg))

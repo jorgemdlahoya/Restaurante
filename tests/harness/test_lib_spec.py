@@ -80,7 +80,7 @@ def test_extraer_config_falta_clave():
     with pytest.raises(h.HarnessError):
         h.extraer_config("sin bloque")
     cfg = h.extraer_config(CONFIG_BLOQUE)
-    assert cfg["rutas_codigo"] == ["apps/"]
+    assert cfg["rutas_codigo"] == ["apps/web/", "apps/api/"]
 
 
 def _avance(f, tareas=(), aceptadas=()):

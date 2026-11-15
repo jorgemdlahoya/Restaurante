@@ -51,7 +51,7 @@ def test_constitucion_genera_config(proyecto):
     r = correr("aprobar.py", "000", raiz=proyecto)
     assert r.returncode == 0, r.stderr
     cfg = json.loads((proyecto / "harness.config.json").read_text())
-    assert cfg["constitucion"] == "aprobada" and cfg["rutas_codigo"] == ["apps/"]
+    assert cfg["constitucion"] == "aprobada" and cfg["rutas_codigo"] == ["apps/web/", "apps/api/"]
 
 
 def test_generar_config_sin_aprobar_falla(proyecto):

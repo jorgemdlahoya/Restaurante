@@ -29,7 +29,7 @@ def sin_aprobar(proyecto):
 def test_constitucion_activa_no_abre_codigo(proyecto):
     crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_OK + CONFIG_BLOQUE})
     assert correr("aprobar.py", "000", raiz=proyecto).returncode == 0
-    r = w(proyecto, "apps/x.py")
+    r = w(proyecto, "apps/web/x.py")
     assert r.returncode == 2 and "/analizar" in r.stderr
 
 

@@ -19,6 +19,10 @@ APROBACIONES = ".aprobaciones.json"
 PROGRESO = "progreso.json"
 CONFIG = "harness.config.json"
 
+# Stack de frontend fijo del harness. Para cambiar de preset, cambia esto y la plantilla
+# specs/_plantillas/constitucion/diseno.md.
+PRESET_FRONTEND = {"id": "react-ts-vite-vitest", "ruta": "apps/web/", "test": "vitest"}
+
 
 class HarnessError(Exception):
     """Error con mensaje en español pensado para el usuario."""
@@ -205,7 +209,21 @@ def extraer_config(texto: str) -> dict:
             raise HarnessError(f"harness-config: falta '{clave}' o no es {tipo.__name__}.")
     if not cfg["rutas_codigo"]:
         raise HarnessError("harness-config: 'rutas_codigo' no puede estar vacía.")
+    _validar_preset(cfg)
     return cfg
+
+
+def _validar_preset(cfg: dict) -> None:
+    p = PRESET_FRONTEND
+    fijo = f"el frontend {p['id']} es fijo del harness"
+    if cfg.get("frontend") != p["id"]:
+        raise HarnessError(f"harness-config: 'frontend' debe ser \"{p['id']}\" ({fijo}).")
+    rutas = {r.strip().removeprefix("./").rstrip("/") + "/" for r in cfg["rutas_codigo"]}
+    if p["ruta"] not in rutas:
+        raise HarnessError(f"harness-config: 'rutas_codigo' debe incluir \"{p['ruta']}\" ({fijo}).")
+    if p["test"] not in cfg["comando_test"]:
+        raise HarnessError(f"harness-config: 'comando_test' debe ejecutar {p['test']} de forma "
+                           f"explícita, p. ej. \"npm --prefix apps/web exec vitest run\" ({fijo}).")
 
 
 def _placeholders(fdir: Path, nombres: list[str]) -> list[str]:
