@@ -24,8 +24,13 @@ def crear(raiz: Path, nombre: str, titulo: str) -> Path:
     fdir = h.specs_dir(raiz) / nombre
     fdir.mkdir(parents=True)
     plantillas = h.specs_dir(raiz) / "_plantillas"
-    for doc in (h.REQ, h.DIS, h.TAR):
-        texto = h.leer(plantillas / doc).replace("{{feature}}", nombre).replace("{{titulo}}", titulo)
+    origen = {doc: plantillas / doc for doc in (h.REQ, h.DIS, h.TAR)}
+    especificas = plantillas / "constitucion"
+    if nombre.startswith("000-") and especificas.is_dir():
+        # la constitución reemplaza o añade documentos con sus plantillas propias
+        origen.update({p.name: p for p in sorted(especificas.glob("*.md"))})
+    for doc, ruta in origen.items():
+        texto = h.leer(ruta).replace("{{feature}}", nombre).replace("{{titulo}}", titulo)
         (fdir / doc).write_text(texto, encoding="utf-8")
     return fdir
 

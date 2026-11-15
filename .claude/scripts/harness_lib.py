@@ -15,9 +15,14 @@ from pathlib import Path
 REQ = "requerimiento.md"
 DIS = "diseno.md"
 TAR = "tareas.md"
+CONS = "constitucion.md"
 APROBACIONES = ".aprobaciones.json"
 PROGRESO = "progreso.json"
 CONFIG = "harness.config.json"
+
+# Stack de frontend fijo del harness. Para cambiar de preset, cambia esto y la plantilla
+# specs/_plantillas/constitucion/diseno.md.
+PRESET_FRONTEND = {"id": "react-ts-vite-vitest", "ruta": "apps/web/", "test": "vitest"}
 
 
 class HarnessError(Exception):
@@ -102,7 +107,13 @@ def es_constitucion(fdir: Path) -> bool:
 
 
 def docs_requeridos(fdir: Path) -> list[str]:
-    return [REQ, DIS] if es_constitucion(fdir) else [REQ, DIS, TAR]
+    if not es_constitucion(fdir):
+        return [REQ, DIS, TAR]
+    # constitucion.md se exige siempre, salvo en constituciones aprobadas antes de que existiera
+    # (tienen aprobación de requerimiento.md y nunca tuvieron constitucion.md).
+    aprob = cargar_aprobaciones(fdir)
+    antigua = REQ in aprob and CONS not in aprob and not (fdir / CONS).exists()
+    return [REQ, DIS] if antigua else [REQ, DIS, CONS]
 
 
 # ---------------------------------------------------------------- aprobaciones
@@ -205,12 +216,30 @@ def extraer_config(texto: str) -> dict:
             raise HarnessError(f"harness-config: falta '{clave}' o no es {tipo.__name__}.")
     if not cfg["rutas_codigo"]:
         raise HarnessError("harness-config: 'rutas_codigo' no puede estar vacía.")
+    _validar_preset(cfg)
     return cfg
+
+
+def _validar_preset(cfg: dict) -> None:
+    p = PRESET_FRONTEND
+    fijo = f"el frontend {p['id']} es fijo del harness"
+    if cfg.get("frontend") != p["id"]:
+        raise HarnessError(f"harness-config: 'frontend' debe ser \"{p['id']}\" ({fijo}).")
+    rutas = {r.strip().removeprefix("./").rstrip("/") + "/" for r in cfg["rutas_codigo"]}
+    if p["ruta"] not in rutas:
+        raise HarnessError(f"harness-config: 'rutas_codigo' debe incluir \"{p['ruta']}\" ({fijo}).")
+    if p["test"] not in cfg["comando_test"]:
+        raise HarnessError(f"harness-config: 'comando_test' debe ejecutar {p['test']} de forma "
+                           f"explícita, p. ej. \"npm --prefix apps/web exec vitest run\" ({fijo}).")
+
+
+def sin_comentarios(texto: str) -> str:
+    return _RE_COMENT.sub("", texto)
 
 
 def _placeholders(fdir: Path, nombres: list[str]) -> list[str]:
     return [f"{n}: quedan placeholders {{{{...}}}} de la plantilla"
-            for n in nombres if (fdir / n).exists() and "{{" in leer(fdir / n)]
+            for n in nombres if (fdir / n).exists() and "{{" in sin_comentarios(leer(fdir / n))]
 
 
 def validar_req_diseno(fdir: Path) -> list[str]:
@@ -243,6 +272,19 @@ def validar_req_diseno(fdir: Path) -> list[str]:
             extraer_config(dis)
         except HarnessError as e:
             errores.append(str(e))
+        if CONS in docs_requeridos(fdir):
+            errores += _validar_constitucion(fdir)
+    return errores
+
+
+def _validar_constitucion(fdir: Path) -> list[str]:
+    if not (fdir / CONS).exists():
+        return [f"Falta {CONS}: los principios innegociables son obligatorios en la constitución."]
+    texto = sin_comentarios(leer(fdir / CONS))
+    errores = _placeholders(fdir, [CONS])
+    for n in range(1, 5):
+        if not _re.search(rf"^###\s+Artículo {n}\b", texto, _re.M):
+            errores.append(f"{CONS}: falta el Artículo {n} (núcleo innegociable).")
     return errores
 
 
@@ -306,10 +348,10 @@ def estado_hus(fdir: Path) -> dict[str, str]:
 
 
 def fase(fdir: Path) -> str:
+    if es_constitucion(fdir):
+        return "cerrada" if docs_aprobados(fdir) else "analisis"
     if not (doc_aprobado(fdir, REQ) and doc_aprobado(fdir, DIS)):
         return "analisis"
-    if es_constitucion(fdir):
-        return "cerrada"
     if not doc_aprobado(fdir, TAR):
         return "diseno-aprobado"
     estados = estado_hus(fdir)

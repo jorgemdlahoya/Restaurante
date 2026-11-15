@@ -21,6 +21,8 @@ argument-hint: "[T-NN]"
 
    Indica a cada subagente:
    - los tests llevan el RF calificado en el nombre: `NNN/RF-NN: ...`;
+   - el código cumple `specs/000-constitucion/constitucion.md`, y la revisión de código se
+     hace contra los requisitos **y** contra esa constitución (Art. 4.3);
    - no puede editar `specs/` ni `.claude/`.
 4. Al terminar cada tarea, ejecuta:
    ```bash

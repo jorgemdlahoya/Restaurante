@@ -20,8 +20,16 @@ python3 .claude/scripts/nueva-feature.py "$ARGUMENTS"
 
 - La primera línea de la salida es la carpeta de la feature (`specs/NNN-slug`). Trabaja ahí.
 - Si crea o reutiliza `000-constitucion`, el análisis es la **constitución del proyecto**:
-  stack, arquitectura general, convenciones, estrategia de pruebas y principios. Su
-  `diseno.md` debe incluir el bloque ```` ```harness-config ```` (ver la plantilla).
+  - El **frontend es fijo del harness** (`react-ts-vite-vitest`: React + TypeScript + Vite +
+    Vitest + Testing Library en `apps/web/`): no lo preguntes ni propongas alternativas.
+  - El brainstorming cubre backend, arquitectura, datos, despliegue, convenciones y estrategia
+    de pruebas del backend.
+  - Rellena los tres documentos: `requerimiento.md`, `diseno.md` (con su bloque
+    ```` ```harness-config ````, conservando `frontend` y `apps/web/`) y
+    `specs/000-constitucion/constitucion.md` (principios innegociables): ajusta la redacción
+    de los Art. 1–4 sin quitar sus encabezados, resuelve `{{CORS_RULE}}` con el usuario,
+    conserva o elimina el Art. 5 según el proyecto exponga una API, y propone los
+    artículos propios del proyecto.
 - Exit 3: hay otra feature activa sin cerrar. **Pregunta al usuario** si quiere cambiar; sólo
   si acepta, re-ejecuta con `--forzar`.
 - Exit 1: informa el mensaje al usuario y detente.
@@ -29,7 +37,8 @@ python3 .claude/scripts/nueva-feature.py "$ARGUMENTS"
 ## 2. Reunir contexto
 
 Lee `CLAUDE.md`, `specs/000-constitucion/` (si está aprobada) y los `requerimiento.md` de las
-features existentes, para detectar solapamientos o dependencias con este requerimiento.
+features existentes, para detectar solapamientos o dependencias con este requerimiento. El
+diseño debe cumplir los principios de `specs/000-constitucion/constitucion.md`.
 
 ## 3. Brainstorming
 
@@ -57,6 +66,7 @@ Antes de entregar, revisa y corrige:
 - no quedan `{{...}}`, "TBD" ni secciones vacías;
 - no hay contradicciones entre requerimiento y diseño;
 - cada `RF` aparece en al menos un componente de `diseno.md`;
+- el diseño no contradice ningún principio de `specs/000-constitucion/constitucion.md`;
 - "Preguntas abiertas" queda vacía (o `- Ninguna`); si queda alguna, pregúntala al usuario.
 
 ## 5. Cierre

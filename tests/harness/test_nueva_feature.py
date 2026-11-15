@@ -6,7 +6,7 @@ def test_primera_es_constitucion(proyecto):
     r = correr("nueva-feature.py", "lo que sea", raiz=proyecto)
     assert r.returncode == 0, r.stderr
     f = proyecto / "specs" / "000-constitucion"
-    assert sorted(p.name for p in f.iterdir()) == [h.DIS, h.REQ, h.TAR]
+    assert sorted(p.name for p in f.iterdir()) == sorted([h.CONS, h.DIS, h.REQ, h.TAR])
     assert (proyecto / "specs" / ".activa").read_text().strip() == "000-constitucion"
     assert "feature: 000-constitucion" in (f / h.REQ).read_text()
     assert "constitución" in r.stdout

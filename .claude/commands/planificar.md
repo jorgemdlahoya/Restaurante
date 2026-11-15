@@ -7,7 +7,9 @@ argument-hint: "[NNN]"
 
 1. Ejecuta `python3 .claude/scripts/estado.py $ARGUMENTS`. Si `requerimiento.md` o
    `diseno.md` aparecen sin aprobar o con cambios, **detente** y pide al usuario `/aprobar`.
-2. Lee `requerimiento.md` y `diseno.md` de la feature, y `specs/000-constitucion/diseno.md`.
+2. Lee `requerimiento.md` y `diseno.md` de la feature, `specs/000-constitucion/diseno.md` y
+   `specs/000-constitucion/constitucion.md`. Las tareas deben respetar esos principios
+   (TDD, inyección de dependencias, cero secretos, documentación si aplica).
 3. Invoca `superpowers:writing-plans` con estas preferencias del usuario:
    - **Ubicación:** escribe el plan en `tareas.md` de la feature (no en `docs/superpowers/plans/`),
      reemplazando los `{{...}}` de la plantilla.

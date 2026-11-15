@@ -16,6 +16,18 @@ Nunca se escribe código sin una spec aprobada por el usuario. Los hooks lo hace
 La primera feature siempre es `000-constitucion`: define stack, arquitectura y convenciones, y
 al aprobarla se genera `harness.config.json` (rutas de código y comando de tests).
 
+## Stack fijo del frontend
+
+Todo proyecto con este harness usa **React + TypeScript + Vite + Vitest** (+ Testing Library) en
+`apps/web/` (preset `react-ts-vite-vitest`). No se discute en los análisis; `/aprobar 000`
+rechaza una constitución que no lo declare. El backend lo decide cada constitución.
+
+## Principios innegociables
+
+`specs/000-constitucion/constitucion.md` (Art. 1–4 núcleo universal + artículos del proyecto)
+rige todo diseño, plan, código y revisión. Se aprueba con la constitución y no se modifica sin
+volver a `/aprobar 000`.
+
 ## Estructura
 
 - `specs/NNN-slug/`: `requerimiento.md`, `diseno.md`, `tareas.md` (+ `.aprobaciones.json` y

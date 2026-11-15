@@ -1,7 +1,7 @@
 import pytest
 
 import harness_lib as h
-from conftest import crear_feature, REQ_OK, DIS_OK, TAR_OK, CONFIG_BLOQUE
+from conftest import crear_feature, REQ_OK, DIS_OK, TAR_OK, CONFIG_BLOQUE, CONS_OK
 
 REQ_2HU = REQ_OK.replace("## Preguntas abiertas", """### HU-02: Cobrar
 - **RF-03**: Cuando se cobra, el sistema deberá cerrar la subcuenta.
@@ -64,6 +64,7 @@ def test_validar_constitucion_exige_config(proyecto):
     f = crear_feature(proyecto, "000-constitucion", {h.REQ: REQ_OK, h.DIS: DIS_OK})
     assert any("harness-config" in e for e in h.validar_req_diseno(f))
     (f / h.DIS).write_text(DIS_OK + CONFIG_BLOQUE)
+    (f / h.CONS).write_text(CONS_OK)
     assert h.validar_req_diseno(f) == []
 
 
@@ -80,7 +81,7 @@ def test_extraer_config_falta_clave():
     with pytest.raises(h.HarnessError):
         h.extraer_config("sin bloque")
     cfg = h.extraer_config(CONFIG_BLOQUE)
-    assert cfg["rutas_codigo"] == ["apps/"]
+    assert cfg["rutas_codigo"] == ["apps/web/", "apps/api/"]
 
 
 def _avance(f, tareas=(), aceptadas=()):

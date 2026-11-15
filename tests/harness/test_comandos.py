@@ -53,3 +53,25 @@ def test_claude_md_y_readme():
     assert len(c.splitlines()) <= 80
     assert "/analizar" in c and "NNN/RF-NN" in c
     assert "pytest tests/harness" in (REPO / "README.md").read_text(encoding="utf-8")
+
+
+def test_analizar_preset():
+    t = _texto("analizar")
+    assert "react-ts-vite-vitest" in t and "no lo preguntes" in t
+
+
+def test_claude_md_preset():
+    c = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "## Stack fijo del frontend" in c and "apps/web/" in c
+    assert len(c.splitlines()) <= 80
+
+
+def test_readme_preset():
+    assert "PRESET_FRONTEND" in (REPO / "README.md").read_text(encoding="utf-8")
+
+
+def test_comandos_leen_constitucion():
+    for nombre in ("analizar", "planificar", "implementar"):
+        assert "specs/000-constitucion/constitucion.md" in _texto(nombre), nombre
+    assert "{{CORS_RULE}}" in _texto("analizar")
+    assert "constitucion.md" in (REPO / "CLAUDE.md").read_text(encoding="utf-8")

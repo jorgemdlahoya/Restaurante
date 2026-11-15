@@ -1,15 +1,16 @@
 """Recorre el flujo SDD completo con los scripts y hooks reales sobre un repo temporal."""
 import json
+import os
 import shutil
 import subprocess
 
 import harness_lib as h
-from conftest import REPO, correr, hook, REQ_OK, DIS_OK, TAR_OK
+from conftest import REPO, correr, hook, REQ_OK, DIS_OK, TAR_OK, CONS_OK
 
 CONFIG = """
 ```harness-config
-{"stack": "python", "rutas_codigo": ["app/"], "rutas_libres": ["README.md"],
- "comando_test": "python3 -m unittest discover -s app -q"}
+{"stack": "react", "frontend": "react-ts-vite-vitest", "rutas_codigo": ["apps/web/"],
+ "rutas_libres": ["README.md"], "comando_test": "vitest run"}
 ```
 """
 
@@ -45,12 +46,13 @@ def test_flujo_completo(tmp_path, monkeypatch):
     c = raiz / "specs" / "000-constitucion"
     (c / h.REQ).write_text(REQ_OK)
     (c / h.DIS).write_text(DIS_OK + CONFIG)
-    assert escribir(raiz, "app/x.py").returncode == 2
+    (c / h.CONS).write_text(CONS_OK)
+    assert escribir(raiz, "apps/web/x.py").returncode == 2
     assert hook("gate-bash.py", raiz, "Bash",
                 {"command": "python3 .claude/scripts/aprobar.py 000"}).returncode == 2
     r = correr("aprobar.py", "000", raiz=raiz)
     assert r.returncode == 0, r.stdout
-    assert json.loads((raiz / "harness.config.json").read_text())["rutas_codigo"] == ["app/"]
+    assert json.loads((raiz / "harness.config.json").read_text())["rutas_codigo"] == ["apps/web/"]
 
     # Feature 001
     r = correr("nueva-feature.py", "Dividir la cuenta", raiz=raiz)
@@ -59,16 +61,22 @@ def test_flujo_completo(tmp_path, monkeypatch):
     (f / h.REQ).write_text(REQ_OK)
     (f / h.DIS).write_text(DIS_OK)
     (f / h.TAR).write_text(TAR_OK)
-    assert escribir(raiz, "app/x.py").returncode == 2
+    assert escribir(raiz, "apps/web/x.py").returncode == 2
     assert correr("aprobar.py", raiz=raiz).returncode == 0
-    assert escribir(raiz, "app/x.py").returncode == 2          # falta tareas.md
+    assert escribir(raiz, "apps/web/x.py").returncode == 2          # falta tareas.md
     assert correr("aprobar.py", raiz=raiz).returncode == 0
-    assert escribir(raiz, "app/x.py").returncode == 0          # código desbloqueado
+    assert escribir(raiz, "apps/web/x.py").returncode == 0          # código desbloqueado
 
-    (raiz / "app").mkdir()
-    (raiz / "app" / "test_x.py").write_text(TEST_APP)
+    (raiz / "apps" / "web").mkdir(parents=True)
+    (raiz / "apps" / "web" / "test_x.py").write_text(TEST_APP)
+    # vitest simulado: en este entorno no hay Node; ejecuta los tests unittest de apps/web
+    binfalso = tmp_path / "bin"
+    binfalso.mkdir()
+    (binfalso / "vitest").write_text("#!/bin/sh\nexec python3 -m unittest discover -s apps/web -q\n")
+    (binfalso / "vitest").chmod(0o755)
+    path = {"PATH": f"{binfalso}:{os.environ['PATH']}"}
     for t in ("T-01", "T-02"):
-        r = correr("completar-tarea.py", t, raiz=raiz)
+        r = correr("completar-tarea.py", t, raiz=raiz, env_extra=path)
         assert r.returncode == 0, r.stdout + r.stderr
     assert "HU-01" in r.stdout
     assert correr("aceptar.py", "HU-01", raiz=raiz).returncode == 0
