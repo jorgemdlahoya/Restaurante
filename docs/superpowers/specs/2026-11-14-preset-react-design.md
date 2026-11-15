@@ -57,6 +57,36 @@ proyectos (backend, dominio, despliegue, convenciones propias).
 - **Spec original** (`2026-11-12-harness-sdd-design.md`): CE-5 y §8 actualizados (el
   frontend deja de ser agnóstico).
 
+## Principios innegociables (`constitucion.md`)
+
+El usuario aporta un texto de principios (Art. 1–4 núcleo universal: seguridad sin secretos,
+TDD, diseño acotado con inyección de dependencias, verificar antes de declarar terminado; Art. 5
+documentación ejecutable del API, condicional). Deben venir de serie en toda constitución.
+
+- **Enfoques:** (A) tercer documento `constitucion.md` aprobado por hash — **elegido por el
+  usuario**; (B) sección dentro de `diseno.md` — descartado: mezcla principios permanentes con
+  decisiones técnicas; (C) archivo en `docs/` — descartado: el agente podría editarlo sin aprobación.
+- **Plantilla** `specs/_plantillas/constitucion/constitucion.md` con el texto del usuario,
+  incluidos `{{CORS_RULE}}` y las referencias del Art. 5 tal cual, más:
+  - **Regla rectora** definida al inicio (llamada del agente, a partir de la frase del usuario):
+    "Estos principios aplican íntegramente al código nuevo y, en cualquier flujo que se toque,
+    a todo su alcance".
+  - Art. 5 marcado como condicional: se conserva y adapta si el proyecto expone una API;
+    si no, se elimina en el análisis.
+  - Sección final `## Artículos del proyecto` con `{{articulos_proyecto}}`.
+- **`000-constitucion` requiere tres documentos:** `requerimiento.md`, `diseno.md` y
+  `constitucion.md`. `/aprobar 000` los valida y aprueba juntos; editar cualquiera lo devuelve
+  a borrador. Validación extra: `constitucion.md` existe, no tiene `{{`, y conserva los
+  encabezados `### Artículo 1` a `### Artículo 4` (el núcleo no se puede quitar).
+- **Compatibilidad:** una constitución aprobada antes de este cambio (sin `constitucion.md` ni
+  entrada de aprobación) sigue aprobada. `constitucion.md` se exige si el archivo existe o si
+  ya tuvo aprobación; borrarlo después de aprobado deja la constitución sin aprobar.
+- **Uso en el flujo:** `/analizar` (constitución) rellena `constitucion.md` en el brainstorming;
+  `/analizar` de otras features, `/planificar` e `/implementar` leen
+  `specs/000-constitucion/constitucion.md` y comprueban que el diseño, el plan y el código lo
+  cumplen; la revisión de código se hace contra requisitos y contra la constitución (Art. 4.3).
+  `CLAUDE.md` lo menciona como fuente de principios.
+
 ## Pruebas
 
 - `extraer_config` rechaza cada uno de estos casos: falta `frontend`, otro valor de

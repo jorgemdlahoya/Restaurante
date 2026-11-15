@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fijar en el harness el frontend React + TypeScript + Vite + Vitest y hacer que `/aprobar 000` rechace constituciones que no lo declaren.
+**Goal:** Fijar en el harness el frontend React + TypeScript + Vite + Vitest, añadir los principios innegociables (`constitucion.md`) a toda constitución, y hacer que `/aprobar 000` rechace constituciones que no cumplan ambos.
 
 **Architecture:** Una constante `PRESET_FRONTEND` en `harness_lib.py` y una validación extra en `extraer_config`. Plantilla de `diseno.md` propia para la constitución, que `nueva-feature.py` usa al crear `000`. Ajustes de texto en `/analizar`, `CLAUDE.md`, `README.md` y la spec original.
 
@@ -16,6 +16,7 @@
 - Preset: `{"id": "react-ts-vite-vitest", "ruta": "apps/web/", "test": "vitest"}`.
 - `harness-config` exige además: `frontend == "react-ts-vite-vitest"`, `apps/web/` en `rutas_codigo`, `comando_test` contiene `vitest`.
 - Comando de tests base en la plantilla: `npm --prefix apps/web exec vitest run`.
+- `000-constitucion` requiere `requerimiento.md`, `diseno.md` y `constitucion.md` (este último sólo si existe o ya tuvo aprobación); `constitucion.md` conserva `### Artículo 1`–`### Artículo 4`.
 - Textos en español; scripts sólo stdlib.
 
 ## Review Focus
@@ -72,6 +73,34 @@
 - [ ] **Step 2:** FAIL. **Step 3:** Crear plantilla y ajustar `crear`. **Step 4:** `python3 -m pytest tests/harness -q` → PASS.
 - [ ] **Step 5:** `git add -A && git commit -m "feat(harness): plantilla de constitución con preset React"`
 
+### Task 2b: `constitucion.md` — principios innegociables
+
+**Files:**
+- Create: `specs/_plantillas/constitucion/constitucion.md`
+- Modify: `.claude/scripts/harness_lib.py` (`CONS`, `docs_requeridos`, `validar_req_diseno`)
+- Modify: `.claude/scripts/aprobar.py` (aprobar `CONS` junto a REQ+DIS en 000)
+- Modify: `tests/harness/conftest.py` (`constitucion_aprobada` y helpers crean y aprueban `constitucion.md`), `tests/harness/test_e2e.py`
+- Test: `tests/harness/test_constitucion.py`
+
+**Interfaces:**
+- Consumes: Task 2 (`crear` copia todo lo que haya en `_plantillas/constitucion/` para `000-`; los archivos que no existen en la genérica se añaden).
+- Produces:
+  - `CONS = "constitucion.md"`.
+  - `docs_requeridos(fdir)`: para 000 → `[REQ, DIS, CONS]` si `fdir/CONS` existe o `CONS` está en `.aprobaciones.json`; si no, `[REQ, DIS]`.
+  - `validar_req_diseno(fdir)` en 000 añade: falta `constitucion.md` (sólo si es requerido), `{{` presente, y por cada `n` en 1..4 sin `^### Artículo {n}\b` → error `"constitucion.md: falta el Artículo {n} (núcleo innegociable)"`.
+  - `aprobar.py`: en la rama REQ+DIS, si es constitución, aprueba `docs_requeridos(fdir)` completos.
+- Plantilla: el texto del usuario íntegro (Art. 1–5, `{{CORS_RULE}}`, enlaces del Art. 5), con encabezado `# Constitución: principios innegociables`, front-matter `feature: {{feature}}` / `estado: borrador`, párrafo **Regla rectora** ("Estos principios aplican íntegramente al código nuevo y, en cualquier flujo que se toque, a todo su alcance."), nota bajo el Art. 5 "Condicional: consérvalo y adáptalo si el proyecto expone una API; si no, elimínalo", y `## Artículos del proyecto` con `{{articulos_proyecto}}`.
+
+- [ ] **Step 1: Tests que fallan:**
+  - `test_constitucion_crea_tres_docs`: `nueva-feature.py` en proyecto vacío → existen `requerimiento.md`, `diseno.md`, `constitucion.md`; este último contiene `"### Artículo 1 — Seguridad"`, `"Regla rectora"` y `"{{CORS_RULE}}"`.
+  - `test_aprobar_000_exige_constitucion_rellena`: con REQ/DIS válidos y `constitucion.md` aún con `{{` → exit 1, salida contiene `"constitucion.md"`.
+  - `test_no_se_puede_quitar_el_nucleo`: `constitucion.md` sin `### Artículo 3` → exit 1, salida contiene `"Artículo 3"`.
+  - `test_aprobar_000_aprueba_los_tres`: los tres válidos → exit 0 y `doc_aprobado` de los tres; editar `constitucion.md` → `constitucion_aprobada(raiz) is False`.
+  - `test_constitucion_antigua_sigue_aprobada`: 000 con sólo REQ+DIS aprobados, sin `constitucion.md` → `constitucion_aprobada(raiz) is True`.
+  - `test_borrar_constitucion_aprobada_bloquea`: tres aprobados, borrar `constitucion.md` → `constitucion_aprobada(raiz) is False`.
+- [ ] **Step 2:** FAIL. **Step 3:** Implementar. **Step 4:** Ajustar fixtures (`constitucion_aprobada` y e2e escriben un `constitucion.md` válido con los cuatro artículos y lo aprueban). `python3 -m pytest tests/harness -q` → PASS.
+- [ ] **Step 5:** `git add -A && git commit -m "feat(harness): constitucion.md con principios innegociables"`
+
 ### Task 3: `/analizar`, `CLAUDE.md`, `README.md` y spec base
 
 **Files:**
@@ -83,6 +112,7 @@
   - `test_analizar_preset`: `analizar.md` contiene `"react-ts-vite-vitest"` y `"no lo preguntes"`.
   - `test_claude_md_preset`: `CLAUDE.md` contiene `"## Stack fijo del frontend"` y `"apps/web/"`, y sigue con ≤ 80 líneas.
   - `test_readme_preset`: `README.md` contiene `"PRESET_FRONTEND"` (sección "Cambiar el preset").
+  - `test_comandos_leen_constitucion`: `analizar.md`, `planificar.md` e `implementar.md` contienen `"specs/000-constitucion/constitucion.md"`; `analizar.md` contiene `"{{CORS_RULE}}"` (instrucción de rellenarlo); `CLAUDE.md` contiene `"constitucion.md"`.
 - [ ] **Step 2:** FAIL. **Step 3:** Editar los textos (viñeta de `/analizar`: el frontend es React + TS + Vite + Vitest en `apps/web/`, fijo del harness — no lo preguntes; el brainstorming de la constitución cubre backend, arquitectura, datos, despliegue y convenciones). **Step 4:** PASS.
 - [ ] **Step 5:** `git add -A && git commit -m "docs(harness): preset React en comandos y documentación"`
 
