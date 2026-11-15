@@ -55,3 +55,30 @@ def test_aprobar_000_rechaza_otro_frontend(proyecto):
                   {h.REQ: REQ_OK, h.DIS: DIS_OK + bloque(frontend="angular")})
     r = correr("aprobar.py", "000", raiz=proyecto)
     assert r.returncode == 1 and "frontend" in r.stdout
+
+
+def test_constitucion_usa_plantilla_react(proyecto):
+    assert correr("nueva-feature.py", "x", raiz=proyecto).returncode == 0
+    texto = (proyecto / "specs" / "000-constitucion" / h.DIS).read_text()
+    assert "## Frontend (fijo del harness)" in texto
+    assert h.extraer_config(texto)["frontend"] == "react-ts-vite-vitest"
+
+
+def test_feature_normal_plantilla_generica(proyecto):
+    constitucion_aprobada(proyecto)
+    assert correr("nueva-feature.py", "pedidos", raiz=proyecto).returncode == 0
+    texto = (proyecto / "specs" / "001-pedidos" / h.DIS).read_text()
+    assert "Frontend (fijo del harness)" not in texto
+
+
+def test_sin_plantilla_constitucion_usa_generica(proyecto):
+    import shutil
+    shutil.rmtree(proyecto / "specs" / "_plantillas" / "constitucion", ignore_errors=True)
+    assert correr("nueva-feature.py", "x", raiz=proyecto).returncode == 0
+    assert (proyecto / "specs" / "000-constitucion" / h.DIS).exists()
+
+
+def test_plantilla_constitucion_no_aprobable_vacia(proyecto):
+    correr("nueva-feature.py", "x", raiz=proyecto)
+    r = correr("aprobar.py", "000", raiz=proyecto)
+    assert r.returncode == 1 and "{{" in r.stdout
