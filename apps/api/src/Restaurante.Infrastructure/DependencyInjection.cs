@@ -12,7 +12,12 @@ public static class DependencyInjection
     public static IServiceCollection AddInfrastructureServices(
         this IServiceCollection services, string cadenaConexion, string claveJwt)
     {
-        services.AddDbContext<RestauranteDbContext>(o => o.UseNpgsql(cadenaConexion));
+        // Reintenta fallos transitorios de PostgreSQL (p. ej. la base aún arrancando). La estrategia de
+        // reintento no admite transacciones iniciadas por el usuario salvo dentro de
+        // CreateExecutionStrategy().Execute(...); hoy no hay ninguna (SaveChanges ya es atómico).
+        services.AddDbContext<RestauranteDbContext>(o =>
+            o.UseNpgsql(cadenaConexion, npgsql => npgsql.EnableRetryOnFailure()));
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<AplicadorMigraciones>();
         services.AddScoped<InicializadorAdministrador>();

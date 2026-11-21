@@ -6,16 +6,22 @@ public sealed class CrearUsuarioValidator : AbstractValidator<CrearUsuarioComman
 {
     internal static readonly string[] RolesValidos = ["mesero", "cocina", "caja", "administrador"];
 
+    /// <summary>Formato del nombre de usuario (RF-13); compartido con el administrador inicial (RF-10).</summary>
+    public const string PatronNombreUsuario = "^[A-Za-z0-9._-]{3,50}$";
+
+    /// <summary>Longitud mínima de la contraseña (RF-13); compartida con el administrador inicial (RF-10).</summary>
+    public const int LongitudMinimaContrasena = 8;
+
     public CrearUsuarioValidator()
     {
         RuleFor(x => x.NombreUsuario)
             .NotEmpty().WithMessage("El nombre de usuario es obligatorio")
-            .Matches("^[A-Za-z0-9._-]{3,50}$")
+            .Matches(PatronNombreUsuario)
             .WithMessage("El nombre de usuario debe tener entre 3 y 50 caracteres: letras, números, punto, guion y guion bajo");
 
         RuleFor(x => x.Contrasena)
             .NotEmpty().WithMessage("La contraseña es obligatoria")
-            .MinimumLength(8).WithMessage("La contraseña debe tener al menos 8 caracteres");
+            .MinimumLength(LongitudMinimaContrasena).WithMessage("La contraseña debe tener al menos 8 caracteres");
 
         RuleFor(x => x.Rol)
             .Must(rol => rol is not null && RolesValidos.Contains(rol, StringComparer.Ordinal))

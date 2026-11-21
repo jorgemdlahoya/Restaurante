@@ -104,6 +104,56 @@ public sealed class InicializadorAdministradorTests
         Assert.Empty(repo.Agregados);
     }
 
+    [Theory(DisplayName = "001/RF-10: ADMIN_USERNAME con formato inválido devuelve error sin revelar el valor")]
+    [InlineData("ab")]
+    [InlineData("nombre con espacios")]
+    [InlineData("ñandú")]
+    [InlineData("a@b.com")]
+    [InlineData("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    public async Task Usuario_con_formato_invalido_devuelve_error(string nombre)
+    {
+        var repo = new RepoDoble(false);
+
+        var r = await Crear(repo).InicializarAsync(Entorno(nombre, "Secreta123"), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Contains("ADMIN_USERNAME", r.Error);
+        Assert.Contains("3 y 50", r.Error);
+        Assert.DoesNotContain(nombre, r.Error);
+        Assert.DoesNotContain("Secreta123", r.Error);
+        Assert.Empty(repo.Agregados);
+        Assert.Equal(0, repo.Guardados);
+    }
+
+    [Fact(DisplayName = "001/RF-10: ADMIN_USERNAME se valida tras recortar espacios")]
+    public async Task Usuario_valido_con_espacios_alrededor_se_acepta_recortado()
+    {
+        var repo = new RepoDoble(false);
+
+        var r = await Crear(repo).InicializarAsync(Entorno("  root  ", "Secreta123"), CancellationToken.None);
+
+        Assert.True(r.Ok);
+        Assert.Equal("root", Assert.Single(repo.Agregados).NombreUsuario);
+    }
+
+    [Theory(DisplayName = "001/RF-10: ADMIN_PASSWORD de menos de 8 caracteres devuelve error sin revelar el valor")]
+    [InlineData("1234567")]
+    [InlineData("corta")]
+    public async Task Contrasena_corta_devuelve_error(string contrasena)
+    {
+        var repo = new RepoDoble(false);
+
+        var r = await Crear(repo).InicializarAsync(Entorno("root", contrasena), CancellationToken.None);
+
+        Assert.False(r.Ok);
+        Assert.Contains("ADMIN_PASSWORD", r.Error);
+        Assert.Contains("8", r.Error);
+        Assert.DoesNotContain(contrasena, r.Error);
+        Assert.DoesNotContain("root", r.Error);
+        Assert.Empty(repo.Agregados);
+        Assert.Equal(0, repo.Guardados);
+    }
+
     [Fact(DisplayName = "001/RF-10: variable ausente del diccionario cuenta como faltante")]
     public async Task Variable_ausente_devuelve_error()
     {

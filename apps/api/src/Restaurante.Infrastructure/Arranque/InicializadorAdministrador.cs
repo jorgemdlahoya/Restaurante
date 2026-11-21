@@ -1,4 +1,6 @@
+using System.Text.RegularExpressions;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Features.Usuarios.CrearUsuario;
 using Restaurante.Domain.Usuarios;
 
 namespace Restaurante.Infrastructure.Arranque;
@@ -38,7 +40,23 @@ public sealed class InicializadorAdministrador(
             return ResultadoInicializacion.Fallo($"Falta la variable de entorno {VariableContrasena}.");
         }
 
-        usuarios.Agregar(Usuario.Crear(nombre.Trim(), hasher.Hashear(contrasena), Rol.Administrador, reloj.Ahora));
+        // Mismas reglas que RF-13; el error nombra la variable y el motivo, nunca el valor.
+        nombre = nombre.Trim();
+        if (!Regex.IsMatch(nombre, CrearUsuarioValidator.PatronNombreUsuario))
+        {
+            return ResultadoInicializacion.Fallo(
+                $"{VariableUsuario} no es válida: debe tener entre 3 y 50 caracteres " +
+                "(letras, números, punto, guion y guion bajo).");
+        }
+
+        if (contrasena.Length < CrearUsuarioValidator.LongitudMinimaContrasena)
+        {
+            return ResultadoInicializacion.Fallo(
+                $"{VariableContrasena} no es válida: debe tener al menos " +
+                $"{CrearUsuarioValidator.LongitudMinimaContrasena} caracteres.");
+        }
+
+        usuarios.Agregar(Usuario.Crear(nombre, hasher.Hashear(contrasena), Rol.Administrador, reloj.Ahora));
         await usuarios.GuardarCambiosAsync(ct);
         return ResultadoInicializacion.Exito;
     }
