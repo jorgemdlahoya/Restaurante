@@ -1,0 +1,18 @@
+{
+  "constitucion": "aprobada",
+  "stack": "React + TypeScript + Vite + Vitest + Playwright; backend: .NET 10 / ASP.NET Core + PostgreSQL (EF Core)",
+  "frontend": "react-ts-vite-vitest-playwright",
+  "rutas_codigo": [
+    "apps/web/",
+    "apps/api/",
+    "docker-compose.yml",
+    ".env.example"
+  ],
+  "rutas_libres": [
+    "README.md",
+    ".gitignore",
+    ".editorconfig"
+  ],
+  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api",
+  "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts"
+}
