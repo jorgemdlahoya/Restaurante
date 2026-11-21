@@ -42,16 +42,8 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
 
     [HttpPut("{id:guid}/estado")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]
-    public async Task<ActionResult<UsuarioDto>> CambiarEstado(Guid id, CambiarEstadoPeticion peticion, CancellationToken ct)
-    {
-        if (peticion.Activo is null)
-        {
-            return RespuestasProblema.Validacion(
-                [KeyValuePair.Create("activo", new[] { "El estado (activo) es obligatorio" })]);
-        }
-
-        return Ok(await mediador.Send(new CambiarEstadoUsuarioCommand(id, peticion.Activo.Value), ct));
-    }
+    public async Task<ActionResult<UsuarioDto>> CambiarEstado(Guid id, CambiarEstadoPeticion peticion, CancellationToken ct) =>
+        Ok(await mediador.Send(new CambiarEstadoUsuarioCommand(id, peticion.Activo), ct));
 
     [HttpPut("{id:guid}/rol")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]

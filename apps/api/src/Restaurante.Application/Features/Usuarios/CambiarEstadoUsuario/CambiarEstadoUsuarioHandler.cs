@@ -14,7 +14,8 @@ public sealed class CambiarEstadoUsuarioHandler(
         var usuario = await usuarios.ObtenerPorIdAsync(request.Id, cancellationToken)
             ?? throw new NoEncontradoException("Usuario no encontrado");
 
-        if (request.Activo)
+        // El validador (pipeline) garantiza que Activo tiene valor.
+        if (request.Activo is true)
         {
             usuario.Reactivar();
         }

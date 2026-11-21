@@ -84,6 +84,26 @@ public class CambiarEstadoUsuarioTests
         Assert.True(yo.Activo);
     }
 
+    [Fact(DisplayName = "001/RF-15: el validador exige el estado (activo) con el mensaje en español")]
+    public void ValidadorExigeActivo()
+    {
+        var resultado = new CambiarEstadoUsuarioValidator().Validate(new CambiarEstadoUsuarioCommand(Guid.NewGuid(), null));
+
+        var error = Assert.Single(resultado.Errors);
+        Assert.Equal("Activo", error.PropertyName);
+        Assert.Equal("El estado (activo) es obligatorio", error.ErrorMessage);
+    }
+
+    [Theory(DisplayName = "001/RF-15: el validador acepta activo verdadero o falso")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void ValidadorAceptaActivo(bool activo)
+    {
+        var resultado = new CambiarEstadoUsuarioValidator().Validate(new CambiarEstadoUsuarioCommand(Guid.NewGuid(), activo));
+
+        Assert.True(resultado.IsValid);
+    }
+
     [Fact(DisplayName = "001/RF-19: id inexistente lanza NoEncontradoException")]
     public async Task IdInexistenteLanzaNoEncontrado()
     {
