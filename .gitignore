@@ -7,3 +7,4 @@ apps/web/node_modules/
 bin/
 obj/
 apps/web/test-results/
+.env
