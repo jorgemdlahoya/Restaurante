@@ -45,3 +45,13 @@ def test_falta_comando_e2e_stack():
 
 def test_e2e_stack_sin_playwright():
     assert "comando_e2e_stack" in _error(comando_e2e_stack="npm run e2e")
+
+
+def test_plantilla_constitucion_playwright(proyecto):
+    assert correr("nueva-feature.py", "x", raiz=proyecto).returncode == 0
+    texto = (proyecto / "specs" / "000-constitucion" / h.DIS).read_text()
+    for frag in ("Playwright", "apps/web/e2e/", "apps/web/e2e-stack/", "E2E_BASE_URL"):
+        assert frag in texto, frag
+    cfg = h.extraer_config(texto)
+    assert cfg["comando_test"] == BASE["comando_test"]
+    assert cfg["comando_e2e_stack"] == BASE["comando_e2e_stack"]
