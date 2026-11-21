@@ -18,8 +18,9 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
    ```
 
 2. Edita `.env` y sustituye cada *placeholder* `<...>`:
-   - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB` y la misma información dentro de
-     `DB_CONNECTION_STRING` (el host es `db`, el servicio de compose).
+   - `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`. La cadena de conexión de la API
+     (`DB_CONNECTION_STRING`) la compone `docker-compose.yml` con estos tres valores (host `db`,
+     puerto 5432), por lo que no se define en `.env`. La contraseña **no debe contener `;`**.
    - `JWT_SIGNING_KEY`: clave aleatoria de **al menos 32 caracteres**.
    - `CORS_ALLOWED_ORIGINS`: orígenes separados por comas (por defecto
      `http://localhost:5173,http://localhost:8080`).
@@ -45,6 +46,23 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
    Debe responder `200` (si la base de datos no es accesible responde `503`).
 
 Para parar: `docker compose down` (añade `-v` para borrar también el volumen `datos-db`).
+
+## Ejecutar la API sin compose
+
+La API lee `DB_CONNECTION_STRING` del entorno del proceso; compose la construye por ti, pero si
+arrancas la API a mano (`dotnet run --project apps/api/src/Restaurante.WebApi`) debes exportarla
+junto con el resto de variables obligatorias:
+
+```bash
+export DB_CONNECTION_STRING="Host=localhost;Port=5432;Database=<POSTGRES_DB>;Username=<POSTGRES_USER>;Password=<POSTGRES_PASSWORD>"
+export JWT_SIGNING_KEY="<clave-aleatoria-de-al-menos-32-caracteres>"
+export CORS_ALLOWED_ORIGINS="http://localhost:5173"
+export ADMIN_USERNAME="<usuario-administrador>"   # 3-50 caracteres: letras, números, . _ -
+export ADMIN_PASSWORD="<contrasena-del-administrador>"   # mínimo 8 caracteres
+```
+
+Sin `DB_CONNECTION_STRING` (o con otra variable obligatoria ausente) la API se niega a arrancar y
+lo indica en el log.
 
 ## Recuperar el acceso de administrador
 
