@@ -3,3 +3,7 @@ __pycache__/
 .DS_Store
 .claude/settings.local.json
 .claude/ralph-loop.local.md
+apps/web/node_modules/
+bin/
+obj/
+apps/web/test-results/
