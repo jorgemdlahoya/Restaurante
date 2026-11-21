@@ -65,6 +65,36 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
   actualiza su `diseno.md` (frontend, estrategia de pruebas, bloque de config) una vez
   integrado este cambio, antes de `/aprobar 000`.
 
+## Ralph Loop en las tareas con flujo visible
+
+El usuario pide complementar las pruebas de Playwright con el plugin **Ralph Loop** (bucle que
+repite la misma instrucción hasta que el agente emite `<promise>…</promise>` o se agota
+`--max-iterations`).
+
+- **Enfoques:** (A) en cada tarea con flujo visible, para la fase verde — **elegido por el
+  usuario**; (B) sólo como rescate cuando la prueba sigue fallando — descartado: se usaría
+  poco; (C) también para la suite completa antes del cierre — descartado por ahora: exige
+  Docker en la máquina donde corre el bucle.
+- **Flujo en `/implementar`**, para cada tarea que toca un flujo visible de la UI:
+  1. Escribir la prueba Playwright (suite simulada, `test("NNN/RF-NN: …")`) y verla fallar (rojo).
+  2. Invocar el skill `ralph-loop:ralph-loop` con
+     `--completion-promise "T-NN VERDE"` y `--max-iterations 8`, y esta instrucción:
+     "Implementa T-NN de `specs/<feature>/tareas.md` hasta que
+     `python3 .claude/scripts/completar-tarea.py T-NN` termine con código 0. No modifiques las
+     pruebas Playwright de los RF de T-NN. Sólo cuando `completar-tarea` termine en verde,
+     escribe `<promise>T-NN VERDE</promise>`."
+  3. Si se agotan las 8 iteraciones: el bucle se detiene, el agente aplica
+     `superpowers:systematic-debugging` e informa al usuario; la tarea no se da por hecha.
+  4. La revisión de código de la tarea comprueba que el diff no altera las pruebas Playwright
+     escritas en el paso 1.
+  Las tareas sin flujo visible siguen el TDD normal, sin Ralph Loop.
+- **Compatibilidad con el gate:** Ralph Loop guarda su estado en
+  `.claude/.ralph-loop.local.md`. El gate (Write/Edit y Bash) permite escribir y borrar
+  **sólo ese archivo** dentro de `.claude/`; el resto de `.claude/` sigue protegido. El archivo
+  se añade a `.gitignore`.
+- `/planificar` marca en `tareas.md` las tareas con flujo visible (línea `UI: sí`), para que
+  `/implementar` sepa cuáles usan Ralph Loop.
+
 ## Pruebas
 
 - `extraer_config` rechaza: `frontend` antiguo, `comando_test` sin `playwright`, falta de
@@ -75,6 +105,11 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
 - La plantilla de constitución contiene la sección de Playwright y su bloque pasa la validación.
 - Se actualizan fixtures y la prueba extremo a extremo (comandos `vitest`/`playwright`
   simulados en el `PATH`).
+- Gate: permite Write y `rm` de `.claude/.ralph-loop.local.md`; sigue bloqueando cualquier
+  otro archivo de `.claude/` (p. ej. `.claude/otro.local.md`, `.claude/settings.json`).
+- `implementar.md` menciona `ralph-loop:ralph-loop`, `--completion-promise`, `--max-iterations 8`
+  y la prohibición de modificar las pruebas; `planificar.md` menciona `UI: sí`; `.gitignore`
+  incluye `.claude/.ralph-loop.local.md`.
 
 ## Forma de trabajo
 
@@ -88,3 +123,5 @@ verificación final en el proyecto con los hooks activos, y se entrega como Pull
 - `comando_e2e_stack` obligatorio y ejecutado por `aceptar.py` al cerrar la feature.
 - Carpetas `apps/web/e2e/` (simulada) y `apps/web/e2e-stack/` (completa); `E2E_BASE_URL` por
   defecto `http://localhost:8080`.
+- Ralph Loop: tope de 8 iteraciones, promesa `T-NN VERDE` ligada a `completar-tarea`, marca
+  `UI: sí` en `tareas.md`.
