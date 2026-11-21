@@ -6,7 +6,8 @@ estado: borrador
 
 ## Contexto y propósito
 
-Plataforma de menú y pedidos para un restaurante **multi-sucursal**: backoffice de menú,
+Plataforma **multi-restaurante** de menú y pedidos: el operador de la plataforma da de alta
+restaurantes independientes, cada uno **multi-sucursal**, con backoffice de menú,
 sucursales y usuarios; pedidos por chatbot de WhatsApp y por web; tablero de caja y cocina; e
 impresión de tickets. El backlog definitivo está en `docs/backlog/BACKLOG.md`. Se compone de un
 frontend web (React) y un microservicio backend con base de datos propia que el frontend consume
@@ -19,7 +20,8 @@ negocio ni código: la plataforma base se construye en la feature `001-plataform
 
 ## Actores
 
-- **Administrador general**: gestiona menú, precios, sucursales y usuarios de todas las sucursales.
+- **Administrador de la plataforma**: da de alta, edita y desactiva restaurantes y crea su primer administrador general.
+- **Administrador general**: gestiona menú, precios, sucursales y usuarios de todas las sucursales de su restaurante.
 - **Administrador de sucursal**: gestiona agotados, personal e impresoras de su sucursal.
 - **Cajero**: ve los pedidos de su(s) sucursal(es), cobra y marca "Entregada".
 - **Cocinero**: ve los pedidos de su(s) sucursal(es) y marca "En preparación" y "Lista".

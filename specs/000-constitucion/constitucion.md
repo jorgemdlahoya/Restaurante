@@ -87,7 +87,11 @@ que se toque, a todo su alcance.
 1. Todo endpoint del backoffice exige un rol explícito, salvo el login, el endpoint de salud y los
    endpoints públicos de los canales de pedido (web y webhook de WhatsApp), que se marcan
    explícitamente como anónimos. Roles (identificadores en el token y en la API):
-   - `administrador_general`: menú, precios, sucursales y usuarios; alcance: todas las sucursales.
+   - `administrador_plataforma`: operador de la plataforma; da de alta, edita y desactiva
+     restaurantes y crea su primer administrador general. No gestiona el menú ni los pedidos de
+     los restaurantes.
+   - `administrador_general`: menú, precios, sucursales y usuarios **de su restaurante**; alcance:
+     todas las sucursales de su restaurante.
    - `administrador_sucursal`: agotados, personal e impresoras de su sucursal.
    - `cajero`: tablero de caja (ver pedidos, cobrar, marcar "Entregada"); una o varias sucursales.
    - `cocinero`: tablero de cocina (ver pedidos, marcar "En preparación" y "Lista"); una o varias
@@ -104,15 +108,22 @@ que se toque, a todo su alcance.
 2. Nunca se devuelven al cliente trazas, mensajes internos de excepción ni SQL; el detalle se
    registra en el log con su identificador de traza.
 
-### Artículo 12 — Aislamiento por sucursal
-1. El sistema es multi-sucursal. Toda entidad operativa (pedidos, sesiones del chatbot, usuarios,
-   impresoras, disponibilidad) lleva `BranchId`.
-2. Un filtro global de EF Core por la sucursal del usuario autenticado o del canal impide que
-   cualquier consulta mezcle datos de sucursales.
-3. El menú (categorías, platillos, variantes, modificadores) y sus precios son **globales**; la
-   disponibilidad ("Agotado") es **por sucursal**.
-4. Toda historia que toque datos operativos incluye la prueba "un usuario de la sucursal A no puede
-   ver ni modificar datos de la sucursal B" → 404.
+### Artículo 12 — Aislamiento por restaurante y por sucursal
+1. La plataforma es **multi-restaurante**: Plataforma → Restaurantes → Sucursales. Cada restaurante
+   es un negocio independiente y completamente aislado (identidad, menú, precios, sucursales,
+   usuarios, cuenta de WhatsApp Business, pedidos).
+2. Toda entidad de un restaurante lleva `RestaurantId`, y toda entidad operativa (pedidos, sesiones
+   del chatbot, impresoras, disponibilidad) lleva además `BranchId`.
+3. Filtros globales de EF Core por el restaurante y la sucursal del contexto (usuario autenticado o
+   canal) impiden que cualquier consulta mezcle datos de restaurantes o de sucursales. Sólo el
+   `administrador_plataforma` opera fuera del filtro de restaurante, y únicamente sobre la entidad
+   restaurante y su primer administrador.
+4. El menú y sus precios son **globales dentro del restaurante**; la disponibilidad ("Agotado") es
+   **por sucursal**. Lo que el backlog llama "global" se entiende siempre como "dentro del
+   restaurante".
+5. Toda historia que toque datos de restaurante incluye las pruebas "el restaurante A no ve ni
+   modifica datos del B" → 404 y, si toca datos operativos, "la sucursal A no ve ni modifica datos
+   de la B" → 404.
 
 ### Artículo 13 — Borrado lógico e históricos
 1. Las entidades del menú y de negocio no se borran físicamente: usan `IsActive` / `DeletedAt` y un
@@ -126,3 +137,12 @@ que se toque, a todo su alcance.
    respeta sus criterios, reglas y decisiones (P-xx).
 2. Si el backlog y esta constitución se contradicen, prevalece la constitución hasta que se
    enmiende con `/aprobar 000`.
+
+### Artículo 15 — Identidad visual configurable
+1. Nombre, logo y paleta de colores son configuración **de cada restaurante**; ninguna pantalla
+   los fija en el código.
+2. Valores por defecto de la paleta y la tipografía: tipografía *Nunito*; negro `#000000` /
+   `#111111`, naranja `#F97316` / `#FF6600`, gris de fondo `#F8F9FA`, gris azulado `#1F2937`. El
+   restaurante puede cambiarlos sin tocar código.
+3. El frontend aplica la identidad mediante variables de tema (tokens), nunca con colores literales
+   en los componentes.
