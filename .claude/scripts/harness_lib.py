@@ -21,6 +21,8 @@ CONS = "constitucion.md"
 APROBACIONES = ".aprobaciones.json"
 PROGRESO = "progreso.json"
 CONFIG = "harness.config.json"
+# Estado del plugin Ralph Loop: único archivo de .claude/ que el agente puede escribir o borrar.
+ESTADO_RALPH = ".claude/.ralph-loop.local.md"
 
 # Stack de frontend fijo del harness. Para cambiar de preset, cambia esto y la plantilla
 # specs/_plantillas/constitucion/diseno.md.
@@ -401,6 +403,8 @@ def _relativa(raiz: Path, ruta: str) -> str | None:
 
 def _es_protegido(rel: str) -> bool:
     r = rel.casefold()
+    if r == ESTADO_RALPH:
+        return False
     nombre = r.rsplit("/", 1)[-1]
     return (r.startswith(".claude/") or r == ".claude"
             or r in (CONFIG.casefold(), "claude.md", "specs/.activa")
@@ -425,7 +429,7 @@ def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
     if _es_protegido(rel):
         return (f"Bloqueado: '{rel}' está protegido por el harness SDD. Sólo lo modifica el usuario "
                 "(o los comandos /aprobar, /aceptar y los scripts del harness).")
-    if _coincide(rel, ["specs/", "docs/", ".superpowers/"]):
+    if _coincide(rel, ["specs/", "docs/", ".superpowers/"]) or rel.casefold() == ESTADO_RALPH:
         return None
     if not constitucion_aprobada(raiz):
         return (f"Bloqueado: '{rel}' — la constitución (000) no está aprobada, así que aún no hay "
