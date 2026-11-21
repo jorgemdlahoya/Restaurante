@@ -12,7 +12,7 @@ estado: borrador
 - **Descartado:** construir el esqueleto dentro de la constitución (el harness no permite
   código en ella y sería código sin pruebas) y empezar por una funcionalidad de negocio (cada
   feature tendría que montar su parte de la plataforma).
-- Decisiones del backend tomadas por el usuario: .NET 10 / ASP.NET Core, MediatR,
+- Decisiones del backend tomadas por el usuario: .NET 10 / ASP.NET Core, MediatR 12.x,
   FluentValidation, RestSharp/HttpClient, Swagger; Clean Architecture en 4 capas; CQRS +
   Mediator; behaviours de validación y logging; filtros MVC de autorización y errores; DTOs;
   contenedor de DI nativo con `AddXxxServices()` por capa; PostgreSQL + EF Core; JWT propio
@@ -20,17 +20,26 @@ estado: borrador
 
 ## Frontend (fijo del harness)
 
-- **React 18+ con TypeScript**, empaquetado con **Vite**.
-- Pruebas con **Vitest + Testing Library + jsdom**.
-- Código en `apps/web/`.
-- Cada test lleva el RF calificado en su nombre: `it("NNN/RF-NN: …")`.
+- **React 18+ con TypeScript**, empaquetado con **Vite**. Código en `apps/web/`.
+- **Vitest + Testing Library + jsdom** para componentes y lógica (TDD rápido). La configuración
+  de Vitest excluye `e2e/` y `e2e-stack/`, que son de Playwright.
+- **Playwright** (`@playwright/test`) para los flujos de punta a punta, en dos suites:
+  - `apps/web/e2e/`: la app servida por Vite con la API simulada (`page.route`). Forma parte
+    de `comando_test` y bloquea cada tarea; toda tarea con flujo visible tiene aquí su prueba.
+  - `apps/web/e2e-stack/`: contra el sistema completo levantado con `docker compose`
+    (`E2E_BASE_URL`, por defecto `http://localhost:8080`, el servicio `web`), sin
+    simulaciones. Se ejecuta con `comando_e2e_stack` y bloquea el cierre de la feature.
+- Cada test lleva el RF calificado en su nombre: `it("NNN/RF-NN: …")` en Vitest y
+  `test("NNN/RF-NN: …")` en Playwright.
+- En las tareas con flujo visible (`UI: sí`), la fase verde se itera con **Ralph Loop**.
 - La URL base del API llega en tiempo de build por `VITE_API_URL`. En producción `nginx` sirve
   los estáticos.
 
 ## Backend
 
 Microservicio **.NET 10 / ASP.NET Core** con **base de datos propia** (PostgreSQL), en
-`apps/api/`. Paquetes: MediatR (CQRS/Mediator), FluentValidation, Entity Framework Core con
+`apps/api/`. Paquetes: **MediatR 12.x** (CQRS/Mediator; se fija la rama 12.x, la última con
+licencia Apache 2.0, y no se actualiza a 13+ sin decisión explícita), FluentValidation, Entity Framework Core con
 Npgsql, RestSharp/HttpClient (servicios externos), Swashbuckle (Swagger) y
 `Microsoft.AspNetCore.Authentication.JwtBearer`. Mapeo entre entidades y DTOs a mano (sin
 librerías de mapeo).
@@ -122,7 +131,7 @@ apps/api/
 - `docker-compose.yml` en la raíz con tres servicios: `web` (build de `apps/web`, servido por
   `nginx`), `api` (imagen de `apps/api`) y `db` (`postgres:16`, volumen persistente).
 - Variables en un `.env` fuera del repo; se versiona sólo `.env.example` con *placeholders*.
-- Variables: `DB_CONNECTION_STRING`, `JWT_SIGNING_KEY`, `CORS_ALLOWED_ORIGINS`,
+- Variables: `DB_CONNECTION_STRING`, `JWT_SIGNING_KEY`, `CORS_ALLOWED_ORIGINS`, `E2E_BASE_URL`,
   `APPLY_MIGRATIONS`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `VITE_API_URL`, y las
   URLs/credenciales de servicios externos que añadan las features.
 
@@ -140,7 +149,9 @@ apps/api/
 
 ## Estrategia de pruebas
 
-- **Frontend:** Vitest + Testing Library, `it("NNN/RF-NN: …")`.
+- **Frontend:** Vitest + Testing Library (`it("NNN/RF-NN: …")`) para componentes y lógica;
+  Playwright (`test("NNN/RF-NN: …")`) con la suite simulada en `apps/web/e2e/` en cada tarea con
+  flujo visible y la suite completa en `apps/web/e2e-stack/` al cerrar la feature.
 - **Backend:** xUnit, con el RF en el nombre visible:
   `[Fact(DisplayName = "NNN/RF-NN: …")]`.
   - Domain y Application: pruebas unitarias (handlers con dobles de las interfaces).
@@ -148,14 +159,17 @@ apps/api/
   - WebApi: pruebas de integración con `WebApplicationFactory` (autenticación, autorización,
     errores, CORS, salud).
   - Architecture: NetArchTest verifica la regla de dependencias entre capas.
-- `comando_test` ejecuta ambas suites; debe quedar en verde para cerrar cualquier tarea.
+- `comando_test` ejecuta Vitest, la suite simulada de Playwright y las pruebas del backend; debe
+  quedar en verde para cerrar cualquier tarea. `comando_e2e_stack` (suite completa, con el sistema
+  levantado) debe pasar para aceptar la última HU de una feature.
 
 ## Configuración del harness
 
 ```harness-config
-{ "stack": "React + TypeScript + Vite + Vitest; backend: .NET 10 / ASP.NET Core + PostgreSQL (EF Core)",
-  "frontend": "react-ts-vite-vitest",
+{ "stack": "React + TypeScript + Vite + Vitest + Playwright; backend: .NET 10 / ASP.NET Core + PostgreSQL (EF Core)",
+  "frontend": "react-ts-vite-vitest-playwright",
   "rutas_codigo": ["apps/web/", "apps/api/", "docker-compose.yml", ".env.example"],
   "rutas_libres": ["README.md", ".gitignore", ".editorconfig"],
-  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests && dotnet test apps/api" }
+  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api",
+  "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts" }
 ```
