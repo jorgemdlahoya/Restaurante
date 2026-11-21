@@ -22,6 +22,8 @@ public sealed record CambiarRolPeticion(string? Rol);
 [ApiController]
 [Route("api/usuarios")]
 [RequiereRol(Rol.Administrador)]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
 public sealed class UsuariosController(IMediator mediador) : ControllerBase
 {
     [HttpGet]
@@ -31,6 +33,8 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
 
     [HttpPost]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<ActionResult<UsuarioDto>> Crear(CrearUsuarioPeticion peticion, CancellationToken ct)
     {
         var usuario = await mediador.Send(new CrearUsuarioCommand(
@@ -42,11 +46,17 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
 
     [HttpPut("{id:guid}/estado")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<ActionResult<UsuarioDto>> CambiarEstado(Guid id, CambiarEstadoPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarEstadoUsuarioCommand(id, peticion.Activo), ct));
 
     [HttpPut("{id:guid}/rol")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<ActionResult<UsuarioDto>> CambiarRol(Guid id, CambiarRolPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarRolUsuarioCommand(id, peticion.Rol ?? string.Empty), ct));
 }

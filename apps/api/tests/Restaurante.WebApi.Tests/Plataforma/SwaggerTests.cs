@@ -28,6 +28,42 @@ public sealed class SwaggerTests
         Assert.True(raiz.GetProperty("paths").TryGetProperty("/api/usuarios", out _));
     }
 
+    private static async Task<JsonElement> LeerOperacionAsync(string ruta, string metodo)
+    {
+        using var fabrica = new FabricaApi(entornoHospedaje: "Development");
+        using var cliente = fabrica.CreateClient();
+        var texto = await cliente.GetStringAsync(RutaDocumento);
+        using var documento = JsonDocument.Parse(texto);
+        return documento.RootElement.GetProperty("paths").GetProperty(ruta).GetProperty(metodo).Clone();
+    }
+
+    private static string[] Codigos(JsonElement operacion) =>
+        operacion.GetProperty("responses").EnumerateObject().Select(p => p.Name).Order().ToArray();
+
+    [Fact(DisplayName = "001/RF-25: login no exige token en Swagger y el listado de usuarios sí")]
+    public async Task Login_no_exige_token_y_usuarios_si()
+    {
+        var login = await LeerOperacionAsync("/api/auth/login", "post");
+        var listado = await LeerOperacionAsync("/api/usuarios", "get");
+
+        Assert.False(login.TryGetProperty("security", out _), "login no debe declarar requisito de seguridad");
+        var requisitos = listado.GetProperty("security").EnumerateArray().ToArray();
+        var requisito = Assert.Single(requisitos);
+        Assert.True(requisito.TryGetProperty("Bearer", out _));
+    }
+
+    [Fact(DisplayName = "001/RF-25: Swagger documenta las respuestas de login y de usuarios")]
+    public async Task Swagger_documenta_las_respuestas()
+    {
+        Assert.Equal(["200", "400", "401"], Codigos(await LeerOperacionAsync("/api/auth/login", "post")));
+        Assert.Equal(["200", "401", "403"], Codigos(await LeerOperacionAsync("/api/usuarios", "get")));
+        Assert.Equal(["201", "400", "401", "403", "409"], Codigos(await LeerOperacionAsync("/api/usuarios", "post")));
+        Assert.Equal(["200", "400", "401", "403", "404", "409"],
+            Codigos(await LeerOperacionAsync("/api/usuarios/{id}/estado", "put")));
+        Assert.Equal(["200", "400", "401", "403", "404", "409"],
+            Codigos(await LeerOperacionAsync("/api/usuarios/{id}/rol", "put")));
+    }
+
     [Fact(DisplayName = "001/RF-25: Swagger no disponible en Production")]
     public async Task Swagger_no_disponible_en_production()
     {

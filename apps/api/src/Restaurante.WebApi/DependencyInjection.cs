@@ -65,17 +65,15 @@ public static class DependencyInjection
         services.AddSwaggerGen(o =>
         {
             o.SwaggerDoc("v1", new OpenApiInfo { Title = "Restaurante API", Version = "v1" });
-            o.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+            o.AddSecurityDefinition(RequisitoBearerOperationFilter.EsquemaBearer,new OpenApiSecurityScheme
             {
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
                 Description = "Token JWT obtenido en POST /api/auth/login.",
             });
-            o.AddSecurityRequirement(documento => new OpenApiSecurityRequirement
-            {
-                [new OpenApiSecuritySchemeReference("Bearer", documento)] = [],
-            });
+            // Sin requisito global: lo añade sólo a las acciones con [RequiereRol].
+            o.OperationFilter<RequisitoBearerOperationFilter>();
         });
 
         return services;
