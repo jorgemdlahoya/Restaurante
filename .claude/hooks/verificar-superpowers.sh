@@ -11,5 +11,9 @@ if ! find "$PLUGINS" -path '*skills/brainstorming/SKILL.md' -print -quit 2>/dev/
   echo "  /plugin marketplace add obra/superpowers-marketplace"
   echo "  /plugin install superpowers@superpowers-marketplace"
 fi
+if ! find "$PLUGINS" -path '*scripts/setup-ralph-loop.sh' -print -quit 2>/dev/null | grep -q .; then
+  echo "AVISO: no se encontró el plugin ralph-loop (lo usa /implementar en las tareas con UI)."
+  echo "Pide al usuario que lo instale desde el marketplace de plugins de Claude Code."
+fi
 python3 "$DIR/../scripts/estado.py" --breve 2>&1 || true
 exit 0

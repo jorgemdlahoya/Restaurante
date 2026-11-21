@@ -113,9 +113,10 @@ estado: borrador
 
 CONFIG_BLOQUE = """
 ```harness-config
-{"stack": "react + python", "frontend": "react-ts-vite-vitest",
+{"stack": "react + python", "frontend": "react-ts-vite-vitest-playwright",
  "rutas_codigo": ["apps/web/", "apps/api/"], "rutas_libres": ["README.md"],
- "comando_test": "npm --prefix apps/web exec vitest run"}
+ "comando_test": "npm --prefix apps/web exec vitest run && npm --prefix apps/web exec playwright test",
+ "comando_e2e_stack": "npm --prefix apps/web exec playwright test --config playwright.stack.config.ts"}
 ```
 """
 
@@ -126,8 +127,9 @@ def constitucion_aprobada(raiz, rutas_codigo=("apps/",), comando_test=None):
                   {"requerimiento.md": REQ_OK, "diseno.md": DIS_OK + CONFIG_BLOQUE,
                    "constitucion.md": CONS_OK},
                   aprobar=["requerimiento.md", "diseno.md", "constitucion.md"], activa=False)
-    cfg = {"constitucion": "aprobada", "stack": "python", "frontend": "react-ts-vite-vitest",
+    cfg = {"constitucion": "aprobada", "stack": "python", "frontend": "react-ts-vite-vitest-playwright",
            "rutas_codigo": list(rutas_codigo),
+           "comando_e2e_stack": 'python3 -c "import sys; sys.exit(0)"',
            "rutas_libres": ["README.md"],
            "comando_test": comando_test or 'python3 -c "import sys; sys.exit(0)"'}
     (raiz / "harness.config.json").write_text(json.dumps(cfg))

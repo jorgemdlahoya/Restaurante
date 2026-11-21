@@ -6,6 +6,9 @@ estado: borrador
 
 # Preset React para el harness SDD
 
+> Actualizado el 2026-11-21: el preset pasó a `react-ts-vite-vitest-playwright` (añade
+> Playwright y Ralph Loop). Ver `2026-11-21-preset-playwright-design.md`.
+
 ## Intención
 
 El harness se reutilizará en varios proyectos, todos con frontend React. El stack de
