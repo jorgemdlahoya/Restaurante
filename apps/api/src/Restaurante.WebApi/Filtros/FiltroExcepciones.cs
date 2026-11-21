@@ -23,20 +23,10 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
         context.ExceptionHandled = true;
     }
 
-    private static ObjectResult Validacion(ValidationException excepcion)
-    {
-        var errores = excepcion.Errors
+    private static ObjectResult Validacion(ValidationException excepcion) =>
+        RespuestasProblema.Validacion(excepcion.Errors
             .GroupBy(e => e.PropertyName)
-            .ToDictionary(g => g.Key, g => g.Select(e => e.ErrorMessage).ToArray());
-
-        var detalles = new ValidationProblemDetails(errores)
-        {
-            Status = StatusCodes.Status400BadRequest,
-            Title = "Datos inválidos",
-            Detail = "Uno o más campos no son válidos.",
-        };
-        return Resultado(detalles);
-    }
+            .Select(g => KeyValuePair.Create(g.Key, g.Select(e => e.ErrorMessage).ToArray())));
 
     private ObjectResult ErrorInterno(ExceptionContext context)
     {
@@ -56,6 +46,5 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
     private static ObjectResult Problema(int estado, string titulo, string detalle) =>
         Resultado(new ProblemDetails { Status = estado, Title = titulo, Detail = detalle });
 
-    private static ObjectResult Resultado(ProblemDetails detalles) =>
-        new(detalles) { StatusCode = detalles.Status, ContentTypes = { "application/problem+json" } };
+    private static ObjectResult Resultado(ProblemDetails detalles) => RespuestasProblema.Resultado(detalles);
 }

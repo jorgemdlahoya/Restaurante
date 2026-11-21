@@ -12,7 +12,9 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddWebApiServices(this IServiceCollection services, string claveJwt)
     {
-        services.AddControllers(o => o.Filters.Add<FiltroExcepciones>());
+        services.AddControllers(o => o.Filters.Add<FiltroExcepciones>())
+            .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = contexto =>
+                RespuestasProblema.Validacion(contexto.ModelState));
         services.AddHttpContextAccessor();
         services.AddScoped<IUsuarioActual, UsuarioActual>();
 

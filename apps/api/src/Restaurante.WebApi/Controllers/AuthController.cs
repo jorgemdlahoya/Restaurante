@@ -6,7 +6,7 @@ using Restaurante.WebApi.Filtros;
 namespace Restaurante.WebApi.Controllers;
 
 /// <summary>Cuerpo de la petición de inicio de sesión.</summary>
-public sealed record LoginPeticion(string NombreUsuario, string Contrasena);
+public sealed record LoginPeticion(string? NombreUsuario, string? Contrasena);
 
 [ApiController]
 [Route("api/auth")]
@@ -16,5 +16,5 @@ public sealed class AuthController(IMediator mediador) : ControllerBase
     [EndpointAnonimo]
     [ProducesResponseType<LoginRespuestaDto>(StatusCodes.Status200OK)]
     public async Task<ActionResult<LoginRespuestaDto>> Login(LoginPeticion peticion, CancellationToken ct) =>
-        Ok(await mediador.Send(new IniciarSesionCommand(peticion.NombreUsuario, peticion.Contrasena), ct));
+        Ok(await mediador.Send(new IniciarSesionCommand(peticion.NombreUsuario ?? string.Empty, peticion.Contrasena ?? string.Empty), ct));
 }

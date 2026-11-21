@@ -100,12 +100,53 @@ public sealed class LoginTests : IDisposable
 
         var respuesta = await LoginAsync(cliente, "{\"nombreUsuario\":\"cajero\"}");
 
+        await AssertValidacionAsync(respuesta, "contrasena", "La contraseña es obligatoria");
+    }
+
+    [Fact(DisplayName = "001/RF-04: contraseña vacía → 400 con la misma forma")]
+    public async Task Contrasena_vacia_responde_400()
+    {
+        var respuesta = await LoginAsync(_fabrica.CreateClient(),
+            "{\"nombreUsuario\":\"cajero\",\"contrasena\":\"\"}");
+
+        await AssertValidacionAsync(respuesta, "contrasena", "La contraseña es obligatoria");
+    }
+
+    [Fact(DisplayName = "001/RF-04: cuerpo sin nombre de usuario → 400 con la misma forma")]
+    public async Task Cuerpo_sin_nombre_responde_400()
+    {
+        var respuesta = await LoginAsync(_fabrica.CreateClient(), "{\"contrasena\":\"x\"}");
+
+        await AssertValidacionAsync(respuesta, "nombreUsuario", "El nombre de usuario es obligatorio");
+    }
+
+    [Fact(DisplayName = "001/RF-04: JSON mal formado → 400 con la misma forma y mensaje en español")]
+    public async Task Json_mal_formado_responde_400()
+    {
+        var respuesta = await LoginAsync(_fabrica.CreateClient(), "{\"nombreUsuario\":");
+
+        await AssertValidacionAsync(respuesta, null, "El cuerpo de la petición no es válido.");
+    }
+
+    private static async Task AssertValidacionAsync(HttpResponseMessage respuesta, string? campo, string mensaje)
+    {
         Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
         Assert.Equal("application/problem+json", respuesta.Content.Headers.ContentType?.MediaType);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
-        Assert.Equal(400, json.RootElement.GetProperty("status").GetInt32());
-        var campos = json.RootElement.GetProperty("errors").EnumerateObject().Select(p => p.Name);
-        Assert.Contains(campos, c => string.Equals(c, "contrasena", StringComparison.OrdinalIgnoreCase));
+        var raiz = json.RootElement;
+        Assert.Equal(400, raiz.GetProperty("status").GetInt32());
+        Assert.Equal("Datos inválidos", raiz.GetProperty("title").GetString());
+        Assert.Equal("Uno o más campos no son válidos.", raiz.GetProperty("detail").GetString());
+        var errores = raiz.GetProperty("errors");
+        if (campo is not null)
+        {
+            Assert.Contains(mensaje, errores.GetProperty(campo).EnumerateArray().Select(e => e.GetString()));
+        }
+        else
+        {
+            Assert.Contains(errores.EnumerateObject(),
+                p => p.Value.EnumerateArray().Any(e => e.GetString() == mensaje));
+        }
     }
 
     [Fact(DisplayName = "001/RF-07: login no exige token")]
