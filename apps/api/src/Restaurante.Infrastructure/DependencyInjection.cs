@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Infrastructure.Arranque;
 using Restaurante.Infrastructure.Persistencia;
 using Restaurante.Infrastructure.Seguridad;
 
@@ -14,6 +15,7 @@ public static class DependencyInjection
         services.AddDbContext<RestauranteDbContext>(o => o.UseNpgsql(cadenaConexion));
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<AplicadorMigraciones>();
+        services.AddScoped<InicializadorAdministrador>();
         services.AddSingleton<IReloj, Reloj>();
         services.AddSingleton<IHasherContrasenas, HasherContrasenas>();
         services.AddSingleton<IEmisorTokens>(sp => new EmisorTokensJwt(claveJwt, sp.GetRequiredService<IReloj>()));
