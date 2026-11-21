@@ -29,6 +29,8 @@ public static class DependencyInjection
         services.AddControllers(o => o.Filters.Add<FiltroExcepciones>())
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = contexto =>
                 RespuestasProblema.Validacion(contexto.ModelState));
+        // Errores fuera de MVC (ruta/método/contenido, excepciones de middleware): problem+json en español.
+        services.AddProblemDetails(o => o.CustomizeProblemDetails = RespuestasProblema.Personalizar);
         services.AddHttpContextAccessor();
         services.AddScoped<IUsuarioActual, UsuarioActual>();
 

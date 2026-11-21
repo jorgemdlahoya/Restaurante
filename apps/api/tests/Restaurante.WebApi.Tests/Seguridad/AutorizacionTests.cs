@@ -41,6 +41,25 @@ public sealed class AutorizacionTests : IDisposable
         await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
     }
 
+    [Fact(DisplayName = "001/RF-05: el 401 incluye WWW-Authenticate: Bearer (RFC 6750)")]
+    public async Task El_401_incluye_WWW_Authenticate_Bearer()
+    {
+        var respuesta = await GetAsync("/prueba/caja");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
+        var desafio = Assert.Single(respuesta.Headers.WwwAuthenticate);
+        Assert.Equal("Bearer", desafio.Scheme);
+    }
+
+    [Fact(DisplayName = "001/RF-06: el 403 no incluye WWW-Authenticate")]
+    public async Task El_403_no_incluye_WWW_Authenticate()
+    {
+        var respuesta = await GetAsync("/prueba/caja", FabricaApi.EmitirToken(Rol.Mesero));
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        Assert.Empty(respuesta.Headers.WwwAuthenticate);
+    }
+
     [Fact(DisplayName = "001/RF-05: token con otra clave responde 401")]
     public async Task Token_con_otra_clave_responde_401()
     {

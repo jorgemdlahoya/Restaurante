@@ -21,6 +21,8 @@ public sealed class RequiereRolAttribute(params Rol[] roles) : Attribute, IAutho
 
         if (usuario.Identity?.IsAuthenticated != true)
         {
+            // RFC 6750 §3: un 401 con esquema Bearer debe anunciar el desafío.
+            context.HttpContext.Response.Headers.WWWAuthenticate = "Bearer";
             context.Result = Problema(
                 StatusCodes.Status401Unauthorized, "No autenticado", "Se requiere un token válido.");
             return;

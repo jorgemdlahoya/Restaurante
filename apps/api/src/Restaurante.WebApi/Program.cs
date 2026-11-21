@@ -36,6 +36,12 @@ if (builder.Environment.IsDevelopment())
 }
 
 var app = builder.Build();
+
+// Primeros del pipeline: convierten en problem+json las excepciones de middleware y las respuestas
+// de error sin cuerpo (404 de ruta, 405, 415). Las respuestas de MVC conservan su forma.
+app.UseExceptionHandler();
+app.UseStatusCodePages();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();

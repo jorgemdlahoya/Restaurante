@@ -64,6 +64,9 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     public IReadOnlyDictionary<string, string?> Entorno => _entorno;
 
+    /// <summary>Ajuste opcional de servicios que cada prueba aplica sobre el host (p. ej. provocar un fallo en un middleware).</summary>
+    public Action<IServiceCollection>? AjustarServicios { get; init; }
+
     /// <summary>Salida de consola (logs de arranque) emitida mientras se construía el host.</summary>
     public string SalidaDeArranque { get; private set; } = string.Empty;
 
@@ -134,6 +137,7 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
         builder.ConfigureServices(servicios =>
         {
+            AjustarServicios?.Invoke(servicios);
             servicios.RemoveAll<IUsuarioRepository>();
             servicios.AddSingleton<IUsuarioRepository>(Usuarios);
 

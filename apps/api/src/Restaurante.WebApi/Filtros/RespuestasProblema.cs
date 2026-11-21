@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ModelBinding;
@@ -33,6 +34,38 @@ public static class RespuestasProblema
             .Select(e => KeyValuePair.Create(
                 e.Key.StartsWith("$.", StringComparison.Ordinal) ? e.Key[2..] : "cuerpo",
                 new[] { MensajeCuerpoInvalido })));
+
+    /// <summary>
+    /// Títulos en español de los errores que no genera MVC (ruteo, negociación de contenido, middleware).
+    /// Los demás estados conservan el título por defecto.
+    /// </summary>
+    public static string? TituloFueraDeMvc(int? estado) => estado switch
+    {
+        StatusCodes.Status404NotFound => "Recurso no encontrado",
+        StatusCodes.Status405MethodNotAllowed => "Método no permitido",
+        StatusCodes.Status415UnsupportedMediaType => "Tipo de contenido no admitido",
+        StatusCodes.Status500InternalServerError => "Error interno",
+        _ => null,
+    };
+
+    /// <summary>
+    /// Adapta un <see cref="ProblemDetails"/> generado por el framework (status code pages, exception
+    /// handler, factoría de MVC): títulos en español y, en 500, traceId sin ningún detalle interno.
+    /// </summary>
+    public static void Personalizar(ProblemDetailsContext contexto)
+    {
+        var detalles = contexto.ProblemDetails;
+        if (TituloFueraDeMvc(detalles.Status) is { } titulo)
+        {
+            detalles.Title = titulo;
+        }
+
+        if (detalles.Status == StatusCodes.Status500InternalServerError)
+        {
+            detalles.Detail = null;
+            detalles.Extensions["traceId"] = Activity.Current?.Id ?? contexto.HttpContext.TraceIdentifier;
+        }
+    }
 
     public static ObjectResult Resultado(ProblemDetails detalles) =>
         new(detalles) { StatusCode = detalles.Status, ContentTypes = { "application/problem+json" } };
