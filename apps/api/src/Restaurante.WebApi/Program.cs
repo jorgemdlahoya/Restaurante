@@ -28,11 +28,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddApplicationServices()
     .AddInfrastructureServices(configuracion.CadenaConexion, configuracion.ClaveJwt)
-    .AddWebApiServices(configuracion.ClaveJwt);
+    .AddWebApiServices(configuracion.ClaveJwt, configuracion.OrigenesCors);
+
+if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddSwaggerConBearer();
+}
 
 var app = builder.Build();
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI(o => o.SwaggerEndpoint("/swagger/v1/swagger.json", "Restaurante API v1"));
+}
+
+app.UseCors(Restaurante.WebApi.DependencyInjection.PoliticaCors);
 app.UseAuthentication();
 app.MapControllers();
+app.MapHealthChecks("/health"); // anónimo (RF-07): no es una acción de controller.
 
 // 3. Migraciones (opcionales) y administrador inicial.
 var arranqueOk = await SecuenciaArranque.EjecutarAsync(

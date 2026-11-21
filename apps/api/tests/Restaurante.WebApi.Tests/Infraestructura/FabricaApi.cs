@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Restaurante.Application.Abstracciones;
@@ -22,18 +23,33 @@ public sealed class ColeccionApi
     public const string Nombre = "Api";
 }
 
-public sealed class FabricaApi : WebApplicationFactory<Program>
+internal sealed class SaludBaseDePrueba(Func<bool> accesible) : IHealthCheck
+{
+    public Task<HealthCheckResult> CheckHealthAsync(
+        HealthCheckContext context, CancellationToken cancellationToken = default) =>
+        Task.FromResult(accesible() ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy("base inaccesible"));
+}
+
+public sealed class FabricaApi :WebApplicationFactory<Program>
 {
     public const string ClaveJwt = "0123456789abcdef0123456789abcdef";
     public const string ClaveAjena = "ffffffffffffffffffffffffffffffff";
 
     private readonly Dictionary<string, string?> _entorno;
 
-    public FabricaApi(Action<Dictionary<string, string?>>? ajustarEntorno = null)
+    private readonly string _entornoHospedaje;
+
+    public FabricaApi(
+        Action<Dictionary<string, string?>>? ajustarEntorno = null,
+        string entornoHospedaje = "Development")
     {
         _entorno = EntornoValido();
         ajustarEntorno?.Invoke(_entorno);
+        _entornoHospedaje = entornoHospedaje;
     }
+
+    /// <summary>Resultado que devuelve el health check de base de datos de prueba.</summary>
+    public bool BaseAccesible { get; set; } = true;
 
     public UsuarioRepositoryEnMemoria Usuarios { get; } = new();
 
@@ -96,10 +112,23 @@ public sealed class FabricaApi : WebApplicationFactory<Program>
         builder.ConfigureServices(servicios =>
             servicios.AddControllers().AddApplicationPart(typeof(FabricaApi).Assembly));
 
+        builder.UseEnvironment(_entornoHospedaje);
+
         builder.ConfigureServices(servicios =>
         {
             servicios.RemoveAll<IUsuarioRepository>();
             servicios.AddSingleton<IUsuarioRepository>(Usuarios);
+
+            // Sustituye el health check real de EF Core (que necesita PostgreSQL) por uno controlable.
+            servicios.Configure<HealthCheckServiceOptions>(o =>
+            {
+                o.Registrations.Clear();
+                o.Registrations.Add(new HealthCheckRegistration(
+                    "base-de-datos",
+                    _ => new SaludBaseDePrueba(() => BaseAccesible),
+                    failureStatus: null,
+                    tags: null));
+            });
         });
     }
 }
