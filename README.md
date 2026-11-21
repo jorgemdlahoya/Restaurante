@@ -5,6 +5,8 @@ Configuración de proyecto para **Claude Code** que obliga a desarrollar con
 `superpowers:brainstorming`, se especifica, se planifica y se aprueba **antes** de
 escribir código.
 
+> Para levantar el sistema y ejecutar las pruebas, ver [docs/ONBOARDING.md](docs/ONBOARDING.md).
+
 ## Requisitos
 
 - Claude Code

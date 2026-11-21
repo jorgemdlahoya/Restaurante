@@ -1,0 +1,13 @@
+@baseUrl = http://localhost:5000
+
+### Salud de la API (RF-23, RF-07). Anónimo: no requiere token.
+# 200 si la base de datos es accesible; 503 si no lo es.
+GET {{baseUrl}}/health
+
+### Comprobación de CORS (RF-24): con un origen listado en CORS_ALLOWED_ORIGINS la
+# respuesta incluye Access-Control-Allow-Origin; con otro origen no la incluye.
+GET {{baseUrl}}/health
+Origin: http://localhost:5173
+
+### Swagger (RF-25): sólo disponible con ASPNETCORE_ENVIRONMENT=Development.
+GET {{baseUrl}}/swagger/v1/swagger.json

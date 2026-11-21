@@ -1,0 +1,15 @@
+@baseUrl = http://localhost:5000
+
+### Iniciar sesión (RF-01..RF-04, RF-07). No requiere token.
+# Sustituir los marcadores por credenciales reales sólo en local; no commitearlas.
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO>",
+  "contrasena": "<CONTRASENA>"
+}
+
+### Token capturado para los demás archivos .http
+@token = {{login.response.body.$.token}}

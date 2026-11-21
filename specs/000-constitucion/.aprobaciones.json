@@ -1,0 +1,14 @@
+{
+  "requerimiento.md": {
+    "sha256": "251c148bd0cdc1ad8bc2c6c0ef0562fb60e673f049bb610528be66ab81601773",
+    "fecha": "2026-11-21T02:41:02"
+  },
+  "diseno.md": {
+    "sha256": "fcfab99a169a4db82dc32469fcb8e4007113928e82836a2b0d9f1355f2018bd7",
+    "fecha": "2026-11-21T02:41:02"
+  },
+  "constitucion.md": {
+    "sha256": "64d3057e5d5267d8c8034872c099590253f6c0dd8059f3717539d93fca029b4f",
+    "fecha": "2026-11-21T02:41:02"
+  }
+}

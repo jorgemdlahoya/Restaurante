@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+    <!-- Alinea Protocols/OpenIdConnect (8.19.x de JwtBearer) con System.IdentityModel.Tokens.Jwt 8.20.0 -->
+    <PackageReference Include="Microsoft.IdentityModel.Protocols.OpenIdConnect" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
+    <PackageReference Include="Swashbuckle.AspNetCore" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Restaurante.Application\Restaurante.Application.csproj" />
+    <ProjectReference Include="..\Restaurante.Infrastructure\Restaurante.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>

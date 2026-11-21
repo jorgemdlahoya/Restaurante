@@ -1,0 +1,55 @@
+@baseUrl = http://localhost:5000
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador (RF-01). Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Listar usuarios (RF-14). Sólo administrador.
+GET {{baseUrl}}/api/usuarios
+Authorization: Bearer {{token}}
+
+### Crear usuario (RF-11..RF-13). Rol en minúsculas: mesero, cocina, caja, administrador.
+# Responde 201 con Location: /api/usuarios/{id}; 409 si el nombre ya existe.
+# @name crearUsuario
+POST {{baseUrl}}/api/usuarios
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO>",
+  "contrasena": "<CONTRASENA>",
+  "rol": "mesero"
+}
+
+### Id del usuario creado
+@usuarioId = {{crearUsuario.response.body.$.id}}
+
+### Activar o desactivar usuario (RF-15, RF-17, RF-18, RF-19).
+# 409 si es el último administrador activo o si te desactivas a ti mismo; 404 si no existe.
+PUT {{baseUrl}}/api/usuarios/{{usuarioId}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activo": false
+}
+
+### Cambiar rol (RF-16, RF-17, RF-19). Rol en minúsculas.
+PUT {{baseUrl}}/api/usuarios/{{usuarioId}}/rol
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rol": "cocina"
+}
