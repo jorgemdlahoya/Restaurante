@@ -43,8 +43,17 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         Action<Dictionary<string, string?>>? ajustarEntorno = null,
         string entornoHospedaje = "Development")
     {
-        _entorno = EntornoValido();
-        ajustarEntorno?.Invoke(_entorno);
+        var ajustado = EntornoValido();
+        ajustarEntorno?.Invoke(ajustado);
+
+        // Toda variable conocida que el ajuste quite queda en null de forma explícita: así se
+        // borra del proceso en lugar de heredar lo que el desarrollador tenga exportado.
+        _entorno = EntornoValido().Keys.ToDictionary(k => k, k => (string?)null);
+        foreach (var (clave, valor) in ajustado)
+        {
+            _entorno[clave] = valor;
+        }
+
         _entornoHospedaje = entornoHospedaje;
     }
 
@@ -54,6 +63,9 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     public UsuarioRepositoryEnMemoria Usuarios { get; } = new();
 
     public IReadOnlyDictionary<string, string?> Entorno => _entorno;
+
+    /// <summary>Salida de consola (logs de arranque) emitida mientras se construía el host.</summary>
+    public string SalidaDeArranque { get; private set; } = string.Empty;
 
     public static Dictionary<string, string?> EntornoValido() => new()
     {
@@ -90,6 +102,9 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     {
         // Program lee el entorno del proceso; se sustituye sólo mientras se construye el host.
         var anteriores = _entorno.ToDictionary(p => p.Key, p => Environment.GetEnvironmentVariable(p.Key));
+        var consolaOriginal = Console.Out;
+        var captura = new StringWriter();
+        Console.SetOut(captura);
         try
         {
             foreach (var (clave, valor) in _entorno)
@@ -101,6 +116,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         }
         finally
         {
+            Console.SetOut(consolaOriginal);
+            SalidaDeArranque = captura.ToString();
             foreach (var (clave, valor) in anteriores)
             {
                 Environment.SetEnvironmentVariable(clave, valor);

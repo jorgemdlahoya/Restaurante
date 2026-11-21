@@ -11,7 +11,12 @@ public sealed class ArranqueTests
     {
         using var fabrica = new FabricaApi(e => e.Remove("JWT_SIGNING_KEY"));
 
-        Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
+        // La configuración inválida aborta Program antes de construir el host.
+        var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
+
+        Assert.Contains("entry point exited without ever building an IHost", error.Message);
+        Assert.Contains("Configuración inválida", fabrica.SalidaDeArranque);
+        Assert.Contains("JWT_SIGNING_KEY es obligatoria", fabrica.SalidaDeArranque);
     }
 
     [Fact(DisplayName = "001/RF-22: la API no arranca con JWT_SIGNING_KEY de menos de 32 caracteres")]
@@ -19,10 +24,16 @@ public sealed class ArranqueTests
     {
         using var fabrica = new FabricaApi(e => e["JWT_SIGNING_KEY"] = "corta");
 
-        Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
+        var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
+
+        Assert.Contains("entry point exited without ever building an IHost", error.Message);
+        Assert.Contains("Configuración inválida", fabrica.SalidaDeArranque);
+        Assert.Contains("JWT_SIGNING_KEY", fabrica.SalidaDeArranque);
+        Assert.Contains("32", fabrica.SalidaDeArranque);
+        Assert.DoesNotContain("corta", fabrica.SalidaDeArranque.Replace("JWT_SIGNING_KEY", string.Empty));
     }
 
-    [Fact(DisplayName = "001/RF-22: al arrancar con la tabla vacía se crea el administrador inicial")]
+    [Fact(DisplayName = "001/RF-08: al arrancar con la tabla vacía se crea el administrador inicial")]
     public void Al_arrancar_con_la_tabla_vacia_se_crea_el_administrador_inicial()
     {
         using var fabrica = new FabricaApi();
@@ -33,12 +44,30 @@ public sealed class ArranqueTests
         Assert.Equal(Rol.Administrador, admin.Rol);
     }
 
-    [Fact(DisplayName = "001/RF-22: la API no arranca si falta ADMIN_PASSWORD con la tabla vacía")]
+    [Fact(DisplayName = "001/RF-10: la API no arranca si falta ADMIN_PASSWORD con la tabla vacía")]
     public void La_api_no_arranca_sin_ADMIN_PASSWORD_con_la_tabla_vacia()
     {
         using var fabrica = new FabricaApi(e => e.Remove("ADMIN_PASSWORD"));
 
-        Assert.ThrowsAny<Exception>(() => fabrica.CreateClient());
+        // El host se construye, pero la secuencia de arranque aborta (código 1) tras registrar el motivo.
+        var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
+
+        Assert.Contains("server has not been started", error.Message);
+        Assert.Contains("No se pudo inicializar el administrador", fabrica.SalidaDeArranque);
+        Assert.Contains("Falta la variable de entorno ADMIN_PASSWORD", fabrica.SalidaDeArranque);
+        Assert.DoesNotContain(FabricaApi.EntornoValido()["ADMIN_PASSWORD"]!, fabrica.SalidaDeArranque);
+        Assert.Empty(fabrica.Usuarios.Usuarios);
+    }
+
+    [Fact(DisplayName = "001/RF-10: la API no arranca si falta ADMIN_USERNAME con la tabla vacía")]
+    public void La_api_no_arranca_sin_ADMIN_USERNAME_con_la_tabla_vacia()
+    {
+        using var fabrica = new FabricaApi(e => e.Remove("ADMIN_USERNAME"));
+
+        var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
+
+        Assert.Contains("server has not been started", error.Message);
+        Assert.Contains("Falta la variable de entorno ADMIN_USERNAME", fabrica.SalidaDeArranque);
         Assert.Empty(fabrica.Usuarios.Usuarios);
     }
 }
