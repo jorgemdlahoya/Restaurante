@@ -4,12 +4,19 @@ estado: borrador
 ---
 # Diseño: Constitución del proyecto
 
-<!-- Constitución del proyecto. El frontend está fijado por el harness: no se discute.
-El brainstorming decide backend, arquitectura, datos, despliegue y convenciones. -->
-
 ## Enfoque elegido y alternativas descartadas
 
-{{enfoque}}
+- **Elegido:** la constitución recoge sólo decisiones (stack, arquitectura, patrones, datos,
+  autenticación, despliegue, pruebas y principios). La plataforma base se construye en la
+  feature `001-plataforma-base` por el flujo normal (análisis, plan, TDD).
+- **Descartado:** construir el esqueleto dentro de la constitución (el harness no permite
+  código en ella y sería código sin pruebas) y empezar por una funcionalidad de negocio (cada
+  feature tendría que montar su parte de la plataforma).
+- Decisiones del backend tomadas por el usuario: .NET 10 / ASP.NET Core, MediatR,
+  FluentValidation, RestSharp/HttpClient, Swagger; Clean Architecture en 4 capas; CQRS +
+  Mediator; behaviours de validación y logging; filtros MVC de autorización y errores; DTOs;
+  contenedor de DI nativo con `AddXxxServices()` por capa; PostgreSQL + EF Core; JWT propio
+  con roles; Docker + `docker-compose`.
 
 ## Frontend (fijo del harness)
 
@@ -17,58 +24,138 @@ El brainstorming decide backend, arquitectura, datos, despliegue y convenciones.
 - Pruebas con **Vitest + Testing Library + jsdom**.
 - Código en `apps/web/`.
 - Cada test lleva el RF calificado en su nombre: `it("NNN/RF-NN: …")`.
+- La URL base del API llega en tiempo de build por `VITE_API_URL`. En producción `nginx` sirve
+  los estáticos.
 
 ## Backend
 
-{{backend}}
+Microservicio **.NET 10 / ASP.NET Core** con **base de datos propia** (PostgreSQL), en
+`apps/api/`. Paquetes: MediatR (CQRS/Mediator), FluentValidation, Entity Framework Core con
+Npgsql, RestSharp/HttpClient (servicios externos), Swashbuckle (Swagger) y
+`Microsoft.AspNetCore.Authentication.JwtBearer`. Mapeo entre entidades y DTOs a mano (sin
+librerías de mapeo).
 
 ## Arquitectura
 
-<!-- Cómo se comunican frontend y backend, módulos principales, límites. -->
+Clean Architecture en 4 capas, con las dependencias apuntando hacia adentro:
 
-{{arquitectura}}
+```
+WebApi ──► Application ──► Domain
+   │            ▲
+   └──► Infrastructure ──┘
+```
+
+- **Domain**: entidades, value objects y reglas de negocio. Sin referencias a paquetes externos.
+- **Application**: casos de uso como Commands/Queries de MediatR con sus Handlers y Validators;
+  interfaces de repositorios, de servicios externos y de reloj/usuario actual; DTOs; pipeline
+  behaviours. Depende sólo de Domain.
+- **Infrastructure**: `DbContext` de EF Core, migraciones, repositorios, hashing de contraseñas,
+  emisión de JWT y clientes HTTP. Implementa las interfaces de Application.
+- **WebApi**: controllers delgados, filtros MVC, configuración de autenticación, CORS, Swagger y
+  arranque. Es la raíz de composición.
+
+Inyección de dependencias con el contenedor nativo: cada capa expone `AddDomainServices()` (si
+hace falta), `AddApplicationServices()`, `AddInfrastructureServices(config)` y
+`AddWebApiServices()`, y `Program.cs` sólo los encadena.
+
+**Excepciones (constitución, Art. 8):** los clientes HTTP hacia servicios externos se crean con
+`new` dentro de Infrastructure (una instancia reutilizable por servicio, detrás de una
+interfaz), y la configuración se lee de variables de entorno.
+
+Estructura de la solución:
+
+```
+apps/api/
+  Restaurante.sln
+  src/  Restaurante.Domain  Restaurante.Application  Restaurante.Infrastructure  Restaurante.WebApi
+  tests/ Restaurante.Domain.Tests  Restaurante.Application.Tests
+         Restaurante.Infrastructure.Tests  Restaurante.WebApi.Tests  Restaurante.Architecture.Tests
+```
 
 ## Componentes
 
-<!-- Cada componente indica qué RF de requerimiento.md cubre: "Cubre: RF-01, RF-02". -->
-
-{{componentes}}
+- **Autenticación JWT** (Infrastructure + WebApi): command `IniciarSesion` valida usuario y
+  contraseña contra el hash guardado y emite un JWT con `sub`, `role` y `exp` (8 h), firmado con
+  la clave de `JWT_SIGNING_KEY`. Credenciales inválidas → 401 genérico. Cubre: RF-01, RF-02
+- **Autorización por rol** (WebApi): esquema JwtBearer + filtro MVC que exige el rol declarado
+  en cada acción (`mesero`, `cocina`, `caja`, `administrador`); sin token o token expirado → 401,
+  rol no permitido → 403. Sólo login y salud son anónimos. Cubre: RF-03, RF-04
+- **Behaviour de validación** (Application): ejecuta los validators de FluentValidation del
+  request y, si fallan, lanza una excepción de validación con los errores por campo.
+  Cubre: RF-05
+- **Filtro de excepciones** (WebApi): convierte la excepción de validación en 400
+  `ValidationProblemDetails` y cualquier otra en 500 `ProblemDetails` con `traceId`, sin
+  detalle interno; registra la excepción completa en el log. Cubre: RF-05, RF-06
+- **Behaviour de logging** (Application): registra nombre del request, duración y resultado,
+  sin volcar el contenido del request. Cubre: RF-07
+- **Validación de configuración** (WebApi): al arrancar comprueba `DB_CONNECTION_STRING`,
+  `JWT_SIGNING_KEY` y `CORS_ALLOWED_ORIGINS`; si falta alguna, registra su nombre y termina.
+  Cubre: RF-08
+- **Endpoint de salud** (WebApi): `GET /health` con el health check de EF Core/PostgreSQL;
+  200 si conecta, 503 si no. Cubre: RF-09
+- **Política CORS** (WebApi): sólo los orígenes de `CORS_ALLOWED_ORIGINS` (separados por coma);
+  nunca `AllowAnyOrigin`. Cubre: RF-10
+- **Swagger** (WebApi): Swashbuckle con el esquema Bearer, activo sólo en `Development`.
+  Cubre: RF-11
 
 ## Datos
 
-{{datos}}
+- PostgreSQL 16+ accedido con EF Core (proveedor Npgsql); un `DbContext` en Infrastructure.
+- El esquema cambia sólo con migraciones de EF Core versionadas en
+  `apps/api/src/Restaurante.Infrastructure/Persistencia/Migraciones/`.
+- La API aplica las migraciones pendientes al arrancar sólo si `APPLY_MIGRATIONS=true`
+  (`docker-compose` lo activa en desarrollo).
+- Acceso a datos siempre mediante repositorios definidos como interfaces en Application.
+- Tabla inicial de usuarios (en 001): identificador, nombre de usuario único, hash de
+  contraseña, rol y activo.
 
 ## Manejo de errores
 
-{{errores}}
+- Errores de validación → 400 `ValidationProblemDetails` (RF-05).
+- No autenticado → 401; sin permiso → 403 (RF-03, RF-04).
+- Recurso inexistente → 404 `ProblemDetails` (excepción de dominio "no encontrado").
+- Cualquier otra excepción → 500 `ProblemDetails` con `traceId` y sin detalle interno (RF-06).
+- Toda excepción se registra en el log con su `traceId`; nunca con datos sensibles.
 
 ## Despliegue
 
-{{despliegue}}
+- `docker-compose.yml` en la raíz con tres servicios: `web` (build de `apps/web`, servido por
+  `nginx`), `api` (imagen de `apps/api`) y `db` (`postgres:16`, volumen persistente).
+- Variables en un `.env` fuera del repo; se versiona sólo `.env.example` con *placeholders*.
+- Variables: `DB_CONNECTION_STRING`, `JWT_SIGNING_KEY`, `CORS_ALLOWED_ORIGINS`,
+  `APPLY_MIGRATIONS`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `VITE_API_URL`, y las
+  URLs/credenciales de servicios externos que añadan las features.
 
 ## Convenciones del proyecto
 
-{{convenciones}}
+- Identificadores del dominio y de los casos de uso en español (`Pedido`, `IniciarSesion`,
+  `Persistencia`); sufijos y términos técnicos del framework en inglés (`Command`, `Query`,
+  `Handler`, `Validator`, `Controller`, `Repository`, `Dto`). Textos de la interfaz,
+  documentación y specs en español.
+- Un archivo por clase; carpetas por caso de uso en Application
+  (`Features/<Área>/<CasoDeUso>/`: Command/Query, Handler, Validator, DTO).
+- Controllers sin lógica: reciben el DTO, envían a MediatR y devuelven la respuesta.
+- Las entidades de dominio nunca salen por la API: siempre DTOs.
+- Cada endpoint nuevo o tocado tiene su archivo `.http` en `docs/context/http/`.
 
 ## Estrategia de pruebas
 
-<!-- Frontend: Vitest. Indica aquí las pruebas del backend y cómo se ejecutan. -->
-
-{{pruebas}}
+- **Frontend:** Vitest + Testing Library, `it("NNN/RF-NN: …")`.
+- **Backend:** xUnit, con el RF en el nombre visible:
+  `[Fact(DisplayName = "NNN/RF-NN: …")]`.
+  - Domain y Application: pruebas unitarias (handlers con dobles de las interfaces).
+  - Infrastructure: pruebas de integración contra PostgreSQL real con Testcontainers.
+  - WebApi: pruebas de integración con `WebApplicationFactory` (autenticación, autorización,
+    errores, CORS, salud).
+  - Architecture: NetArchTest verifica la regla de dependencias entre capas.
+- `comando_test` ejecuta ambas suites; debe quedar en verde para cerrar cualquier tarea.
 
 ## Configuración del harness
 
-<!-- /aprobar 000 genera harness.config.json a partir de este bloque.
-- "frontend" y "apps/web/" son fijos del harness: no los quites.
-- Añade las rutas del backend a "rutas_codigo" (p. ej. "apps/api/").
-- Si el backend tiene tests, añádelos a "comando_test" con &&,
-  p. ej. "npm --prefix apps/web exec vitest run --passWithNoTests && pytest apps/api".
-- --passWithNoTests permite cerrar tareas de backend mientras apps/web aún no tiene tests. -->
-
 ```harness-config
-{ "stack": "React + TypeScript + Vite + Vitest; backend: {{backend_corto}}",
+{ "stack": "React + TypeScript + Vite + Vitest; backend: .NET 10 / ASP.NET Core + PostgreSQL (EF Core)",
   "frontend": "react-ts-vite-vitest",
-  "rutas_codigo": ["apps/web/"],
-  "rutas_libres": ["package.json", "README.md"],
-  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests" }
+  "rutas_codigo": ["apps/web/", "apps/api/", "docker-compose.yml", ".env.example"],
+  "rutas_libres": ["README.md", ".gitignore", ".editorconfig"],
+  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests && dotnet test apps/api" }
 ```

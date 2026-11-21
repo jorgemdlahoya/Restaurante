@@ -4,10 +4,6 @@ estado: borrador
 ---
 # Constitución: principios innegociables
 
-<!-- Los Art. 1–4 son el núcleo universal: ajusta su redacción, pero sus encabezados
-"### Artículo 1" a "### Artículo 4" deben conservarse (/aprobar 000 lo verifica).
-Añade al final los artículos específicos del proyecto. No dejes ningún {{...}}. -->
-
 **Regla rectora:** estos principios aplican íntegramente al código nuevo y, en cualquier flujo
 que se toque, a todo su alcance.
 
@@ -17,7 +13,9 @@ que se toque, a todo su alcance.
 2. Los secretos provienen de configuración externa (variables de entorno, gestor de secretos); el
    repo solo contiene *placeholders*.
 3. Las comunicaciones salientes **validan TLS**; prohibido el bypass de validación de certificados.
-4. {{CORS_RULE}}  <!-- si aplica: CORS restringido a orígenes explícitos -->
+4. **CORS restringido a orígenes explícitos:** sólo se aceptan los orígenes listados en la
+   variable de entorno `CORS_ALLOWED_ORIGINS` (en desarrollo, `http://localhost:5173`);
+   prohibido `AllowAnyOrigin` en cualquier entorno.
 5. Datos sensibles **no se registran** en logs.
 6. El contenido **importado del tracker** hacia un spec versionado se **filtra antes de commitear**:
    se **resume, no se vuelca**. No entran al repo datos de cliente, credenciales pegadas en
@@ -36,7 +34,7 @@ que se toque, a todo su alcance.
 1. **Una responsabilidad por clase/archivo**; si crece más allá de lo sostenible en contexto, se
    divide.
 2. **Inyección de dependencias obligatoria**: prohibido instanciar dependencias con estado/recursos
-   directamente; se reciben por constructor.
+   directamente; se reciben por constructor. Única excepción permitida: la del Art. 8.
 3. **Patrón Repository** (o equivalente del stack) para acceso a datos nuevo, tras una interfaz.
 4. Las unidades se comunican por **interfaces** para poder probarse aisladas.
 
@@ -47,20 +45,55 @@ que se toque, a todo su alcance.
 3. **Code review antes de merge**, contra requisitos y contra esta constitución.
 
 ### Artículo 5 — Documentación ejecutable del API
-> **Condicional:** consérvalo y adáptalo si el proyecto expone una API/contratos (`.http`,
-> ejemplos de CLI, etc.); si no, elimínalo.
-1. Cada endpoint/contrato nuevo o tocado se documenta de forma ejecutable bajo
-   [`docs/context/http/`](../../docs/context/http/), con *placeholders* para credenciales (Art. 1).
+1. Cada endpoint/contrato nuevo o tocado se documenta de forma ejecutable con un archivo `.http`
+   bajo [`docs/context/http/`](../../docs/context/http/), con *placeholders* para credenciales
+   (Art. 1). Swagger complementa esta documentación, no la sustituye.
 2. La documentación se actualiza en el mismo *task* que crea o modifica el contrato.
 3. El **glosario** ([`docs/context/glossary.md`](../../docs/context/glossary.md)) y el **onboarding**
    ([`ONBOARDING.md`](../../ONBOARDING.md)) reflejan el estado real del código. Un cambio que
    introduce un término de dominio nuevo, o que altera módulos/capas/entorno, actualiza el glosario,
    el onboarding y el [mapa de arquitectura](../../docs/context/architecture-map.md) **en el mismo
-   task**. Una constante/enum/DTO nueva regenera [`docs/GLOSSARY.md`](../../docs/GLOSSARY.md) con el
-   skill `data-glossary`.
+   task**. Una constante/enum/DTO nueva se añade a mano a [`docs/GLOSSARY.md`](../../docs/GLOSSARY.md)
+   en el mismo task.
 4. Un cambio que deja estos documentos desalineados respecto al código (*drift*) se considera
    **incompleto**.
 
 ## Artículos del proyecto
 
-{{articulos_proyecto}}
+### Artículo 6 — Clean Architecture
+1. El backend se organiza en cuatro capas (Domain, Application, Infrastructure, Web API) con las
+   dependencias apuntando hacia adentro.
+2. `Domain` no referencia paquetes externos; `Application` no referencia `Infrastructure` ni
+   `Web API`.
+3. Un test de arquitectura (NetArchTest) verifica estas reglas en cada ejecución de la suite.
+4. Cada capa registra sus servicios con su propio `AddXxxServices()`; `Program.cs` sólo los encadena.
+
+### Artículo 7 — CQRS y API delgada
+1. Cada caso de uso es un Command o una Query de MediatR, con su Handler y su Validator de
+   FluentValidation.
+2. La validación y el logging se aplican mediante *pipeline behaviours*, no dentro de los handlers.
+3. Los controllers son delgados: reciben el DTO, lo envían a MediatR y devuelven la respuesta;
+   no contienen lógica de negocio.
+4. Las entidades de dominio nunca salen por la API: siempre DTOs.
+
+### Artículo 8 — Excepción explícita a la inyección de dependencias (Art. 3.2)
+1. Los clientes HTTP hacia servicios externos (RestSharp/HttpClient) se crean con `new`, sólo en
+   la capa `Infrastructure`, con una instancia reutilizable por servicio externo, y siempre detrás
+   de una interfaz de `Application` para poder probarse aislados.
+2. La configuración se lee de variables de entorno.
+3. Ninguna otra dependencia con estado o recursos puede acogerse a esta excepción.
+
+### Artículo 9 — Autorización
+1. Todo endpoint exige un rol explícito (`mesero`, `cocina`, `caja` o `administrador`), salvo el
+   login y el endpoint de salud.
+2. Los JWT se firman con una clave tomada de variable de entorno; las contraseñas se guardan sólo
+   como hash.
+
+### Artículo 10 — Datos
+1. El esquema de la base de datos cambia sólo mediante migraciones de EF Core versionadas.
+2. El acceso a datos pasa siempre por repositorios definidos como interfaces en `Application`.
+
+### Artículo 11 — Errores
+1. Un filtro global convierte las excepciones en respuestas `ProblemDetails`.
+2. Nunca se devuelven al cliente trazas, mensajes internos de excepción ni SQL; el detalle se
+   registra en el log con su identificador de traza.
