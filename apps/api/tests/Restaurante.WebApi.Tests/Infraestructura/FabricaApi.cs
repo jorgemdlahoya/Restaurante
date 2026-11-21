@@ -66,12 +66,13 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     };
 
     public static string EmitirToken(
-        Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null)
+        Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null,
+        string emisor = "restaurante-api", string audiencia = "restaurante-web")
     {
         var ahora = DateTime.UtcNow;
         var token = new JwtSecurityToken(
-            issuer: "restaurante-api",
-            audience: "restaurante-web",
+            issuer: emisor,
+            audience: audiencia,
             claims:
             [
                 new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),

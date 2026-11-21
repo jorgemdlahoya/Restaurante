@@ -1,3 +1,4 @@
+using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Application.Features.Auth.IniciarSesion;
 using Restaurante.Application.Tests.Dobles;
@@ -81,6 +82,45 @@ public class IniciarSesionTests
         var ex = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
             CrearHandler().Handle(new IniciarSesionCommand("ana", "secreta123"), CancellationToken.None));
 
+        Assert.Equal("Usuario o contraseña incorrectos", ex.Message);
+    }
+
+    private sealed class HasherEspia : IHasherContrasenas
+    {
+        public int Verificaciones { get; private set; }
+
+        public string Hashear(string contrasena) => "hash:" + contrasena;
+
+        public bool Verificar(string hash, string contrasena)
+        {
+            Verificaciones++;
+            return hash == "hash:" + contrasena;
+        }
+    }
+
+    [Fact(DisplayName = "001/RF-02: usuario inexistente también ejecuta Verificar (sin canal de tiempo)")]
+    public async Task InexistenteTambienVerificaContrasena()
+    {
+        var espia = new HasherEspia();
+        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso());
+
+        await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
+            handler.Handle(new IniciarSesionCommand("nadie", "secreta123"), CancellationToken.None));
+
+        Assert.Equal(1, espia.Verificaciones);
+    }
+
+    [Fact(DisplayName = "001/RF-03: usuario desactivado también ejecuta Verificar y da el mismo error")]
+    public async Task DesactivadoTambienVerificaContrasena()
+    {
+        var espia = new HasherEspia();
+        Agregar("ana", "secreta123", Rol.Cocina, activo: false);
+        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso());
+
+        var ex = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
+            handler.Handle(new IniciarSesionCommand("ana", "secreta123"), CancellationToken.None));
+
+        Assert.Equal(1, espia.Verificaciones);
         Assert.Equal("Usuario o contraseña incorrectos", ex.Message);
     }
 

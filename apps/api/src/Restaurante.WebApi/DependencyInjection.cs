@@ -39,6 +39,7 @@ public static class DependencyInjection
                 o.MapInboundClaims = false;
                 o.TokenValidationParameters = new TokenValidationParameters
                 {
+                    ValidAlgorithms = [SecurityAlgorithms.HmacSha256],
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(claveJwt)),
                     ValidateIssuer = true,

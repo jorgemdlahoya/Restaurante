@@ -61,6 +61,44 @@ public sealed class AutorizacionTests : IDisposable
         await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
     }
 
+    [Fact(DisplayName = "001/RF-05: token expirado hace 30 s responde 401 (sin tolerancia de reloj)")]
+    public async Task Token_expirado_hace_30_segundos_responde_401()
+    {
+        var token = FabricaApi.EmitirToken(Rol.Caja, expiraEn: TimeSpan.FromSeconds(-30));
+
+        var respuesta = await GetAsync("/prueba/caja", token);
+
+        await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
+    }
+
+    [Fact(DisplayName = "001/RF-05: token con la clave correcta y otro emisor responde 401")]
+    public async Task Token_con_otro_emisor_responde_401()
+    {
+        var token = FabricaApi.EmitirToken(Rol.Caja, emisor: "otro-emisor");
+
+        var respuesta = await GetAsync("/prueba/caja", token);
+
+        await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
+    }
+
+    [Fact(DisplayName = "001/RF-05: token con la clave correcta y otra audiencia responde 401")]
+    public async Task Token_con_otra_audiencia_responde_401()
+    {
+        var token = FabricaApi.EmitirToken(Rol.Caja, audiencia: "otra-audiencia");
+
+        var respuesta = await GetAsync("/prueba/caja", token);
+
+        await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
+    }
+
+    [Fact(DisplayName = "001/RF-05: Bearer con basura responde 401 ProblemDetails")]
+    public async Task Bearer_con_basura_responde_401_ProblemDetails()
+    {
+        var respuesta = await GetAsync("/prueba/caja", "abc");
+
+        await AssertProblemDetailsAsync(respuesta, HttpStatusCode.Unauthorized);
+    }
+
     [Fact(DisplayName = "001/RF-06: rol no autorizado responde 403 ProblemDetails")]
     public async Task Rol_no_autorizado_responde_403_ProblemDetails()
     {

@@ -1,6 +1,19 @@
 @baseUrl = http://localhost:5000
-# Requiere el token del administrador: ejecutar primero la petición "login" de auth.http
-# (variable @token). Sustituir los marcadores sólo en local; no commitear datos reales.
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador (RF-01). Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
 
 ### Listar usuarios (RF-14). Sólo administrador.
 GET {{baseUrl}}/api/usuarios

@@ -54,6 +54,41 @@ public class ConfiguracionEntornoTests
         Assert.DoesNotContain(resultado.Errores, e => e.Contains("secreto-db"));
     }
 
+    [Theory(DisplayName = "001/RF-22: orígenes CORS inválidos se rechazan sin mostrar el valor")]
+    [InlineData("*")]
+    [InlineData("http://a,*")]
+    [InlineData(",")]
+    [InlineData(" , ")]
+    [InlineData("localhost:5173")]
+    [InlineData("ftp://a.com")]
+    [InlineData("not a url")]
+    [InlineData("http://a.com/ruta")]
+    [InlineData("http://a.com?x=1")]
+    [InlineData("http://a.com/")]
+    public void Origenes_cors_invalidos(string valor)
+    {
+        var entorno = EntornoValido();
+        entorno["CORS_ALLOWED_ORIGINS"] = valor;
+
+        var resultado = ConfiguracionEntorno.Cargar(entorno);
+
+        Assert.False(resultado.EsValida);
+        Assert.Contains(resultado.Errores, e => e.Contains("CORS_ALLOWED_ORIGINS"));
+        Assert.DoesNotContain(resultado.Errores, e => e.Contains(valor.Trim(' ', ',')) && valor.Trim(' ', ',').Length > 1);
+    }
+
+    [Fact(DisplayName = "001/RF-22: lista válida de orígenes https con puerto se acepta")]
+    public void Origenes_cors_validos_con_puerto_y_https()
+    {
+        var entorno = EntornoValido();
+        entorno["CORS_ALLOWED_ORIGINS"] = "https://app.example.com, http://localhost:5173";
+
+        var resultado = ConfiguracionEntorno.Cargar(entorno);
+
+        Assert.True(resultado.EsValida);
+        Assert.Equal(["https://app.example.com", "http://localhost:5173"], resultado.OrigenesCors);
+    }
+
     [Fact(DisplayName = "001/RF-22: orígenes CORS separados por comas")]
     public void Origenes_cors_separados_por_comas()
     {

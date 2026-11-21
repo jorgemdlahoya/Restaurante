@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using MediatR;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
@@ -12,12 +13,23 @@ public sealed class IniciarSesionHandler(
 {
     private const string MensajeCredenciales = "Usuario o contraseña incorrectos";
 
+    // Hash producido por el propio hasher (mismo coste que uno real), calculado una vez por hasher.
+    private static readonly ConditionalWeakTable<IHasherContrasenas, string> HashesFicticios = new();
+
+    private static string HashFicticio(IHasherContrasenas hasher) =>
+        HashesFicticios.GetValue(hasher, h => h.Hashear(Guid.NewGuid().ToString("N")));
+
     public async Task<LoginRespuestaDto> Handle(IniciarSesionCommand request, CancellationToken cancellationToken)
     {
         var normalizado = request.NombreUsuario.Trim().ToLowerInvariant();
         var usuario = await usuarios.ObtenerPorNombreNormalizadoAsync(normalizado, cancellationToken);
 
-        if (usuario is null || !usuario.Activo || !hasher.Verificar(usuario.HashContrasena, request.Contrasena))
+        // Siempre se ejecuta Verificar (contra un hash ficticio si el usuario no existe) y se
+        // comprueba la contraseña antes que Activo, para no filtrar existencia/estado por tiempo.
+        var hashAComparar = usuario?.HashContrasena ?? HashFicticio(hasher);
+        var contrasenaCorrecta = hasher.Verificar(hashAComparar, request.Contrasena);
+
+        if (usuario is null || !contrasenaCorrecta || !usuario.Activo)
         {
             throw new CredencialesInvalidasException(MensajeCredenciales);
         }

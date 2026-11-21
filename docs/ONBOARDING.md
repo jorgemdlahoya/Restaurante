@@ -46,6 +46,22 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
 
 Para parar: `docker compose down` (añade `-v` para borrar también el volumen `datos-db`).
 
+## Recuperar el acceso de administrador
+
+El sistema impide dejar el último administrador activo (RF-17) y el administrador inicial
+sólo se crea cuando no existe ningún usuario (RF-09), así que **no se vuelve a sembrar**. Si aun así
+se pierde el acceso (p. ej. dos administradores que se degradan o desactivan a la vez), la
+**única vía de recuperación** es reactivar y promover un usuario existente directamente en la base
+de datos, con el sistema levantado:
+
+```bash
+docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c \
+  "UPDATE usuarios SET activo = true, rol = 'administrador' WHERE nombre_usuario_normalizado = '<usuario>';"
+```
+
+Sustituye `<POSTGRES_USER>` y `<POSTGRES_DB>` por los valores de tu `.env` y `<usuario>` por el
+nombre del usuario **en minúsculas**. Debe responder `UPDATE 1`; después inicia sesión con él.
+
 ## Ejecutar las pruebas
 
 - **Suite habitual** (`comando_test` de `harness.config.json`; no necesita Docker):
