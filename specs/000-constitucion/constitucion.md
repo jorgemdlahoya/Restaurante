@@ -84,8 +84,14 @@ que se toque, a todo su alcance.
 3. Ninguna otra dependencia con estado o recursos puede acogerse a esta excepción.
 
 ### Artículo 9 — Autorización
-1. Todo endpoint exige un rol explícito (`mesero`, `cocina`, `caja` o `administrador`), salvo el
-   login y el endpoint de salud.
+1. Todo endpoint del backoffice exige un rol explícito, salvo el login, el endpoint de salud y los
+   endpoints públicos de los canales de pedido (web y webhook de WhatsApp), que se marcan
+   explícitamente como anónimos. Roles (identificadores en el token y en la API):
+   - `administrador_general`: menú, precios, sucursales y usuarios; alcance: todas las sucursales.
+   - `administrador_sucursal`: agotados, personal e impresoras de su sucursal.
+   - `cajero`: tablero de caja (ver pedidos, cobrar, marcar "Entregada"); una o varias sucursales.
+   - `cocinero`: tablero de cocina (ver pedidos, marcar "En preparación" y "Lista"); una o varias
+     sucursales.
 2. Los JWT se firman con una clave tomada de variable de entorno; las contraseñas se guardan sólo
    como hash.
 
@@ -97,3 +103,26 @@ que se toque, a todo su alcance.
 1. Un filtro global convierte las excepciones en respuestas `ProblemDetails`.
 2. Nunca se devuelven al cliente trazas, mensajes internos de excepción ni SQL; el detalle se
    registra en el log con su identificador de traza.
+
+### Artículo 12 — Aislamiento por sucursal
+1. El sistema es multi-sucursal. Toda entidad operativa (pedidos, sesiones del chatbot, usuarios,
+   impresoras, disponibilidad) lleva `BranchId`.
+2. Un filtro global de EF Core por la sucursal del usuario autenticado o del canal impide que
+   cualquier consulta mezcle datos de sucursales.
+3. El menú (categorías, platillos, variantes, modificadores) y sus precios son **globales**; la
+   disponibilidad ("Agotado") es **por sucursal**.
+4. Toda historia que toque datos operativos incluye la prueba "un usuario de la sucursal A no puede
+   ver ni modificar datos de la sucursal B" → 404.
+
+### Artículo 13 — Borrado lógico e históricos
+1. Las entidades del menú y de negocio no se borran físicamente: usan `IsActive` / `DeletedAt` y un
+   filtro global de EF Core.
+2. Los pedidos guardan una copia (*snapshot*) del nombre y precio de cada línea al momento del
+   pedido; cambios posteriores del menú no alteran pedidos existentes.
+
+### Artículo 14 — Fuente de requerimientos
+1. `docs/backlog/BACKLOG.md` es el backlog definitivo del producto. Cada feature indica en su
+   `requerimiento.md` las historias del backlog que implementa (p. ej. HT-0, SUC-01, AUTH-01) y
+   respeta sus criterios, reglas y decisiones (P-xx).
+2. Si el backlog y esta constitución se contradicen, prevalece la constitución hasta que se
+   enmiende con `/aprobar 000`.

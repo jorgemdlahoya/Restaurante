@@ -1,8 +1,8 @@
 ---
-feature: 002-plataforma-frontend
+feature: 002-base-multisucursal-y-sucursales
 estado: borrador
 ---
-# Diseño: plataforma frontend
+# Diseño: base multisucursal y sucursales
 
 ## Enfoque elegido y alternativas descartadas
 

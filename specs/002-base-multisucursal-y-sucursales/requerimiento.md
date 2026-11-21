@@ -1,8 +1,8 @@
 ---
-feature: 002-plataforma-frontend
+feature: 002-base-multisucursal-y-sucursales
 estado: borrador
 ---
-# Requerimiento: plataforma frontend
+# Requerimiento: base multisucursal y sucursales
 
 <!-- Lo completa /analizar mediante superpowers:brainstorming. No dejes ningún {{...}}. -->
 

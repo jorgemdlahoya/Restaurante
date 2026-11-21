@@ -1,8 +1,8 @@
 ---
-feature: 002-plataforma-frontend
+feature: 002-base-multisucursal-y-sucursales
 estado: borrador
 ---
-# Tareas: plataforma frontend
+# Tareas: base multisucursal y sucursales
 
 <!-- Lo completa /planificar mediante superpowers:writing-plans.
 Formato obligatorio por tarea (lo valida /aprobar):
