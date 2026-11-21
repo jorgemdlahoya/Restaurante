@@ -15,9 +15,9 @@
 - Se trabaja en una copia aparte del repo (autorizada); verificación final en el proyecto con los hooks activos; entrega por Pull Request.
 - Preset: `{"id": "react-ts-vite-vitest-playwright", "ruta": "apps/web/", "test": "vitest", "e2e": "playwright"}`.
 - `comando_test` debe contener `vitest` y `playwright`; `comando_e2e_stack` es obligatorio y debe contener `playwright`.
-- Plantilla: `comando_test` = `npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web exec playwright test --pass-with-no-tests`; `comando_e2e_stack` = `npm --prefix apps/web exec playwright test --config playwright.stack.config.ts`.
+- Plantilla: `comando_test` = `(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests)`; `comando_e2e_stack` = `cd apps/web && npx playwright test --config playwright.stack.config.ts`.
 - Suites: `apps/web/e2e/` (API simulada con `page.route`) y `apps/web/e2e-stack/` (contra `E2E_BASE_URL`, por defecto `http://localhost:8080`).
-- Ralph Loop: `--completion-promise "T-NN VERDE"`, `--max-iterations 8`; estado en `.claude/.ralph-loop.local.md` (único archivo escribible de `.claude/`, en `.gitignore`).
+- Ralph Loop: `--completion-promise "T-NN VERDE"`, `--max-iterations 8`; estado en `.claude/ralph-loop.local.md` (único archivo escribible de `.claude/`, en `.gitignore`).
 - `HARNESS_E2E_TIMEOUT` por defecto 1800 s. Textos en español; scripts sólo stdlib.
 
 ## Review Focus
@@ -25,8 +25,8 @@
 1. Docker apagado al aceptar la última HU → `comando_e2e_stack` falla; no se registra la aceptación y el mensaje sugiere `docker compose up`. (Task 3)
 2. Feature con una sola HU → su aceptación es la final y ejecuta la suite completa. (Task 3)
 3. Config generada antes de este cambio (sin `comando_e2e_stack`) → la última aceptación se rechaza con un mensaje que explica cómo añadirla. (Task 3)
-4. `rm -f ./.claude/.ralph-loop.local.md` (con flag y `./`) → permitido. (Task 4)
-5. Variantes que no son el archivo de Ralph (`.claude/ralph-loop.local.md`, `.claude/.ralph-loop.local.md.bak`) → bloqueadas. (Task 4)
+4. `rm -f ./.claude/ralph-loop.local.md` (con flag y `./`) → permitido. (Task 4)
+5. Variantes que no son el archivo de Ralph (`.claude/ralph-loop.local.md`, `.claude/ralph-loop.local.md.bak`) → bloqueadas. (Task 4)
 
 ---
 
@@ -87,13 +87,13 @@
 - Test: `tests/harness/test_ralph.py`
 
 **Interfaces:**
-- Produces: constante `ESTADO_RALPH = ".claude/.ralph-loop.local.md"`; `evaluar_escritura` devuelve `None` para esa ruta exacta (comparación `casefold`) sin depender de la constitución.
+- Produces: constante `ESTADO_RALPH = ".claude/ralph-loop.local.md"`; `evaluar_escritura` devuelve `None` para esa ruta exacta (comparación `casefold`) sin depender de la constitución.
 
 - [ ] **Step 1: Tests que fallan:**
   - `test_write_estado_ralph` (gate-spec, constitución pendiente) → exit 0.
-  - `test_bash_rm_estado_ralph`: `rm .claude/.ralph-loop.local.md` y `rm -f ./.claude/.ralph-loop.local.md` → exit 0. *(Review Focus 4)*
-  - `test_resto_de_claude_sigue_protegido`: `.claude/otro.local.md`, `.claude/ralph-loop.local.md`, `.claude/.ralph-loop.local.md.bak`, `.claude/settings.json` → exit 2. *(Review Focus 5)*
-  - `test_gitignore_estado_ralph`: `.gitignore` del repo contiene `.claude/.ralph-loop.local.md`.
+  - `test_bash_rm_estado_ralph`: `rm .claude/ralph-loop.local.md` y `rm -f ./.claude/ralph-loop.local.md` → exit 0. *(Review Focus 4)*
+  - `test_resto_de_claude_sigue_protegido`: `.claude/otro.local.md`, `.claude/ralph-loop.local.md`, `.claude/ralph-loop.local.md.bak`, `.claude/settings.json` → exit 2. *(Review Focus 5)*
+  - `test_gitignore_estado_ralph`: `.gitignore` del repo contiene `.claude/ralph-loop.local.md`.
 - [ ] **Step 2:** FAIL. **Step 3:** Implementar. **Step 4:** PASS.
 - [ ] **Step 5:** `git commit -am "feat(harness): el gate permite el estado de Ralph Loop"`
 

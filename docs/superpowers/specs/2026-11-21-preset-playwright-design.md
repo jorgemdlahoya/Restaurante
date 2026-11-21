@@ -42,7 +42,7 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
   (siguen funcionando); re-aprobar una constitución antigua exige el preset nuevo.
 - **Clave nueva obligatoria en `harness-config`: `comando_e2e_stack`** (string que contiene
   `playwright`), p. ej.
-  `npm --prefix apps/web exec playwright test --config playwright.stack.config.ts`.
+  `cd apps/web && npx playwright test --config playwright.stack.config.ts`.
 - **Suite simulada** (`apps/web/e2e/`): Playwright levanta la app con Vite (`webServer`) y
   responde a la API con `page.route`. Entra en `comando_test` con `--pass-with-no-tests`.
   Cada test lleva el RF calificado: `test("NNN/RF-NN: …")`, que `completar-tarea` ya detecta
@@ -56,8 +56,8 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
   ejecutarla. Timeout configurable con `HARNESS_E2E_TIMEOUT` (por defecto 1800 s).
 - **Plantilla de constitución:** sección de frontend con las dos suites y bloque
   `harness-config` con `frontend` nuevo,
-  `comando_test` = `npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web exec playwright test --pass-with-no-tests`
-  y `comando_e2e_stack` = `npm --prefix apps/web exec playwright test --config playwright.stack.config.ts`.
+  `comando_test` = `(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests)`
+  y `comando_e2e_stack` = `cd apps/web && npx playwright test --config playwright.stack.config.ts`.
 - **Comandos:** `/planificar` incluye una prueba Playwright (suite simulada) en cada tarea que
   toca un flujo visible de la UI; `/implementar` lo exige y, antes de pedir la última
   aceptación, recuerda levantar el sistema y ejecutar la suite completa.
@@ -90,11 +90,16 @@ repite la misma instrucción hasta que el agente emite `<promise>…</promise>` 
      escritas en el paso 1.
   Las tareas sin flujo visible siguen el TDD normal, sin Ralph Loop.
 - **Compatibilidad con el gate:** Ralph Loop guarda su estado en
-  `.claude/.ralph-loop.local.md`. El gate (Write/Edit y Bash) permite escribir y borrar
+  `.claude/ralph-loop.local.md`. El gate (Write/Edit y Bash) permite escribir y borrar
   **sólo ese archivo** dentro de `.claude/`; el resto de `.claude/` sigue protegido. El archivo
   se añade a `.gitignore`.
 - `/planificar` marca en `tareas.md` las tareas con flujo visible (línea `UI: sí`), para que
   `/implementar` sepa cuáles usan Ralph Loop.
+
+> Corrección tras la revisión final: el estado de Ralph Loop es `.claude/ralph-loop.local.md`
+> (sin punto); los comandos usan `cd apps/web && npx …` porque `npm --prefix … exec` ejecuta
+> desde la raíz y descarta las opciones; las tareas con `UI: sí` se ejecutan en línea por el
+> agente principal.
 
 ## Pruebas
 
@@ -106,11 +111,11 @@ repite la misma instrucción hasta que el agente emite `<promise>…</promise>` 
 - La plantilla de constitución contiene la sección de Playwright y su bloque pasa la validación.
 - Se actualizan fixtures y la prueba extremo a extremo (comandos `vitest`/`playwright`
   simulados en el `PATH`).
-- Gate: permite Write y `rm` de `.claude/.ralph-loop.local.md`; sigue bloqueando cualquier
+- Gate: permite Write y `rm` de `.claude/ralph-loop.local.md`; sigue bloqueando cualquier
   otro archivo de `.claude/` (p. ej. `.claude/otro.local.md`, `.claude/settings.json`).
 - `implementar.md` menciona `ralph-loop:ralph-loop`, `--completion-promise`, `--max-iterations 8`
   y la prohibición de modificar las pruebas; `planificar.md` menciona `UI: sí`; `.gitignore`
-  incluye `.claude/.ralph-loop.local.md`.
+  incluye `.claude/ralph-loop.local.md`.
 
 ## Forma de trabajo
 

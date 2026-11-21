@@ -22,7 +22,7 @@ APROBACIONES = ".aprobaciones.json"
 PROGRESO = "progreso.json"
 CONFIG = "harness.config.json"
 # Estado del plugin Ralph Loop: único archivo de .claude/ que el agente puede escribir o borrar.
-ESTADO_RALPH = ".claude/.ralph-loop.local.md"
+ESTADO_RALPH = ".claude/ralph-loop.local.md"
 
 # Stack de frontend fijo del harness. Para cambiar de preset, cambia esto y la plantilla
 # specs/_plantillas/constitucion/diseno.md.
@@ -237,13 +237,13 @@ def _validar_preset(cfg: dict) -> None:
         if herramienta not in cfg["comando_test"]:
             raise HarnessError(
                 f"harness-config: 'comando_test' debe ejecutar {herramienta} de forma explícita, p. ej. "
-                "\"npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web "
-                f"exec playwright test --pass-with-no-tests\" ({fijo}).")
+                "\"(cd apps/web && npx vitest run --passWithNoTests && npx playwright test "
+                f"--pass-with-no-tests)\" ({fijo}).")
     stack = cfg.get("comando_e2e_stack")
     if not isinstance(stack, str) or p["e2e"] not in stack:
         raise HarnessError(
             "harness-config: falta 'comando_e2e_stack' (suite completa de Playwright contra el sistema "
-            "levantado), p. ej. \"npm --prefix apps/web exec playwright test --config "
+            "levantado), p. ej. \"cd apps/web && npx playwright test --config "
             f"playwright.stack.config.ts\" ({fijo}).")
 
 
@@ -402,9 +402,9 @@ def _relativa(raiz: Path, ruta: str) -> str | None:
 
 
 def _es_protegido(rel: str) -> bool:
-    r = rel.casefold()
-    if r == ESTADO_RALPH:
+    if rel == ESTADO_RALPH:
         return False
+    r = rel.casefold()
     nombre = r.rsplit("/", 1)[-1]
     return (r.startswith(".claude/") or r == ".claude"
             or r in (CONFIG.casefold(), "claude.md", "specs/.activa")
@@ -429,7 +429,7 @@ def evaluar_escritura(raiz: Path, ruta: str) -> str | None:
     if _es_protegido(rel):
         return (f"Bloqueado: '{rel}' está protegido por el harness SDD. Sólo lo modifica el usuario "
                 "(o los comandos /aprobar, /aceptar y los scripts del harness).")
-    if _coincide(rel, ["specs/", "docs/", ".superpowers/"]) or rel.casefold() == ESTADO_RALPH:
+    if _coincide(rel, ["specs/", "docs/", ".superpowers/"]) or rel == ESTADO_RALPH:
         return None
     if not constitucion_aprobada(raiz):
         return (f"Bloqueado: '{rel}' — la constitución (000) no está aprobada, así que aún no hay "
@@ -718,7 +718,10 @@ def ejecutar_comando(comando: str, raiz: Path, timeout: int) -> tuple[bool, str]
             os.killpg(proc.pid, _signal.SIGKILL)  # mata también los procesos hijos
         except ProcessLookupError:
             pass
-        proc.communicate()
+        try:
+            proc.communicate(timeout=5)
+        except _subprocess.TimeoutExpired:  # un nieto en otra sesión conserva la tubería
+            proc.stdout.close()
         return False, f"'{comando}' superó el tiempo límite ({timeout} s)."
     if proc.returncode == 0:
         return True, ""

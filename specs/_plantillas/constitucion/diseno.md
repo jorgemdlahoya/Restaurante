@@ -14,7 +14,8 @@ El brainstorming decide backend, arquitectura, datos, despliegue y convenciones.
 ## Frontend (fijo del harness)
 
 - **React 18+ con TypeScript**, empaquetado con **Vite**. Código en `apps/web/`.
-- **Vitest + Testing Library + jsdom** para componentes y lógica (TDD rápido).
+- **Vitest + Testing Library + jsdom** para componentes y lógica (TDD rápido). La configuración
+  de Vitest excluye `e2e/` y `e2e-stack/`, que son de Playwright.
 - **Playwright** (`@playwright/test`) para los flujos de punta a punta, en dos suites:
   - `apps/web/e2e/`: la app servida por Vite con la API simulada (`page.route`). Forma parte
     de `comando_test` y bloquea cada tarea; toda tarea con flujo visible tiene aquí su prueba.
@@ -71,7 +72,8 @@ suite completa en apps/web/e2e-stack/). Indica aquí las pruebas del backend y c
 - Añade las rutas del backend a "rutas_codigo" (p. ej. "apps/api/").
 - "comando_test" debe ejecutar vitest y playwright; "comando_e2e_stack" ejecuta la suite completa.
 - Si el backend tiene tests, añádelos a "comando_test" con &&,
-  p. ej. "npm --prefix apps/web exec vitest run --passWithNoTests && pytest apps/api".
+  p. ej. "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test
+  --pass-with-no-tests) && pytest apps/api". El paréntesis mantiene la raíz para lo que sigue.
 - --passWithNoTests permite cerrar tareas de backend mientras apps/web aún no tiene tests. -->
 
 ```harness-config
@@ -79,6 +81,6 @@ suite completa en apps/web/e2e-stack/). Indica aquí las pruebas del backend y c
   "frontend": "react-ts-vite-vitest-playwright",
   "rutas_codigo": ["apps/web/"],
   "rutas_libres": ["package.json", "README.md"],
-  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web exec playwright test --pass-with-no-tests",
-  "comando_e2e_stack": "npm --prefix apps/web exec playwright test --config playwright.stack.config.ts" }
+  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests)",
+  "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts" }
 ```

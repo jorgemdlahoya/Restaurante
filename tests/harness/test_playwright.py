@@ -10,9 +10,9 @@ BASE = {"stack": "React + TS + Vite + Vitest + Playwright; backend: x",
         "frontend": "react-ts-vite-vitest-playwright",
         "rutas_codigo": ["apps/web/", "apps/api/"],
         "rutas_libres": ["README.md"],
-        "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests && "
-                        "npm --prefix apps/web exec playwright test --pass-with-no-tests",
-        "comando_e2e_stack": "npm --prefix apps/web exec playwright test --config playwright.stack.config.ts"}
+        "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && "
+                        "npx playwright test --pass-with-no-tests)",
+        "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts"}
 
 
 def bloque(**cambios):
@@ -55,3 +55,17 @@ def test_plantilla_constitucion_playwright(proyecto):
     cfg = h.extraer_config(texto)
     assert cfg["comando_test"] == BASE["comando_test"]
     assert cfg["comando_e2e_stack"] == BASE["comando_e2e_stack"]
+
+
+def test_plantilla_vitest_excluye_suites_playwright(proyecto):
+    correr("nueva-feature.py", "x", raiz=proyecto)
+    texto = (proyecto / "specs" / "000-constitucion" / h.DIS).read_text()
+    assert "excluye `e2e/` y `e2e-stack/`" in texto
+
+
+def test_ejecutar_comando_no_se_cuelga_con_nietos(proyecto):
+    import time
+    t0 = time.monotonic()
+    ok, motivo = h.ejecutar_comando("setsid sleep 20 & sleep 30", proyecto, 1)
+    assert ok is False and "tiempo" in motivo
+    assert time.monotonic() - t0 < 10

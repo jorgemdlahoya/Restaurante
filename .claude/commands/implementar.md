@@ -24,21 +24,29 @@ argument-hint: "[T-NN]"
    - el código cumple `specs/000-constitucion/constitucion.md`, y la revisión de código se
      hace contra los requisitos **y** contra esa constitución (Art. 4.3);
    - no puede editar `specs/` ni `.claude/`.
-4. **Tareas con `UI: sí` (flujo visible): fase verde con Ralph Loop.**
+4. **Tareas con `UI: sí` (flujo visible): fase verde con Ralph Loop.** Estas tareas las ejecuta
+   el agente principal **en línea, sin subagente** (el bucle de Ralph Loop sólo funciona en la
+   sesión principal).
    1. Escribe la prueba Playwright de la suite simulada en `apps/web/e2e/`
-      (`test("NNN/RF-NN: …")`, API simulada con `page.route`) y comprueba que falla.
+      (`test("NNN/RF-NN: …")`, API simulada con `page.route`), comprueba que falla y haz commit
+      de esa prueba sola (será la referencia del paso 2).
    2. Invoca el skill `ralph-loop:ralph-loop` con `--completion-promise "T-NN VERDE"` y
-      `--max-iterations 8`, y esta instrucción (sustituye `NNN-slug` y `T-NN`):
-      > Implementa T-NN de `specs/NNN-slug/tareas.md` hasta que
-      > `python3 .claude/scripts/completar-tarea.py T-NN` termine con código 0.
-      > No modifiques las pruebas Playwright de los RF de T-NN. Sólo cuando `completar-tarea`
-      > termine en verde, escribe `<promise>T-NN VERDE</promise>`.
+      `--max-iterations 8`. Pásale la instrucción siguiente **entre comillas simples**,
+      sustituyendo `NNN-slug`, `T-NN` y `COMMIT` (el commit del paso 1):
+
+      <!-- INICIO-PROMPT-RALPH -->
+      'Implementa T-NN de specs/NNN-slug/tareas.md. No modifiques las pruebas Playwright de
+      apps/web/e2e/ escritas para T-NN. Cuando las pruebas pasen, comprueba que git diff COMMIT
+      -- apps/web/e2e/ no muestra cambios y ejecuta python3 .claude/scripts/completar-tarea.py
+      T-NN. Sólo si el diff está vacío y completar-tarea termina con código 0, escribe la etiqueta
+      promise con el texto T-NN VERDE.'
+      <!-- FIN-PROMPT-RALPH -->
    3. Si se agotan las 8 iteraciones, la tarea **no** está hecha: aplica
       `superpowers:systematic-debugging` e informa al usuario.
-   4. En la revisión de código de la tarea, comprueba que el diff no altera las pruebas
-      Playwright escritas en el paso 1.
+   4. Al emitir la promesa, el bucle deja terminar el turno: dile al usuario que T-NN quedó
+      hecha y que vuelva a ejecutar `/implementar` para seguir con las tareas pendientes.
 
-   Las tareas sin `UI: sí` siguen el TDD normal, sin Ralph Loop.
+   Las tareas sin `UI: sí` siguen el TDD normal con subagentes (paso 3), sin Ralph Loop.
 5. Al terminar cada tarea, ejecuta:
    ```bash
    python3 .claude/scripts/completar-tarea.py T-NN

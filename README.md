@@ -43,7 +43,7 @@ escribir código.
   feature, y si falla la feature no se cierra. Esa última `/aceptar` necesita Docker.
 - **Ralph Loop:** las tareas marcadas `UI: sí` resuelven su fase verde con el plugin Ralph Loop
   (máx. 8 iteraciones, promesa `T-NN VERDE` sólo con `completar-tarea` en verde, sin tocar las
-  pruebas). El gate permite únicamente su archivo de estado `.claude/.ralph-loop.local.md`.
+  pruebas). El gate permite únicamente su archivo de estado `.claude/ralph-loop.local.md`.
 - **Principios:** la constitución incluye `constitucion.md` (seguridad sin secretos, TDD, diseño
   con inyección de dependencias, verificar antes de declarar terminado, y documentación del API
   si aplica). Se aprueba junto al resto y no se pueden quitar los Art. 1–4.

@@ -99,3 +99,12 @@ def test_claude_md_y_readme_playwright():
     r = (REPO / "README.md").read_text(encoding="utf-8")
     assert "comando_e2e_stack" in r and "Ralph Loop" in r
     assert "react-ts-vite-vitest-playwright" in _texto("analizar")
+
+
+def test_implementar_ralph_en_linea_y_prompt_seguro():
+    t = _texto("implementar")
+    assert "sin subagente" in t and "comillas simples" in t
+    prompt = t.split("INICIO-PROMPT-RALPH -->")[1].split("<!-- FIN-PROMPT-RALPH")[0]
+    assert "`" not in prompt and "<" not in prompt and ">" not in prompt
+    assert "git diff" in prompt and "completar-tarea.py" in prompt
+    assert "/implementar" in t.split("FIN-PROMPT-RALPH")[1]
