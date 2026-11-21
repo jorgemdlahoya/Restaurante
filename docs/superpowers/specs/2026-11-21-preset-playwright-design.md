@@ -41,7 +41,8 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
   que `comando_test` contenga `playwright`. Las configuraciones ya generadas no se re-validan
   (siguen funcionando); re-aprobar una constitución antigua exige el preset nuevo.
 - **Clave nueva obligatoria en `harness-config`: `comando_e2e_stack`** (string que contiene
-  `playwright`), p. ej. `npm --prefix apps/web run e2e:stack`.
+  `playwright`), p. ej.
+  `npm --prefix apps/web exec playwright test --config playwright.stack.config.ts`.
 - **Suite simulada** (`apps/web/e2e/`): Playwright levanta la app con Vite (`webServer`) y
   responde a la API con `page.route`. Entra en `comando_test` con `--pass-with-no-tests`.
   Cada test lleva el RF calificado: `test("NNN/RF-NN: …")`, que `completar-tarea` ya detecta
@@ -56,7 +57,7 @@ Art. 4). Como el harness se reutiliza en varios proyectos React, va en el preset
 - **Plantilla de constitución:** sección de frontend con las dos suites y bloque
   `harness-config` con `frontend` nuevo,
   `comando_test` = `npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web exec playwright test --pass-with-no-tests`
-  y `comando_e2e_stack` = `npm --prefix apps/web run e2e:stack`.
+  y `comando_e2e_stack` = `npm --prefix apps/web exec playwright test --config playwright.stack.config.ts`.
 - **Comandos:** `/planificar` incluye una prueba Playwright (suite simulada) en cada tarea que
   toca un flujo visible de la UI; `/implementar` lo exige y, antes de pedir la última
   aceptación, recuerda levantar el sistema y ejecutar la suite completa.
