@@ -13,6 +13,6 @@
     ".gitignore",
     ".editorconfig"
   ],
-  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api",
-  "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts"
+  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api --filter \"Category!=Integracion\"",
+  "comando_e2e_stack": "dotnet test apps/api --filter \"Category=Integracion\" && cd apps/web && npx playwright test --config playwright.stack.config.ts"
 }
