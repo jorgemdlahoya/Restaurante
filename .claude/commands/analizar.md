@@ -20,8 +20,9 @@ python3 .claude/scripts/nueva-feature.py "$ARGUMENTS"
 
 - La primera línea de la salida es la carpeta de la feature (`specs/NNN-slug`). Trabaja ahí.
 - Si crea o reutiliza `000-constitucion`, el análisis es la **constitución del proyecto**:
-  - El **frontend es fijo del harness** (`react-ts-vite-vitest`: React + TypeScript + Vite +
-    Vitest + Testing Library en `apps/web/`): no lo preguntes ni propongas alternativas.
+  - El **frontend es fijo del harness** (`react-ts-vite-vitest-playwright`: React + TypeScript +
+    Vite, Vitest + Testing Library y Playwright en `apps/web/`): no lo preguntes ni propongas
+    alternativas.
   - El brainstorming cubre backend, arquitectura, datos, despliegue, convenciones y estrategia
     de pruebas del backend.
   - Rellena los tres documentos: `requerimiento.md`, `diseno.md` (con su bloque

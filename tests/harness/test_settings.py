@@ -39,3 +39,12 @@ def test_sessionstart_con_plugin(proyecto, tmp_path):
     r = correr("verificar-superpowers.sh", raiz=proyecto,
                env_extra={"CLAUDE_CONFIG_DIR": str(tmp_path / "cfg")})
     assert r.returncode == 0 and "/plugin install" not in r.stdout
+
+
+def test_sessionstart_avisa_sin_ralph(proyecto, tmp_path):
+    skill = tmp_path / "cfg" / "plugins" / "x" / "skills" / "brainstorming"
+    skill.mkdir(parents=True)
+    (skill / "SKILL.md").write_text("x")
+    r = correr("verificar-superpowers.sh", raiz=proyecto,
+               env_extra={"CLAUDE_CONFIG_DIR": str(tmp_path / "cfg")})
+    assert r.returncode == 0 and "ralph-loop" in r.stdout

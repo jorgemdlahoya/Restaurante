@@ -18,9 +18,13 @@ al aprobarla se genera `harness.config.json` (rutas de código y comando de test
 
 ## Stack fijo del frontend
 
-Todo proyecto con este harness usa **React + TypeScript + Vite + Vitest** (+ Testing Library) en
-`apps/web/` (preset `react-ts-vite-vitest`). No se discute en los análisis; `/aprobar 000`
-rechaza una constitución que no lo declare. El backend lo decide cada constitución.
+Todo proyecto con este harness usa **React + TypeScript + Vite**, con **Vitest** (+ Testing
+Library) y **Playwright** en `apps/web/` (preset `react-ts-vite-vitest-playwright`). No se
+discute en los análisis; `/aprobar 000` rechaza una constitución que no lo declare.
+- Playwright: suite simulada en `apps/web/e2e/` (bloquea cada tarea) y suite completa en
+  `apps/web/e2e-stack/` (bloquea la última `/aceptar`).
+- Las tareas con `UI: sí` resuelven su fase verde con **Ralph Loop** (ver `/implementar`).
+El backend lo decide cada constitución.
 
 ## Principios innegociables
 

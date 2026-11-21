@@ -45,17 +45,9 @@ def main(argv: list[str]) -> int:
               "Nombra los tests como \"NNN/RF-NN: ...\".", file=sys.stderr)
         return 1
     timeout = int(os.environ.get("HARNESS_TEST_TIMEOUT", "1800"))
-    try:
-        r = subprocess.run(cfg["comando_test"], shell=True, cwd=raiz, capture_output=True,
-                           text=True, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        print(f"No se puede completar {tarea}: los tests superaron el tiempo límite ({timeout} s).",
-              file=sys.stderr)
-        return 1
-    if r.returncode != 0:
-        cola = "\n".join((r.stdout + r.stderr).splitlines()[-40:])
-        print(f"No se puede completar {tarea}: '{cfg['comando_test']}' terminó con código "
-              f"{r.returncode}.\n{cola}", file=sys.stderr)
+    ok, motivo = h.ejecutar_comando(cfg["comando_test"], raiz, timeout)
+    if not ok:
+        print(f"No se puede completar {tarea}: {motivo}", file=sys.stderr)
         return 1
     prog = h.cargar_progreso(fdir)
     prog["tareas"][tarea] = {"estado": "hecha", "fecha": h.ahora(), "commit": commit_actual(raiz)}

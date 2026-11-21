@@ -9,8 +9,9 @@ from conftest import REPO, correr, hook, REQ_OK, DIS_OK, TAR_OK, CONS_OK
 
 CONFIG = """
 ```harness-config
-{"stack": "react", "frontend": "react-ts-vite-vitest", "rutas_codigo": ["apps/web/"],
- "rutas_libres": ["README.md"], "comando_test": "vitest run"}
+{"stack": "react", "frontend": "react-ts-vite-vitest-playwright", "rutas_codigo": ["apps/web/"],
+ "rutas_libres": ["README.md"], "comando_test": "vitest run && playwright test",
+ "comando_e2e_stack": "playwright test --config playwright.stack.config.ts"}
 ```
 """
 
@@ -74,11 +75,13 @@ def test_flujo_completo(tmp_path, monkeypatch):
     binfalso.mkdir()
     (binfalso / "vitest").write_text("#!/bin/sh\nexec python3 -m unittest discover -s apps/web -q\n")
     (binfalso / "vitest").chmod(0o755)
+    (binfalso / "playwright").write_text("#!/bin/sh\nexit 0\n")
+    (binfalso / "playwright").chmod(0o755)
     path = {"PATH": f"{binfalso}:{os.environ['PATH']}"}
     for t in ("T-01", "T-02"):
         r = correr("completar-tarea.py", t, raiz=raiz, env_extra=path)
         assert r.returncode == 0, r.stdout + r.stderr
     assert "HU-01" in r.stdout
-    assert correr("aceptar.py", "HU-01", raiz=raiz).returncode == 0
+    assert correr("aceptar.py", "HU-01", raiz=raiz, env_extra=path).returncode == 0
     out = correr("estado.py", raiz=raiz).stdout
     assert "fase: cerrada" in out and "(ninguno)" in out
