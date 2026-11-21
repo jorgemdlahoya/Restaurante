@@ -1,0 +1,105 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
+using Microsoft.IdentityModel.Tokens;
+using Restaurante.Application.Abstracciones;
+using Restaurante.Domain.Usuarios;
+
+namespace Restaurante.WebApi.Tests.Infraestructura;
+
+/// <summary>
+/// Colección que serializa las clases que usan la fábrica: el entorno del proceso es global
+/// y <see cref="FabricaApi"/> lo modifica mientras construye el host.
+/// </summary>
+[CollectionDefinition(Nombre, DisableParallelization = true)]
+public sealed class ColeccionApi
+{
+    public const string Nombre = "Api";
+}
+
+public sealed class FabricaApi : WebApplicationFactory<Program>
+{
+    public const string ClaveJwt = "0123456789abcdef0123456789abcdef";
+    public const string ClaveAjena = "ffffffffffffffffffffffffffffffff";
+
+    private readonly Dictionary<string, string?> _entorno;
+
+    public FabricaApi(Action<Dictionary<string, string?>>? ajustarEntorno = null)
+    {
+        _entorno = EntornoValido();
+        ajustarEntorno?.Invoke(_entorno);
+    }
+
+    public UsuarioRepositoryEnMemoria Usuarios { get; } = new();
+
+    public IReadOnlyDictionary<string, string?> Entorno => _entorno;
+
+    public static Dictionary<string, string?> EntornoValido() => new()
+    {
+        ["DB_CONNECTION_STRING"] = "Host=no-existe;Database=prueba;Username=u;Password=p",
+        ["JWT_SIGNING_KEY"] = ClaveJwt,
+        ["CORS_ALLOWED_ORIGINS"] = "http://localhost:5173",
+        ["APPLY_MIGRATIONS"] = "false",
+        ["ADMIN_USERNAME"] = "admin",
+        ["ADMIN_PASSWORD"] = "Contrasena-de-prueba-1",
+    };
+
+    public static string EmitirToken(
+        Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null)
+    {
+        var ahora = DateTime.UtcNow;
+        var token = new JwtSecurityToken(
+            issuer: "restaurante-api",
+            audience: "restaurante-web",
+            claims:
+            [
+                new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),
+                new Claim("unique_name", "usuario-prueba"),
+                new Claim("role", rol.ToString().ToLowerInvariant()),
+            ],
+            notBefore: ahora.AddHours(-3),
+            expires: ahora.Add(expiraEn ?? TimeSpan.FromHours(1)),
+            signingCredentials: new SigningCredentials(
+                new SymmetricSecurityKey(Encoding.UTF8.GetBytes(clave)), SecurityAlgorithms.HmacSha256));
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    protected override IHost CreateHost(IHostBuilder builder)
+    {
+        // Program lee el entorno del proceso; se sustituye sólo mientras se construye el host.
+        var anteriores = _entorno.ToDictionary(p => p.Key, p => Environment.GetEnvironmentVariable(p.Key));
+        try
+        {
+            foreach (var (clave, valor) in _entorno)
+            {
+                Environment.SetEnvironmentVariable(clave, valor);
+            }
+
+            return base.CreateHost(builder);
+        }
+        finally
+        {
+            foreach (var (clave, valor) in anteriores)
+            {
+                Environment.SetEnvironmentVariable(clave, valor);
+            }
+        }
+    }
+
+    protected override void ConfigureWebHost(IWebHostBuilder builder)
+    {
+        builder.ConfigureServices(servicios =>
+            servicios.AddControllers().AddApplicationPart(typeof(FabricaApi).Assembly));
+
+        builder.ConfigureServices(servicios =>
+        {
+            servicios.RemoveAll<IUsuarioRepository>();
+            servicios.AddSingleton<IUsuarioRepository>(Usuarios);
+        });
+    }
+}
