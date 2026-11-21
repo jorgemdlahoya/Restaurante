@@ -64,7 +64,7 @@ sin leer el código del backend.
 ## Requisitos no funcionales
 
 - **RNF-01**: El backend usa .NET 10 / ASP.NET Core y PostgreSQL 16 o superior; el frontend, React + TypeScript + Vite con Vitest y Playwright (preset del harness). MediatR se fija en la versión 12.x (licencia Apache 2.0).
-- **RNF-02**: Un único comando (`comando_test` de `harness.config.json`) ejecuta las pruebas del frontend (Vitest y la suite simulada de Playwright) y del backend, y debe terminar en verde antes de cerrar cualquier tarea; la suite completa de Playwright (`comando_e2e_stack`) debe pasar antes de cerrar cada feature.
+- **RNF-02**: Un único comando (`comando_test` de `harness.config.json`) ejecuta las pruebas del frontend (Vitest y la suite simulada de Playwright) y del backend que no necesitan Docker, y debe terminar en verde antes de cerrar cualquier tarea; las pruebas de integración del backend (Testcontainers) y la suite completa de Playwright (`comando_e2e_stack`) deben pasar antes de cerrar cada feature.
 - **RNF-03**: Un test de arquitectura falla si alguna capa del backend viola la regla de dependencias de Clean Architecture.
 - **RNF-04**: Las contraseñas se almacenan sólo como hash; el JWT expira a las 8 horas (un turno).
 - **RNF-05**: `docker compose up` con un `.env` completo levanta `web`, `api` y `db` sin pasos manuales adicionales.

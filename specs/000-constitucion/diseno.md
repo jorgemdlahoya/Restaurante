@@ -155,13 +155,18 @@ apps/api/
 - **Backend:** xUnit, con el RF en el nombre visible:
   `[Fact(DisplayName = "NNN/RF-NN: …")]`.
   - Domain y Application: pruebas unitarias (handlers con dobles de las interfaces).
-  - Infrastructure: pruebas de integración contra PostgreSQL real con Testcontainers.
+  - Infrastructure: pruebas de integración contra PostgreSQL real con Testcontainers, marcadas
+    con `[Trait("Category", "Integracion")]` porque necesitan Docker. No entran en
+    `comando_test`; se ejecutan con `comando_e2e_stack` al cerrar la feature.
   - WebApi: pruebas de integración con `WebApplicationFactory` (autenticación, autorización,
     errores, CORS, salud).
   - Architecture: NetArchTest verifica la regla de dependencias entre capas.
-- `comando_test` ejecuta Vitest, la suite simulada de Playwright y las pruebas del backend; debe
-  quedar en verde para cerrar cualquier tarea. `comando_e2e_stack` (suite completa, con el sistema
-  levantado) debe pasar para aceptar la última HU de una feature.
+- `comando_test` ejecuta Vitest, la suite simulada de Playwright y las pruebas del backend que no
+  necesitan Docker (`--filter "Category!=Integracion"`); debe quedar en verde para cerrar
+  cualquier tarea.
+- `comando_e2e_stack` ejecuta las pruebas de integración del backend (Testcontainers) y la suite
+  completa de Playwright con el sistema levantado; debe pasar para aceptar la última HU de una
+  feature. Requiere Docker.
 
 ## Configuración del harness
 
@@ -170,6 +175,6 @@ apps/api/
   "frontend": "react-ts-vite-vitest-playwright",
   "rutas_codigo": ["apps/web/", "apps/api/", "docker-compose.yml", ".env.example"],
   "rutas_libres": ["README.md", ".gitignore", ".editorconfig"],
-  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api",
-  "comando_e2e_stack": "cd apps/web && npx playwright test --config playwright.stack.config.ts" }
+  "comando_test": "(cd apps/web && npx vitest run --passWithNoTests && npx playwright test --pass-with-no-tests) && dotnet test apps/api --filter \"Category!=Integracion\"",
+  "comando_e2e_stack": "dotnet test apps/api --filter \"Category=Integracion\" && cd apps/web && npx playwright test --config playwright.stack.config.ts" }
 ```
