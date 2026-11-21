@@ -10,6 +10,8 @@ import json
 import os
 import re as _re
 import shlex as _shlex
+import signal as _signal
+import subprocess as _subprocess
 from pathlib import Path
 
 REQ = "requerimiento.md"
@@ -697,3 +699,24 @@ def ejecuta_script_usuario(comando: str) -> bool:
 
 def calcula_hashes_aprobacion(comando: str) -> bool:
     return ".aprobaciones" in comando and bool(_re.search(r"sha256|hashlib|shasum|openssl", comando))
+
+
+# ---------------------------------------------------------------- ejecución de comandos
+
+def ejecutar_comando(comando: str, raiz: Path, timeout: int) -> tuple[bool, str]:
+    """Ejecuta `comando` en la raíz. (True, "") si termina con 0; si no, (False, motivo + cola)."""
+    proc = _subprocess.Popen(comando, shell=True, cwd=raiz, stdout=_subprocess.PIPE,
+                             stderr=_subprocess.STDOUT, text=True, start_new_session=True)
+    try:
+        salida, _ = proc.communicate(timeout=timeout)
+    except _subprocess.TimeoutExpired:
+        try:
+            os.killpg(proc.pid, _signal.SIGKILL)  # mata también los procesos hijos
+        except ProcessLookupError:
+            pass
+        proc.communicate()
+        return False, f"'{comando}' superó el tiempo límite ({timeout} s)."
+    if proc.returncode == 0:
+        return True, ""
+    cola = "\n".join((salida or "").splitlines()[-40:])
+    return False, f"'{comando}' terminó con código {proc.returncode}.\n{cola}"
