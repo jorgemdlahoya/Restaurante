@@ -17,6 +17,10 @@ argument-hint: "[NNN]"
      pasos TDD (test rojo → implementación mínima → test verde → commit).
    - Los tests se nombran con el RF calificado: `"NNN/RF-NN: ..."` (p. ej. `"003/RF-02: ..."`).
    - Tareas pequeñas, cada una con un entregable verificable.
+   - Marca con una línea `UI: sí` cada tarea que toca un flujo visible de la interfaz. Esas
+     tareas incluyen una prueba **Playwright** en la suite simulada (`apps/web/e2e/`,
+     `test("NNN/RF-NN: …")`) además de sus pruebas Vitest; `/implementar` las resuelve con
+     Ralph Loop.
    - **Omite el paso de elegir método de ejecución**: eso lo hace `/implementar`.
 4. Autorrevisión: todo `RF` tiene al menos una tarea y toda tarea referencia RF existentes.
 5. Termina con: "Plan listo en `tareas.md`. Revísalo y ejecuta `/aprobar NNN`; luego `/implementar`."

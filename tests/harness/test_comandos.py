@@ -75,3 +75,27 @@ def test_comandos_leen_constitucion():
         assert "specs/000-constitucion/constitucion.md" in _texto(nombre), nombre
     assert "{{CORS_RULE}}" in _texto("analizar")
     assert "constitucion.md" in (REPO / "CLAUDE.md").read_text(encoding="utf-8")
+
+
+def test_planificar_marca_ui():
+    t = _texto("planificar")
+    assert "UI: sí" in t and "Playwright" in t
+
+
+def test_implementar_ralph():
+    t = _texto("implementar")
+    for frag in ("ralph-loop:ralph-loop", "--completion-promise", "--max-iterations 8", "T-NN VERDE",
+                 "No modifiques las pruebas Playwright", "apps/web/e2e/"):
+        assert frag in t, frag
+
+
+def test_aceptar_menciona_suite_completa():
+    assert "docker compose up" in _texto("aceptar")
+
+
+def test_claude_md_y_readme_playwright():
+    c = (REPO / "CLAUDE.md").read_text(encoding="utf-8")
+    assert "Playwright" in c and "Ralph Loop" in c and len(c.splitlines()) <= 80
+    r = (REPO / "README.md").read_text(encoding="utf-8")
+    assert "comando_e2e_stack" in r and "Ralph Loop" in r
+    assert "react-ts-vite-vitest-playwright" in _texto("analizar")

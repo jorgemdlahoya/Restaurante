@@ -1,4 +1,4 @@
-# Harness SDD + Superpowers para proyectos React — Sistema de restaurante
+# Harness SDD + Superpowers para proyectos React (Vitest + Playwright) — Sistema de restaurante
 
 Configuración de proyecto para **Claude Code** que obliga a desarrollar con
 *Spec-Driven Development*: cada requerimiento se analiza con
@@ -32,10 +32,18 @@ escribir código.
 
 ## Preset React y principios innegociables
 
-- **Frontend fijo:** React + TypeScript + Vite + Vitest (+ Testing Library) en `apps/web/`.
-  La constitución (`000`) se crea con una plantilla que ya lo declara, y `/aprobar 000` rechaza
-  el bloque `harness-config` si falta `"frontend": "react-ts-vite-vitest"`, la ruta `apps/web/`
-  o un `comando_test` que ejecute `vitest`.
+- **Frontend fijo:** React + TypeScript + Vite, con Vitest (+ Testing Library) y Playwright en
+  `apps/web/`. La constitución (`000`) se crea con una plantilla que ya lo declara, y
+  `/aprobar 000` rechaza el bloque `harness-config` si falta
+  `"frontend": "react-ts-vite-vitest-playwright"`, la ruta `apps/web/`, un `comando_test` que
+  ejecute `vitest` y `playwright`, o `comando_e2e_stack`.
+- **Playwright en dos suites:** la simulada (`apps/web/e2e/`, API con `page.route`) va en
+  `comando_test` y bloquea cada tarea; la completa (`apps/web/e2e-stack/`, contra
+  `docker compose`) se ejecuta con `comando_e2e_stack` al aceptar la **última** HU de una
+  feature, y si falla la feature no se cierra. Esa última `/aceptar` necesita Docker.
+- **Ralph Loop:** las tareas marcadas `UI: sí` resuelven su fase verde con el plugin Ralph Loop
+  (máx. 8 iteraciones, promesa `T-NN VERDE` sólo con `completar-tarea` en verde, sin tocar las
+  pruebas). El gate permite únicamente su archivo de estado `.claude/.ralph-loop.local.md`.
 - **Principios:** la constitución incluye `constitucion.md` (seguridad sin secretos, TDD, diseño
   con inyección de dependencias, verificar antes de declarar terminado, y documentación del API
   si aplica). Se aprueba junto al resto y no se pueden quitar los Art. 1–4.
