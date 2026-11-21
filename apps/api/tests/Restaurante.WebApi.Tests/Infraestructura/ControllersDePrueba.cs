@@ -16,8 +16,19 @@ public sealed class ControllerDePrueba : ControllerBase
     public IActionResult SoloCaja() => Ok(new { ok = true });
 
     [HttpGet("anonimo")]
+    [EndpointAnonimo]
     public IActionResult Anonimo() => Ok(new { ok = true });
 
     [HttpGet("explota")]
+    [EndpointAnonimo]
     public IActionResult Explota() => throw new InvalidOperationException(MensajeInterno);
+}
+
+/// <summary>Incumple a propósito el Art. 9 (sin rol ni marca anónima): sirve para probar la prueba de guarda.</summary>
+[ApiController]
+[Route("prueba-sin-proteccion")]
+public sealed class ControllerSinProteccion : ControllerBase
+{
+    [HttpGet]
+    public IActionResult Abierto() => Ok();
 }
