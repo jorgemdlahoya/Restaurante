@@ -1,0 +1,10 @@
+{
+  "tareas": {
+    "T-01": {
+      "estado": "hecha",
+      "fecha": "2026-11-21T03:20:12",
+      "commit": "1c3efe9c0e379a07992a662a0b9a66bf313e801c"
+    }
+  },
+  "aceptadas": {}
+}
