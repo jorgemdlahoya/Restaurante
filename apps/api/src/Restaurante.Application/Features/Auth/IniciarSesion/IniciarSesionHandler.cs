@@ -1,5 +1,6 @@
 using MediatR;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
 using Restaurante.Application.Comun.Excepciones;
 
 namespace Restaurante.Application.Features.Auth.IniciarSesion;
@@ -23,6 +24,6 @@ public sealed class IniciarSesionHandler(
 
         var token = emisor.Emitir(usuario);
         return new LoginRespuestaDto(token.Token, token.ExpiraEn, usuario.NombreUsuario,
-            usuario.Rol.ToString().ToLowerInvariant());
+            usuario.Rol.ComoTexto());
     }
 }
