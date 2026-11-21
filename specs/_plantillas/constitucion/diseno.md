@@ -66,9 +66,10 @@ El brainstorming decide backend, arquitectura, datos, despliegue y convenciones.
 - --passWithNoTests permite cerrar tareas de backend mientras apps/web aún no tiene tests. -->
 
 ```harness-config
-{ "stack": "React + TypeScript + Vite + Vitest; backend: {{backend_corto}}",
-  "frontend": "react-ts-vite-vitest",
+{ "stack": "React + TypeScript + Vite + Vitest + Playwright; backend: {{backend_corto}}",
+  "frontend": "react-ts-vite-vitest-playwright",
   "rutas_codigo": ["apps/web/"],
   "rutas_libres": ["package.json", "README.md"],
-  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests" }
+  "comando_test": "npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web exec playwright test --pass-with-no-tests",
+  "comando_e2e_stack": "npm --prefix apps/web exec playwright test --config playwright.stack.config.ts" }
 ```

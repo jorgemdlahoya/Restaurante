@@ -7,10 +7,11 @@ import harness_lib as h
 from conftest import correr, crear_feature, constitucion_aprobada, REQ_OK, DIS_OK, TAR_OK
 
 BASE = {"stack": "React + TS + Vite + Vitest; backend: python",
-        "frontend": "react-ts-vite-vitest",
+        "frontend": "react-ts-vite-vitest-playwright",
         "rutas_codigo": ["apps/web/", "apps/api/"],
         "rutas_libres": ["README.md"],
-        "comando_test": "npm --prefix apps/web exec vitest run"}
+        "comando_test": "npm --prefix apps/web exec vitest run && npm --prefix apps/web exec playwright test",
+        "comando_e2e_stack": "npm --prefix apps/web exec playwright test --config playwright.stack.config.ts"}
 
 
 def bloque(**cambios):
@@ -20,7 +21,7 @@ def bloque(**cambios):
 
 
 def test_bloque_valido():
-    assert h.extraer_config(bloque())["frontend"] == "react-ts-vite-vitest"
+    assert h.extraer_config(bloque())["frontend"] == "react-ts-vite-vitest-playwright"
 
 
 @pytest.mark.parametrize("cambios,texto", [
@@ -61,7 +62,7 @@ def test_constitucion_usa_plantilla_react(proyecto):
     assert correr("nueva-feature.py", "x", raiz=proyecto).returncode == 0
     texto = (proyecto / "specs" / "000-constitucion" / h.DIS).read_text()
     assert "## Frontend (fijo del harness)" in texto
-    assert h.extraer_config(texto)["frontend"] == "react-ts-vite-vitest"
+    assert h.extraer_config(texto)["frontend"] == "react-ts-vite-vitest-playwright"
 
 
 def test_feature_normal_plantilla_generica(proyecto):

@@ -22,7 +22,8 @@ CONFIG = "harness.config.json"
 
 # Stack de frontend fijo del harness. Para cambiar de preset, cambia esto y la plantilla
 # specs/_plantillas/constitucion/diseno.md.
-PRESET_FRONTEND = {"id": "react-ts-vite-vitest", "ruta": "apps/web/", "test": "vitest"}
+PRESET_FRONTEND = {"id": "react-ts-vite-vitest-playwright", "ruta": "apps/web/", "test": "vitest",
+                   "e2e": "playwright"}
 
 
 class HarnessError(Exception):
@@ -228,9 +229,18 @@ def _validar_preset(cfg: dict) -> None:
     rutas = {r.strip().removeprefix("./").rstrip("/") + "/" for r in cfg["rutas_codigo"]}
     if p["ruta"] not in rutas:
         raise HarnessError(f"harness-config: 'rutas_codigo' debe incluir \"{p['ruta']}\" ({fijo}).")
-    if p["test"] not in cfg["comando_test"]:
-        raise HarnessError(f"harness-config: 'comando_test' debe ejecutar {p['test']} de forma "
-                           f"explícita, p. ej. \"npm --prefix apps/web exec vitest run\" ({fijo}).")
+    for herramienta in (p["test"], p["e2e"]):
+        if herramienta not in cfg["comando_test"]:
+            raise HarnessError(
+                f"harness-config: 'comando_test' debe ejecutar {herramienta} de forma explícita, p. ej. "
+                "\"npm --prefix apps/web exec vitest run --passWithNoTests && npm --prefix apps/web "
+                f"exec playwright test --pass-with-no-tests\" ({fijo}).")
+    stack = cfg.get("comando_e2e_stack")
+    if not isinstance(stack, str) or p["e2e"] not in stack:
+        raise HarnessError(
+            "harness-config: falta 'comando_e2e_stack' (suite completa de Playwright contra el sistema "
+            "levantado), p. ej. \"npm --prefix apps/web exec playwright test --config "
+            f"playwright.stack.config.ts\" ({fijo}).")
 
 
 def sin_comentarios(texto: str) -> str:
