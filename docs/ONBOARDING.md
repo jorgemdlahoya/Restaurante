@@ -81,6 +81,20 @@ docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c \
 Sustituye `<POSTGRES_USER>` y `<POSTGRES_DB>` por los valores de tu `.env` y `<usuario>` por el
 nombre del usuario **en minúsculas**. Debe responder `UPDATE 1`; después inicia sesión con él.
 
+## Levantar el frontend
+
+El frontend (React + TypeScript + Vite) vive en `apps/web`. Con la API en `http://localhost:5000`:
+
+```bash
+cd apps/web
+npm install
+npm run dev      # http://localhost:5173 (proxy de /api y /health hacia http://localhost:5000)
+npm run build    # tsc --noEmit && vite build
+```
+
+`VITE_API_URL` (opcional) fija la URL base de la API; sin ella se usan rutas relativas con el proxy.
+Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de Vite en el puerto 5173.
+
 ## Ejecutar las pruebas
 
 - **Suite habitual** (`comando_test` de `harness.config.json`; no necesita Docker):

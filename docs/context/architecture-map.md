@@ -116,3 +116,18 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
   con el `ContextoRestaurante` por petición. La fábrica de diseño (`dotnet ef`) y las pruebas de
   integración usan `ContextoRestauranteFijo`. Las pruebas de la API usan el contexto y el middleware reales
   con un `UsuarioRepositoryEnMemoria` scoped que filtra el almacén compartido `FabricaApi.Usuarios`.
+
+## Frontend (`apps/web`)
+
+React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
+`src/pruebas/setup.ts`) y Playwright (proyectos `escritorio` 1440x900 y `movil` 390x844).
+
+- `src/main.tsx`: monta `QueryClientProvider` (TanStack Query), `ProveedorTema` y `App`.
+- `src/App.tsx`: enrutador (`react-router`), vacío hasta las pantallas de las tareas siguientes.
+- `src/tema/`: `paleta.ts` (`Paleta`, `PALETA_POR_DEFECTO`, `resolverPaleta`, `aplicarPaleta`),
+  `ProveedorTema.tsx` (escribe la paleta en variables CSS de `:root` en `useLayoutEffect` y restaura la
+  paleta por defecto al desmontarse) y `tema.css` (variables `--color-principal`, `--color-acento`,
+  `--color-oscuro`, `--color-fondo`, `--color-texto`, tipografía Nunito y estilos base).
+- Regla RNF-02: ningún componente usa colores literales; sólo `var(--color-*)` (lo verifica
+  `sinColoresLiterales.test.ts`, que excluye `paleta.ts` y `tema.css`).
+- Desarrollo: `vite.config.ts` hace proxy de `/api` y `/health` a `http://localhost:5000`.
