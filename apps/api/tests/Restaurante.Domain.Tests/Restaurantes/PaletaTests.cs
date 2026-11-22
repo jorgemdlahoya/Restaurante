@@ -18,6 +18,7 @@ public class PaletaTests
     [InlineData("F97316")]
     [InlineData("#FFF")]
     [InlineData("#GGGGGG")]
+    [InlineData("#FFFFFF\n")]
     public void Paleta_RechazaFormatoInvalido(string color)
     {
         Assert.Throws<ArgumentException>(() => new Paleta(color, null, null, null, null));

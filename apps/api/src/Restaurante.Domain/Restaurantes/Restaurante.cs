@@ -67,6 +67,6 @@ public sealed partial class Restaurante
         return recortado;
     }
 
-    [GeneratedRegex(PatronSlug)]
+    [GeneratedRegex(@"^[a-z0-9-]{3,40}\z")]
     private static partial Regex PatronSlugRegex();
 }

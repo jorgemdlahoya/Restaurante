@@ -28,6 +28,6 @@ public sealed partial record Paleta
             ? color
             : throw new ArgumentException("El color debe tener el formato #RRGGBB.", parametro);
 
-    [GeneratedRegex("^#[0-9A-Fa-f]{6}$")]
+    [GeneratedRegex(@"^#[0-9A-Fa-f]{6}\z")]
     private static partial Regex PatronColor();
 }

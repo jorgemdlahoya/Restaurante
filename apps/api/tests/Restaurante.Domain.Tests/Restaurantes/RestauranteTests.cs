@@ -26,6 +26,7 @@ public class RestauranteTests
     [InlineData("La Esquina", "con espacio")]
     [InlineData("La Esquina", "ab")]
     [InlineData("La Esquina", "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")]
+    [InlineData("La Esquina", "abc\n")]
     [InlineData("", "la-esquina")]
     [InlineData("   ", "la-esquina")]
     public void Crear_DatosInvalidos_Lanza(string nombre, string slug)
@@ -72,7 +73,7 @@ public class RestauranteTests
         Assert.Equal(PaletaBase, r.Paleta);
     }
 
-    [Fact(DisplayName = "002/RF-04: un logo conserva contenido, tipo y etag y se reemplaza")]
+    [Fact(DisplayName = "002/RF-05: un logo conserva contenido, tipo y etag y se reemplaza")]
     public void Logo_CrearYReemplazar()
     {
         var id = Guid.NewGuid();
