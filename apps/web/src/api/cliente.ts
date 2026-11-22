@@ -16,6 +16,11 @@ export class ErrorApi extends Error {
   }
 }
 
+/** URL absoluta de una ruta de la API (p. ej. el logoUrl relativo que devuelve la identidad). */
+export function urlApi(ruta: string): string {
+  return `${BASE}${ruta}`;
+}
+
 type OpcionesApi = RequestInit & { token?: string };
 
 // El token se añade sólo si se pasa explícitamente: un token de restaurante enviado a otro
