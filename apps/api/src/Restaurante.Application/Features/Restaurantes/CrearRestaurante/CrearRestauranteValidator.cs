@@ -1,7 +1,6 @@
 using System.Text.RegularExpressions;
 using FluentValidation;
 using Restaurante.Application.Features.Usuarios.CrearUsuario;
-using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.Application.Features.Restaurantes.CrearRestaurante;
 
@@ -9,10 +8,7 @@ public sealed partial class CrearRestauranteValidator : AbstractValidator<CrearR
 {
     public CrearRestauranteValidator()
     {
-        RuleFor(x => x.Nombre)
-            .Must(n => !string.IsNullOrWhiteSpace(n)).WithMessage("El nombre es obligatorio")
-            .Must(n => string.IsNullOrWhiteSpace(n) || n.Trim().Length <= RestauranteEntidad.LongitudMaximaNombre)
-            .WithMessage("El nombre no puede superar 80 caracteres");
+        RuleFor(x => x.Nombre).NombreDeRestauranteValido();
 
         // PatronSlug usa `$`, que en .NET acepta un "\n" final; aquí se ancla con \z.
         RuleFor(x => x.Slug)

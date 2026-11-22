@@ -36,3 +36,35 @@ Content-Type: application/json
     "contrasena": "<CONTRASENA_ADMIN>"
   }
 }
+
+### Listar restaurantes (RF-03, RF-07). Sólo administrador_plataforma.
+# Responde 200 con un arreglo { id, nombre, slug, activo, paleta } ordenado por nombre.
+# @name listarRestaurantes
+GET {{baseUrl}}/api/plataforma/restaurantes
+Authorization: Bearer {{token}}
+
+### Editar nombre y paleta de un restaurante (RF-04, RF-07). El slug no cambia aunque se envíe.
+# Paleta ausente = paleta por defecto. 400 por campo; 404 si el id no existe; 409 si el nombre es de otro restaurante.
+# @name editarRestaurante
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_RESTAURANTE>",
+  "paleta": {
+    "principal": "#F97316",
+    "acento": "#FF6600"
+  }
+}
+
+### Desactivar o reactivar un restaurante (RF-06, RF-07). No borra datos.
+# Sin "activo": 400 "El estado es obligatorio". 404 si el id no existe.
+# @name cambiarEstadoRestaurante
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activo": false
+}

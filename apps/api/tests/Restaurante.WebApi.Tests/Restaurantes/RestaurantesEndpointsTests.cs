@@ -133,4 +133,111 @@ public sealed class RestaurantesEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
     }
+
+    private Guid Sembrar(string nombre, string slug, Restaurante.Domain.Restaurantes.Paleta? paleta = null)
+    {
+        var restaurante = Restaurante.Domain.Restaurantes.Restaurante.Crear(
+            nombre, slug, paleta ?? Restaurante.Domain.Restaurantes.Paleta.Vacia, DateTimeOffset.UtcNow);
+        _fabrica.Restaurantes.Agregar(restaurante);
+        return restaurante.Id;
+    }
+
+    [Fact(DisplayName = "002/RF-03: GET lista nombre, slug, estado y paleta de cada restaurante")]
+    public async Task Get_lista_restaurantes()
+    {
+        Sembrar("Alfa", "alfa", new Restaurante.Domain.Restaurantes.Paleta("#112233", null, null, null, null));
+        Sembrar("Beta", "beta");
+
+        var respuesta = await ClienteComo(Rol.AdministradorPlataforma).GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        var arreglo = json.RootElement.EnumerateArray().ToList();
+        Assert.Equal(2, arreglo.Count);
+        Assert.Equal("Alfa", arreglo[0].GetProperty("nombre").GetString());
+        Assert.Equal("alfa", arreglo[0].GetProperty("slug").GetString());
+        Assert.True(arreglo[0].GetProperty("activo").GetBoolean());
+        Assert.Equal("#112233", arreglo[0].GetProperty("paleta").GetProperty("principal").GetString());
+        Assert.Equal(JsonValueKind.Null, arreglo[1].GetProperty("paleta").GetProperty("principal").ValueKind);
+    }
+
+    [Fact(DisplayName = "002/RF-04: editar cambia nombre y paleta y no el slug")]
+    public async Task Put_edita_sin_cambiar_slug()
+    {
+        var id = Sembrar("Viejo", "viejo");
+
+        var respuesta = await ClienteComo(Rol.AdministradorPlataforma).PutAsJsonAsync($"{Ruta}/{id}",
+            new { nombre = "Nuevo", paleta = new { principal = "#ABCDEF" }, slug = "otro" });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        Assert.Equal("Nuevo", json.RootElement.GetProperty("nombre").GetString());
+        Assert.Equal("viejo", json.RootElement.GetProperty("slug").GetString());
+        Assert.Equal("#ABCDEF", json.RootElement.GetProperty("paleta").GetProperty("principal").GetString());
+        var guardado = Assert.Single(_fabrica.Restaurantes.Restaurantes);
+        Assert.Equal("viejo", guardado.Slug);
+        Assert.Equal("Nuevo", guardado.Nombre);
+    }
+
+    [Fact(DisplayName = "002/RF-04: editar un id inexistente da 404 y un nombre ajeno da 409")]
+    public async Task Put_inexistente_404_y_nombre_ajeno_409()
+    {
+        var cliente = ClienteComo(Rol.AdministradorPlataforma);
+        var id = Sembrar("Propio", "propio");
+        Sembrar("Ajeno", "ajeno");
+
+        var inexistente = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}", new { nombre = "X" });
+        var ajeno = await cliente.PutAsJsonAsync($"{Ruta}/{id}", new { nombre = " Ajeno " });
+        var sinNombre = await cliente.PutAsJsonAsync($"{Ruta}/{id}", new { });
+
+        Assert.Equal(HttpStatusCode.NotFound, inexistente.StatusCode);
+        Assert.Equal(HttpStatusCode.Conflict, ajeno.StatusCode);
+        await AssertValidacionAsync(sinNombre, "nombre", "El nombre es obligatorio");
+    }
+
+    [Fact(DisplayName = "002/RF-06: PUT estado desactiva y reactiva sin perder datos")]
+    public async Task Put_estado_desactiva_y_reactiva()
+    {
+        var id = Sembrar("Resto", "resto", new Restaurante.Domain.Restaurantes.Paleta("#112233", null, null, null, null));
+        var cliente = ClienteComo(Rol.AdministradorPlataforma);
+
+        var desactivar = await cliente.PutAsJsonAsync($"{Ruta}/{id}/estado", new { activo = false });
+        using var inactivo = JsonDocument.Parse(await desactivar.Content.ReadAsStringAsync());
+        var reactivar = await cliente.PutAsJsonAsync($"{Ruta}/{id}/estado", new { activo = true });
+        using var activo = JsonDocument.Parse(await reactivar.Content.ReadAsStringAsync());
+
+        Assert.False(inactivo.RootElement.GetProperty("activo").GetBoolean());
+        var raiz = activo.RootElement;
+        Assert.True(raiz.GetProperty("activo").GetBoolean());
+        Assert.Equal("Resto", raiz.GetProperty("nombre").GetString());
+        Assert.Equal("resto", raiz.GetProperty("slug").GetString());
+        Assert.Equal("#112233", raiz.GetProperty("paleta").GetProperty("principal").GetString());
+    }
+
+    [Fact(DisplayName = "002/RF-06: PUT estado sin activo da 400 y con id inexistente 404")]
+    public async Task Put_estado_validacion_y_404()
+    {
+        var id = Sembrar("Resto", "resto");
+        var cliente = ClienteComo(Rol.AdministradorPlataforma);
+
+        var sin = await cliente.PutAsJsonAsync($"{Ruta}/{id}/estado", new { });
+        var inexistente = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { activo = false });
+
+        await AssertValidacionAsync(sin, "activo", "El estado es obligatorio");
+        Assert.Equal(HttpStatusCode.NotFound, inexistente.StatusCode);
+    }
+
+    [Fact(DisplayName = "002/RF-07: listar, editar y cambiar estado exigen administrador_plataforma")]
+    public async Task Listar_editar_y_estado_exigen_plataforma()
+    {
+        var id = Sembrar("Resto", "resto");
+        var cliente = ClienteComo(Rol.AdministradorGeneral);
+
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.GetAsync(Ruta)).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.PutAsJsonAsync($"{Ruta}/{id}", new { nombre = "Otro" })).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await cliente.PutAsJsonAsync($"{Ruta}/{id}/estado", new { activo = false })).StatusCode);
+        var intacto = Assert.Single(_fabrica.Restaurantes.Restaurantes);
+        Assert.Equal("Resto", intacto.Nombre);
+        Assert.True(intacto.Activo);
+    }
 }
