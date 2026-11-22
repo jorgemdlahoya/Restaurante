@@ -87,7 +87,9 @@ apps/api/
   contraseña contra el hash guardado y emite un JWT con `sub`, `role` y `exp` (8 h), firmado con
   la clave de `JWT_SIGNING_KEY`. Credenciales inválidas → 401 genérico. Cubre: RF-01, RF-02
 - **Autorización por rol** (WebApi): esquema JwtBearer + filtro MVC que exige el rol declarado
-  en cada acción (`mesero`, `cocina`, `caja`, `administrador`); sin token o token expirado → 401,
+  en cada acción (`administrador_plataforma`, `administrador_general`, `administrador_sucursal`,
+  `cajero`, `cocinero`; ver
+  constitución Art. 9); sin token o token expirado → 401,
   rol no permitido → 403. Sólo login y salud son anónimos. Cubre: RF-03, RF-04
 - **Behaviour de validación** (Application): ejecuta los validators de FluentValidation del
   request y, si fallan, lanza una excepción de validación con los errores por campo.
@@ -115,6 +117,13 @@ apps/api/
 - La API aplica las migraciones pendientes al arrancar sólo si `APPLY_MIGRATIONS=true`
   (`docker-compose` lo activa en desarrollo).
 - Acceso a datos siempre mediante repositorios definidos como interfaces en Application.
+- Multi-restaurante y multi-sucursal (constitución Art. 12): `RestaurantId` en toda entidad de
+  restaurante y `BranchId` en las operativas, con filtros globales de EF Core por el contexto
+  (usuario autenticado o canal); menú global dentro del restaurante.
+- Identidad visual por restaurante (constitución Art. 15): nombre, logo y paleta configurables;
+  el frontend usa tokens de tema con los valores por defecto de Nunito y negro/naranja.
+- Borrado lógico (constitución Art. 13): `IsActive` / `DeletedAt` con filtro global; snapshot de
+  nombre y precio en las líneas de pedido.
 - Tabla inicial de usuarios (en 001): identificador, nombre de usuario único, hash de
   contraseña, rol y activo.
 
