@@ -43,3 +43,27 @@ Cuerpo de `PUT /api/usuarios/{id}/estado`: `{ activo }` (booleano).
 ## CambiarRolPeticion
 
 Cuerpo de `PUT /api/usuarios/{id}/rol`: `{ rol }`, en minúsculas.
+
+## Restaurante
+
+Entidad de dominio (`Restaurante.Domain.Restaurantes.Restaurante`) que representa un restaurante del
+sistema multi-restaurante: `Id`, `Nombre`, `Slug`, `Activo`, `Paleta` y `CreadoEn`. El nombre se guarda
+recortado (`Trim()`) y tiene entre 1 y 80 caracteres. Nace activo; `Desactivar()` y `Activar()` sólo
+cambian el estado. `CambiarNombre` y `CambiarPaleta` no tocan el `Slug`.
+
+## Slug
+
+Identificador de un restaurante en direcciones (`/r/{slug}`, `/api/r/{slug}/...`). Cumple
+`^[a-z0-9-]{3,40}$` y es inmutable: la entidad no ofrece ningún método para cambiarlo.
+
+## Paleta
+
+Registro de dominio con los cinco colores de tema de un restaurante: `Principal`, `Acento`, `Oscuro`,
+`Fondo` y `Texto`. Cada color es `#RRGGBB` (hexadecimal, sin distinguir mayúsculas) o ausente (`null`,
+se usa el valor por defecto). Un color con otro formato lanza `ArgumentException`. `Paleta.Vacia` no
+define ningún color y `Paleta.EsColorHex(color)` valida el formato.
+
+## Logo
+
+Entidad `LogoRestaurante`: imagen del restaurante (una por restaurante, `RestauranteId`) con `Contenido`
+(bytes), `Tipo` (tipo MIME), `ETag` y `ActualizadoEn`. `Reemplazar` sustituye contenido, tipo y ETag.
