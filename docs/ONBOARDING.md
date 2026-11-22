@@ -99,7 +99,7 @@ nombre del usuario **en minúsculas**. Debe responder `UPDATE 1`; después inici
 ## Documentación de apoyo
 
 - Peticiones de ejemplo (`.http`): [`context/http/`](context/http/)
-  (`health.http`, `auth.http`, `usuarios.http`).
+  (`health.http`, `auth.http`, `usuarios.http`, `restaurantes.http`).
 - Mapa de arquitectura: [`context/architecture-map.md`](context/architecture-map.md).
 - Glosario de dominio: [`context/glossary.md`](context/glossary.md) y de código
   [`GLOSSARY.md`](GLOSSARY.md).

@@ -1,0 +1,38 @@
+@baseUrl = http://localhost:5000
+# Autocontenido: la petición "login" produce @token. Usa las credenciales del administrador de plataforma
+# (las de ADMIN_USERNAME / ADMIN_PASSWORD). Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador de plataforma. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_PLATAFORMA>",
+  "contrasena": "<CONTRASENA_PLATAFORMA>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Alta de restaurante con su primer administrador general (RF-01, RF-02, RF-07).
+# Sólo administrador_plataforma (otro rol: 403; sin token: 401). La paleta es opcional.
+# Responde 201 con Location: /api/plataforma/restaurantes/{id}; 400 por campo (slug, nombre,
+# paleta.principal, administrador.contrasena...); 409 si el nombre o el slug ya existen.
+# @name crearRestaurante
+POST {{baseUrl}}/api/plataforma/restaurantes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_RESTAURANTE>",
+  "slug": "<slug-del-restaurante>",
+  "paleta": {
+    "principal": "#F97316",
+    "acento": "#FF6600"
+  },
+  "administrador": {
+    "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+    "contrasena": "<CONTRASENA_ADMIN>"
+  }
+}

@@ -20,3 +20,10 @@
 - **Contexto de restaurante**: restaurante en cuyo ámbito se atiende una petición
   (`IContextoRestaurante.RestauranteId`); `null` es el ámbito de plataforma. Determina qué usuarios ve
   el filtro global de la base de datos.
+- **PaletaDto**: paleta de un restaurante en la API (`principal`, `acento`, `oscuro`, `fondo`, `texto`),
+  cada color `#RRGGBB` o `null`.
+- **RestauranteDto**: `{ id, nombre, slug, activo, paleta }`; respuesta de
+  `POST /api/plataforma/restaurantes`.
+- **CrearRestaurantePeticion**: cuerpo de `POST /api/plataforma/restaurantes`:
+  `{ nombre, slug, paleta?, administrador: { nombreUsuario, contrasena } }`. Crea el restaurante y su
+  primer `administrador_general` en una sola transacción; sólo `administrador_plataforma`.

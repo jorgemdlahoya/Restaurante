@@ -83,3 +83,21 @@ Todo `Usuario` tiene `RestauranteId` salvo el administrador de plataforma, que n
 `Usuario.Crear(restauranteId, ...)` lanza `ArgumentException` si no se cumple. El nombre de usuario es
 único dentro de cada restaurante (índice `ix_usuarios_restaurante_nombre`, `NULLS NOT DISTINCT`), y la
 regla del último administrador activo se cuenta por restaurante.
+
+## PaletaDto
+
+Paleta de un restaurante en la API: `{ principal, acento, oscuro, fondo, texto }`. Cada color es
+`#RRGGBB` o ausente (`null`); el validador `ValidadorPaleta` responde `El color debe tener el formato #RRGGBB`.
+
+## RestauranteDto
+
+Representación pública de un restaurante en la API de plataforma: `{ id, nombre, slug, activo, paleta }`.
+Es la respuesta de `POST /api/plataforma/restaurantes` (201).
+
+## CrearRestaurantePeticion
+
+Cuerpo de `POST /api/plataforma/restaurantes` (sólo `administrador_plataforma`):
+`{ nombre, slug, paleta?, administrador: { nombreUsuario, contrasena } }`. Crea el restaurante activo y
+su primer `administrador_general` en una sola transacción. Nombre o slug repetidos dan 409 (el nombre se
+compara recortado y sin distinguir mayúsculas); los campos inválidos dan 400 como `slug`, `nombre`,
+`paleta.principal` o `administrador.contrasena`.

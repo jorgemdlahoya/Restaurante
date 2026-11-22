@@ -70,6 +70,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     public UsuarioRepositoryEnMemoria Usuarios { get; } = new();
 
+    public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
+
     public IReadOnlyDictionary<string, string?> Entorno => _entorno;
 
     /// <summary>Ajuste opcional de servicios que cada prueba aplica sobre el host (p. ej. provocar un fallo en un middleware).</summary>
@@ -148,6 +150,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             AjustarServicios?.Invoke(servicios);
             servicios.RemoveAll<IUsuarioRepository>();
             servicios.AddSingleton<IUsuarioRepository>(Usuarios);
+            servicios.RemoveAll<IRestauranteRepository>();
+            servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
             servicios.RemoveAll<IContextoRestaurante>();
             servicios.AddSingleton<IContextoRestaurante>(new ContextoRestauranteFijo(RestaurantePruebaId));
 
