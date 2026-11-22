@@ -9,6 +9,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
 using Restaurante.Domain.Usuarios;
 
 namespace Restaurante.WebApi.Tests.Infraestructura;
@@ -92,7 +93,7 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             [
                 new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),
                 new Claim("unique_name", "usuario-prueba"),
-                new Claim("role", rol.ToString().ToLowerInvariant()),
+                new Claim("role", rol.ComoTexto()),
             ],
             notBefore: ahora.AddHours(-3),
             expires: ahora.Add(expiraEn ?? TimeSpan.FromHours(1)),

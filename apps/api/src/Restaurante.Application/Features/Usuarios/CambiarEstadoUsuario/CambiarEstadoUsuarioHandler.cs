@@ -27,7 +27,7 @@ public sealed class CambiarEstadoUsuarioHandler(
             }
 
             if (usuario.Activo
-                && usuario.Rol == Rol.Administrador
+                && usuario.Rol == Rol.AdministradorGeneral
                 && await usuarios.ContarAdministradoresActivosAsync(cancellationToken) <= 1)
             {
                 throw new ConflictoException("No se puede desactivar al último administrador activo");

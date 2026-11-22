@@ -6,7 +6,7 @@ public class UsuarioTests
 {
     private static readonly DateTimeOffset Ahora = new(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-    private static Usuario NuevoUsuario(Rol rol = Rol.Mesero) =>
+    private static Usuario NuevoUsuario(Rol rol = Rol.Cajero) =>
         Usuario.Crear("Ana.Mesera", "hash", rol, Ahora);
 
     [Fact(DisplayName = "001/RF-11: un usuario nuevo está activo y normaliza el nombre")]
@@ -19,7 +19,7 @@ public class UsuarioTests
         Assert.Equal("Ana.Mesera", usuario.NombreUsuario);
         Assert.Equal("ana.mesera", usuario.NombreUsuarioNormalizado);
         Assert.Equal("hash", usuario.HashContrasena);
-        Assert.Equal(Rol.Mesero, usuario.Rol);
+        Assert.Equal(Rol.Cajero, usuario.Rol);
         Assert.Equal(Ahora, usuario.CreadoEn);
     }
 
@@ -40,8 +40,8 @@ public class UsuarioTests
     {
         var usuario = NuevoUsuario();
 
-        usuario.CambiarRol(Rol.Caja);
+        usuario.CambiarRol(Rol.Cajero);
 
-        Assert.Equal(Rol.Caja, usuario.Rol);
+        Assert.Equal(Rol.Cajero, usuario.Rol);
     }
 }

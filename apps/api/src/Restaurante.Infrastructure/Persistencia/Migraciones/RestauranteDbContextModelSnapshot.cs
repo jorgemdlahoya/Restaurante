@@ -56,8 +56,8 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
 
                     b.Property<string>("Rol")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
                         .HasColumnName("rol");
 
                     b.HasKey("Id");

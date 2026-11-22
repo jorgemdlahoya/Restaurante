@@ -1,5 +1,6 @@
 using MediatR;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
 using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Domain.Usuarios;
 
@@ -13,11 +14,11 @@ public sealed class CambiarRolUsuarioHandler(IUsuarioRepository usuarios)
         var usuario = await usuarios.ObtenerPorIdAsync(request.Id, cancellationToken)
             ?? throw new NoEncontradoException("Usuario no encontrado");
 
-        var nuevo = Enum.Parse<Rol>(request.Rol, ignoreCase: true);
+        var nuevo = RolExtensiones.DesdeTexto(request.Rol);
 
         if (usuario.Activo
-            && usuario.Rol == Rol.Administrador
-            && nuevo != Rol.Administrador
+            && usuario.Rol == Rol.AdministradorGeneral
+            && nuevo != Rol.AdministradorGeneral
             && await usuarios.ContarAdministradoresActivosAsync(cancellationToken) <= 1)
         {
             throw new ConflictoException("No se puede quitar el rol al último administrador activo");

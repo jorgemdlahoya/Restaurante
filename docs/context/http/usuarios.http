@@ -19,7 +19,7 @@ Content-Type: application/json
 GET {{baseUrl}}/api/usuarios
 Authorization: Bearer {{token}}
 
-### Crear usuario (RF-11..RF-13). Rol en minúsculas: mesero, cocina, caja, administrador.
+### Crear usuario (RF-11..RF-13). Rol exacto: administrador_general, administrador_sucursal, cajero, cocinero.
 # Responde 201 con Location: /api/usuarios/{id}; 409 si el nombre ya existe.
 # @name crearUsuario
 POST {{baseUrl}}/api/usuarios
@@ -29,7 +29,7 @@ Content-Type: application/json
 {
   "nombreUsuario": "<NOMBRE_USUARIO>",
   "contrasena": "<CONTRASENA>",
-  "rol": "mesero"
+  "rol": "cajero"
 }
 
 ### Id del usuario creado
@@ -51,5 +51,5 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "rol": "cocina"
+  "rol": "cocinero"
 }

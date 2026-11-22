@@ -74,7 +74,7 @@ de datos, con el sistema levantado:
 
 ```bash
 docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c \
-  "UPDATE usuarios SET activo = true, rol = 'administrador' WHERE nombre_usuario_normalizado = '<usuario>';"
+  "UPDATE usuarios SET activo = true, rol = 'administrador_general' WHERE nombre_usuario_normalizado = '<usuario>';"
 ```
 
 Sustituye `<POSTGRES_USER>` y `<POSTGRES_DB>` por los valores de tu `.env` y `<usuario>` por el

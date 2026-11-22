@@ -1,5 +1,6 @@
 using MediatR;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
 using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Domain.Usuarios;
 
@@ -19,7 +20,7 @@ public sealed class CrearUsuarioHandler(
             throw new ConflictoException("Ya existe un usuario con ese nombre");
         }
 
-        var rol = Enum.Parse<Rol>(request.Rol, ignoreCase: true);
+        var rol = RolExtensiones.DesdeTexto(request.Rol);
         var usuario = Usuario.Crear(nombre, hasher.Hashear(request.Contrasena), rol, reloj.Ahora);
         usuarios.Agregar(usuario);
         await usuarios.GuardarCambiosAsync(cancellationToken);

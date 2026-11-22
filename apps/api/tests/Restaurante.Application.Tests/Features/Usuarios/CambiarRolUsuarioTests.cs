@@ -25,12 +25,12 @@ public class CambiarRolUsuarioTests
     [Fact(DisplayName = "001/RF-16: cambia el rol")]
     public async Task CambiaElRol()
     {
-        var u = Agregar("pepe", Rol.Mesero);
+        var u = Agregar("pepe", Rol.Cajero);
 
-        var dto = await Ejecutar(u.Id, "caja");
+        var dto = await Ejecutar(u.Id, "cajero");
 
-        Assert.Equal("caja", dto.Rol);
-        Assert.Equal(Rol.Caja, u.Rol);
+        Assert.Equal("cajero", dto.Rol);
+        Assert.Equal(Rol.Cajero, u.Rol);
         Assert.Equal(1, _repositorio.GuardadosLlamados);
     }
 
@@ -39,59 +39,59 @@ public class CambiarRolUsuarioTests
     {
         var validador = new CambiarRolUsuarioValidator();
 
-        Assert.True(validador.Validate(new CambiarRolUsuarioCommand(Guid.NewGuid(), "cocina")).IsValid);
-        Assert.False(validador.Validate(new CambiarRolUsuarioCommand(Guid.NewGuid(), "Caja")).IsValid);
+        Assert.True(validador.Validate(new CambiarRolUsuarioCommand(Guid.NewGuid(), "cocinero")).IsValid);
+        Assert.False(validador.Validate(new CambiarRolUsuarioCommand(Guid.NewGuid(), "Cajero")).IsValid);
         Assert.False(validador.Validate(new CambiarRolUsuarioCommand(Guid.NewGuid(), "chef")).IsValid);
     }
 
     [Fact(DisplayName = "001/RF-17: no quita el rol al último administrador activo")]
     public async Task NoQuitaRolAlUltimoAdministrador()
     {
-        Agregar("viejo", Rol.Administrador).Desactivar();
-        var unico = Agregar("jefe", Rol.Administrador);
+        Agregar("viejo", Rol.AdministradorGeneral).Desactivar();
+        var unico = Agregar("jefe", Rol.AdministradorGeneral);
 
-        await Assert.ThrowsAsync<ConflictoException>(() => Ejecutar(unico.Id, "mesero"));
+        await Assert.ThrowsAsync<ConflictoException>(() => Ejecutar(unico.Id, "cajero"));
 
-        Assert.Equal(Rol.Administrador, unico.Rol);
+        Assert.Equal(Rol.AdministradorGeneral, unico.Rol);
         Assert.Equal(0, _repositorio.GuardadosLlamados);
     }
 
     [Fact(DisplayName = "001/RF-17: mantener administrador al último administrador no es conflicto")]
     public async Task MismoRolNoEsConflicto()
     {
-        var unico = Agregar("jefe", Rol.Administrador);
+        var unico = Agregar("jefe", Rol.AdministradorGeneral);
 
-        var dto = await Ejecutar(unico.Id, "administrador");
+        var dto = await Ejecutar(unico.Id, "administrador_general");
 
-        Assert.Equal("administrador", dto.Rol);
+        Assert.Equal("administrador_general", dto.Rol);
     }
 
     [Fact(DisplayName = "001/RF-17: quita el rol de administrador si queda otro activo")]
     public async Task QuitaRolSiQuedaOtro()
     {
-        Agregar("admin", Rol.Administrador);
-        var otro = Agregar("jefe", Rol.Administrador);
+        Agregar("admin", Rol.AdministradorGeneral);
+        var otro = Agregar("jefe", Rol.AdministradorGeneral);
 
-        var dto = await Ejecutar(otro.Id, "cocina");
+        var dto = await Ejecutar(otro.Id, "cocinero");
 
-        Assert.Equal("cocina", dto.Rol);
+        Assert.Equal("cocinero", dto.Rol);
     }
 
     [Fact(DisplayName = "001/RF-17: cambiar el rol a un administrador inactivo no cuenta como último activo")]
     public async Task AdministradorInactivoSePuedeCambiar()
     {
-        Agregar("admin", Rol.Administrador);
-        var inactivo = Agregar("viejo", Rol.Administrador);
+        Agregar("admin", Rol.AdministradorGeneral);
+        var inactivo = Agregar("viejo", Rol.AdministradorGeneral);
         inactivo.Desactivar();
 
-        var dto = await Ejecutar(inactivo.Id, "caja");
+        var dto = await Ejecutar(inactivo.Id, "cajero");
 
-        Assert.Equal("caja", dto.Rol);
+        Assert.Equal("cajero", dto.Rol);
     }
 
     [Fact(DisplayName = "001/RF-19: id inexistente lanza NoEncontradoException")]
     public async Task IdInexistenteLanzaNoEncontrado()
     {
-        await Assert.ThrowsAsync<NoEncontradoException>(() => Ejecutar(Guid.NewGuid(), "caja"));
+        await Assert.ThrowsAsync<NoEncontradoException>(() => Ejecutar(Guid.NewGuid(), "cajero"));
     }
 }

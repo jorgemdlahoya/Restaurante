@@ -21,7 +21,7 @@ public sealed record CambiarRolPeticion(string? Rol);
 
 [ApiController]
 [Route("api/usuarios")]
-[RequiereRol(Rol.Administrador)]
+[RequiereRol(Rol.AdministradorGeneral)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
 public sealed class UsuariosController(IMediator mediador) : ControllerBase

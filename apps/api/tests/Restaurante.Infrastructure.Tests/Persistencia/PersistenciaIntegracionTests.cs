@@ -57,17 +57,17 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         await new AplicadorMigraciones(ctx).AplicarAsync(true, CancellationToken.None);
 
         var repo = new UsuarioRepository(ctx);
-        repo.Agregar(Usuario.Crear("Ana", "h", Rol.Mesero, Ahora));
+        repo.Agregar(Usuario.Crear("Ana", "h", Rol.Cajero, Ahora));
         await repo.GuardarCambiosAsync(CancellationToken.None);
 
         await using var ctx2 = PostgresFixture.CrearContexto(cadena);
         var repo2 = new UsuarioRepository(ctx2);
-        repo2.Agregar(Usuario.Crear("ANA", "h", Rol.Mesero, Ahora));
+        repo2.Agregar(Usuario.Crear("ANA", "h", Rol.Cajero, Ahora));
         await Assert.ThrowsAsync<ConflictoException>(() => repo2.GuardarCambiosAsync(CancellationToken.None));
 
         await using var ctx3 = PostgresFixture.CrearContexto(cadena);
         var encontrado = await new UsuarioRepository(ctx3).ObtenerPorNombreNormalizadoAsync("ana", CancellationToken.None);
-        Assert.Equal(Rol.Mesero, encontrado!.Rol);
+        Assert.Equal(Rol.Cajero, encontrado!.Rol);
     }
 
     [Fact(DisplayName = "001/RF-12: alta duplicada concurrente lanza ConflictoException")]
@@ -83,7 +83,7 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         {
             await using var ctx = PostgresFixture.CrearContexto(cadena);
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear("Luis", "h", Rol.Cocina, Ahora));
+            repo.Agregar(Usuario.Crear("Luis", "h", Rol.Cocinero, Ahora));
             try
             {
                 await repo.GuardarCambiosAsync(CancellationToken.None);

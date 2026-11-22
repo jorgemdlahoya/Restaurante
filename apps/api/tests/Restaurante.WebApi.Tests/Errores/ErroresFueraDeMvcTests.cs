@@ -44,7 +44,7 @@ public sealed class ErroresFueraDeMvcTests
         using var fabrica = new FabricaApi();
         using var cliente = fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(Rol.Administrador));
+            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(Rol.AdministradorGeneral));
 
         var respuesta = await cliente.PutAsync("/api/usuarios/no-es-guid/estado",
             new StringContent("{\"activo\":true}", Encoding.UTF8, "application/json"));

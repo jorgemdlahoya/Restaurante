@@ -19,7 +19,7 @@ public sealed class UsuarioRepositoryEnMemoria : IUsuarioRepository
         Task.FromResult<IReadOnlyList<Usuario>>(Usuarios.ToList());
 
     public Task<int> ContarAdministradoresActivosAsync(CancellationToken ct) =>
-        Task.FromResult(Usuarios.Count(u => u.Activo && u.Rol == Rol.Administrador));
+        Task.FromResult(Usuarios.Count(u => u.Activo && u.Rol == Rol.AdministradorGeneral));
 
     public Task<bool> ExisteAlgunoAsync(CancellationToken ct) => Task.FromResult(Usuarios.Count > 0);
 

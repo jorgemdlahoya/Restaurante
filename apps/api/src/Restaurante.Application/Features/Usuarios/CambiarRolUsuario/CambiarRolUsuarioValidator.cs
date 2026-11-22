@@ -9,6 +9,6 @@ public sealed class CambiarRolUsuarioValidator : AbstractValidator<CambiarRolUsu
     {
         RuleFor(x => x.Rol)
             .Must(rol => rol is not null && CrearUsuarioValidator.RolesValidos.Contains(rol, StringComparer.Ordinal))
-            .WithMessage("El rol debe ser mesero, cocina, caja o administrador");
+            .WithMessage("El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
     }
 }

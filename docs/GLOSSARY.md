@@ -2,9 +2,11 @@
 
 ## Rol
 
-Perfil de permisos de un usuario del sistema. Valores: `Mesero`, `Cocina`, `Caja` y
-`Administrador`. En la API y en el JWT se serializa en minúsculas (`mesero`, `cocina`, `caja`,
-`administrador`).
+Perfil de permisos de un usuario del sistema (los cinco roles de la constitución). Valores:
+`AdministradorPlataforma`, `AdministradorGeneral`, `AdministradorSucursal`, `Cajero` y `Cocinero`.
+En la API, el JWT y la base de datos se serializa en snake_case (`administrador_plataforma`,
+`administrador_general`, `administrador_sucursal`, `cajero`, `cocinero`); la coincidencia es exacta.
+`POST /api/usuarios` y `PUT /api/usuarios/{id}/rol` aceptan todos salvo `administrador_plataforma`.
 
 ## LoginPeticion
 

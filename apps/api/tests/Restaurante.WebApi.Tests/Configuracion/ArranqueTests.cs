@@ -41,7 +41,7 @@ public sealed class ArranqueTests
         using var _ = fabrica.CreateClient();
 
         var admin = Assert.Single(fabrica.Usuarios.Usuarios);
-        Assert.Equal(Rol.Administrador, admin.Rol);
+        Assert.Equal(Rol.AdministradorPlataforma, admin.Rol);
     }
 
     [Fact(DisplayName = "001/RF-10: la API no arranca si falta ADMIN_PASSWORD con la tabla vacía")]

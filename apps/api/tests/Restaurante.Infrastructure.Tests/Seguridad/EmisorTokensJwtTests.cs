@@ -19,14 +19,14 @@ public sealed class EmisorTokensJwtTests
     {
         var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
-        var usuario = Usuario.Crear("Ana", "hash", Rol.Caja, ahora);
+        var usuario = Usuario.Crear("Ana", "hash", Rol.Cajero, ahora);
 
         var emitido = emisor.Emitir(usuario);
 
         var jwt = new JwtSecurityTokenHandler { MapInboundClaims = false }.ReadJwtToken(emitido.Token);
         Assert.Equal(usuario.Id.ToString(), jwt.Claims.Single(c => c.Type == "sub").Value);
         Assert.Equal("Ana", jwt.Claims.Single(c => c.Type == "unique_name").Value);
-        Assert.Equal("caja", jwt.Claims.Single(c => c.Type == "role").Value);
+        Assert.Equal("cajero", jwt.Claims.Single(c => c.Type == "role").Value);
         Assert.Equal("restaurante-api", jwt.Issuer);
         Assert.Contains("restaurante-web", jwt.Audiences);
         Assert.Equal("HS256", jwt.Header.Alg);

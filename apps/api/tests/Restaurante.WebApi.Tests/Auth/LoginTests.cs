@@ -41,7 +41,7 @@ public sealed class LoginTests : IDisposable
     [Fact(DisplayName = "001/RF-01: login correcto devuelve token utilizable en un endpoint protegido")]
     public async Task Login_correcto_devuelve_token_utilizable()
     {
-        Sembrar("cajero", Rol.Caja);
+        Sembrar("cajero", Rol.Cajero);
         var cliente = _fabrica.CreateClient();
 
         var respuesta = await cliente.PostAsJsonAsync("/api/auth/login",
@@ -53,7 +53,7 @@ public sealed class LoginTests : IDisposable
         var token = raiz.GetProperty("token").GetString();
         Assert.False(string.IsNullOrWhiteSpace(token));
         Assert.Equal("cajero", raiz.GetProperty("nombreUsuario").GetString());
-        Assert.Equal("caja", raiz.GetProperty("rol").GetString());
+        Assert.Equal("cajero", raiz.GetProperty("rol").GetString());
         Assert.True(raiz.TryGetProperty("expiraEn", out _));
 
         cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -64,7 +64,7 @@ public sealed class LoginTests : IDisposable
     [Fact(DisplayName = "001/RF-02: credenciales incorrectas → 401 con \"Usuario o contraseña incorrectos\"")]
     public async Task Credenciales_incorrectas_responden_401()
     {
-        Sembrar("cajero", Rol.Caja);
+        Sembrar("cajero", Rol.Cajero);
         var cliente = _fabrica.CreateClient();
 
         var malaContrasena = await cliente.PostAsJsonAsync("/api/auth/login",
@@ -83,7 +83,7 @@ public sealed class LoginTests : IDisposable
     [Fact(DisplayName = "001/RF-03: usuario desactivado → 401 con el mismo mensaje")]
     public async Task Usuario_desactivado_responde_401()
     {
-        Sembrar("baja", Rol.Mesero, activo: false);
+        Sembrar("baja", Rol.Cajero, activo: false);
         var cliente = _fabrica.CreateClient();
 
         var respuesta = await cliente.PostAsJsonAsync("/api/auth/login",

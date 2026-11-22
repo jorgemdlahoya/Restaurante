@@ -12,16 +12,16 @@ public class ListarUsuariosTests
     {
         var repositorio = new UsuarioRepositoryEnMemoria();
         var ahora = new RelojFijo().Ahora;
-        repositorio.Agregar(Usuario.Crear("Zoe", "hash:z", Rol.Caja, ahora));
-        repositorio.Agregar(Usuario.Crear("ana", "hash:a", Rol.Administrador, ahora));
-        var desactivado = Usuario.Crear("Beto", "hash:b", Rol.Cocina, ahora);
+        repositorio.Agregar(Usuario.Crear("Zoe", "hash:z", Rol.Cajero, ahora));
+        repositorio.Agregar(Usuario.Crear("ana", "hash:a", Rol.AdministradorGeneral, ahora));
+        var desactivado = Usuario.Crear("Beto", "hash:b", Rol.Cocinero, ahora);
         desactivado.Desactivar();
         repositorio.Agregar(desactivado);
 
         var lista = await new ListarUsuariosHandler(repositorio).Handle(new ListarUsuariosQuery(), CancellationToken.None);
 
         Assert.Equal(new[] { "ana", "Beto", "Zoe" }, lista.Select(u => u.NombreUsuario));
-        Assert.Equal(new[] { "administrador", "cocina", "caja" }, lista.Select(u => u.Rol));
+        Assert.Equal(new[] { "administrador_general", "cocinero", "cajero" }, lista.Select(u => u.Rol));
         Assert.Equal(new[] { true, false, true }, lista.Select(u => u.Activo));
         Assert.DoesNotContain(typeof(UsuarioDto).GetProperties(), p => p.Name.Contains("Contrasena") || p.Name.Contains("Hash"));
     }

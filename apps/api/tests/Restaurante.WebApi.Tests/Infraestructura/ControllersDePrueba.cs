@@ -12,7 +12,7 @@ public sealed class ControllerDePrueba : ControllerBase
     public const string MensajeInterno = "detalle-interno-secreto-xyz";
 
     [HttpGet("caja")]
-    [RequiereRol(Rol.Caja)]
+    [RequiereRol(Rol.Cajero)]
     public IActionResult SoloCaja() => Ok(new { ok = true });
 
     [HttpGet("anonimo")]
