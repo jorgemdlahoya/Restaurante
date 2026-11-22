@@ -58,7 +58,7 @@ public sealed class ErroresFueraDeMvcTests
         using var fabrica = new FabricaApi();
         using var cliente = fabrica.CreateClient();
 
-        var respuesta = await cliente.GetAsync("/api/auth/login");
+        var respuesta = await cliente.GetAsync("/api/plataforma/auth/login");
 
         await LeerProblemaAsync(respuesta, HttpStatusCode.MethodNotAllowed, "Método no permitido");
     }
@@ -69,7 +69,7 @@ public sealed class ErroresFueraDeMvcTests
         using var fabrica = new FabricaApi();
         using var cliente = fabrica.CreateClient();
 
-        var respuesta = await cliente.PostAsync("/api/auth/login",
+        var respuesta = await cliente.PostAsync("/api/plataforma/auth/login",
             new StringContent("usuario=admin", Encoding.UTF8, "text/plain"));
 
         await LeerProblemaAsync(respuesta, HttpStatusCode.UnsupportedMediaType, "Tipo de contenido no admitido");

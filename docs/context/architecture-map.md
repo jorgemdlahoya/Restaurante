@@ -38,6 +38,16 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
 - `RespuestasProblema`: construye los 400 de validación con una única forma (también para los
   fallos de enlace del modelo).
 - `UsuarioActual`: expone el usuario autenticado (id, rol) a la capa de aplicación.
+- `ContextoRestaurante` (scoped, implementa `IContextoRestaurante`) y `MiddlewareContextoRestaurante`
+  (en `Program.cs` justo después de `UseAuthentication()`). Reglas en orden: (1) `/api/plataforma…` no fija
+  contexto aunque llegue un token de restaurante; (2) `/api/r/{slug}…` busca el restaurante por el `slug` en
+  minúsculas y responde 404 `Restaurante no disponible` (con `RespuestasProblema.EscribirAsync`) si no
+  existe o está inactivo; si no, `Establecer(id)`; (3) en el resto, provisionalmente, `Establecer` con el
+  claim `restaurant_id` del token (T-08 completa la regla del token: 401 si el restaurante está inactivo y
+  404 si no coincide con el `slug`).
+- Logins: `AuthController` (`POST /api/r/{slug}/auth/login`) y `PlataformaAuthController`
+  (`POST /api/plataforma/auth/login`) envían el mismo `IniciarSesionCommand`; el filtro global decide qué
+  usuarios existen en cada ámbito.
 
 JWT: HS256, emisor `restaurante-api`, audiencia `restaurante-web`, `ClockSkew = 0`.
 
@@ -97,7 +107,7 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
   los administradores de plataforma (así el `InicializadorAdministrador` comprueba "ya hay uno").
 - `CrearUsuarioHandler` crea el usuario en `IContextoRestaurante.RestauranteId` y lanza
   `InvalidOperationException` si es `null`.
-- Registro: `AddInfrastructureServices` hace `TryAddScoped<IContextoRestaurante>` con
-  `ContextoRestauranteFijo(null)` (provisional hasta el middleware de restaurante, T-07). La fábrica de
-  diseño (`dotnet ef`) usa también `ContextoRestauranteFijo(null)`. Las pruebas de la API registran un
-  contexto fijo con `FabricaApi.RestaurantePruebaId`.
+- Registro: `AddInfrastructureServices` no registra `IContextoRestaurante`; lo hace `AddWebApiServices`
+  con el `ContextoRestaurante` por petición. La fábrica de diseño (`dotnet ef`) y las pruebas de
+  integración usan `ContextoRestauranteFijo`. Las pruebas de la API usan el contexto y el middleware reales
+  con un `UsuarioRepositoryEnMemoria` scoped que filtra el almacén compartido `FabricaApi.Usuarios`.

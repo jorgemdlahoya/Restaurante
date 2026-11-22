@@ -37,7 +37,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(rol, usuarioId: usuarioId));
+            new AuthenticationHeaderValue("Bearer",
+                FabricaApi.EmitirToken(rol, usuarioId: usuarioId, restauranteId: FabricaApi.RestaurantePruebaId));
         return cliente;
     }
 
@@ -128,9 +129,10 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
         var lista = json.RootElement.EnumerateArray().ToList();
-        Assert.Equal(2, lista.Count); // maria + el administrador inicial sembrado al arrancar
-        Assert.Contains(lista, u => u.GetProperty("nombreUsuario").GetString() == "maria"
-            && !u.GetProperty("activo").GetBoolean());
+        // Sólo maria: el administrador de plataforma sembrado al arrancar no pertenece al restaurante (filtro por contexto).
+        var maria = Assert.Single(lista);
+        Assert.Equal("maria", maria.GetProperty("nombreUsuario").GetString());
+        Assert.False(maria.GetProperty("activo").GetBoolean());
     }
 
     [Fact(DisplayName = "001/RF-14: un usuario mesero recibe 403 en GET /api/usuarios")]

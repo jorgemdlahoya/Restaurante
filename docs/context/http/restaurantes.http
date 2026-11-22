@@ -4,7 +4,7 @@
 
 ### Iniciar sesión como administrador de plataforma. Produce el token de este archivo.
 # @name login
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/plataforma/auth/login
 Content-Type: application/json
 
 {

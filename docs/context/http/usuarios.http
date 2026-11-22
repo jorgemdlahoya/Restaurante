@@ -1,10 +1,11 @@
 @baseUrl = http://localhost:5000
+@slug = la-esquina
 # Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
 # credenciales del administrador. Sustituir los marcadores sólo en local; no commitear datos reales.
 
-### Iniciar sesión como administrador (RF-01). Produce el token de este archivo.
+### Iniciar sesión como administrador general en su restaurante (001/RF-01, 002/RF-08). Produce el token de este archivo.
 # @name login
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
 Content-Type: application/json
 
 {

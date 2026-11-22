@@ -10,19 +10,28 @@ En la API, el JWT y la base de datos se serializa en snake_case (`administrador_
 
 ## LoginPeticion
 
-Cuerpo de `POST /api/auth/login`: `{ nombreUsuario, contrasena }`. Endpoint anónimo. Los campos
-vacíos o ausentes dan 400 (validador); credenciales incorrectas o usuario desactivado dan 401 con
-el mismo mensaje.
+Cuerpo de los dos logins, `POST /api/r/{slug}/auth/login` (usuarios de ese restaurante) y
+`POST /api/plataforma/auth/login` (sólo administradores de plataforma): `{ nombreUsuario, contrasena }`.
+Ambos son anónimos. Los campos vacíos o ausentes dan 400 (validador); credenciales incorrectas, usuario
+desactivado o usuario de otro restaurante (o de restaurante en el login de plataforma) dan 401 con el mismo
+mensaje. En el login por restaurante, un `slug` inexistente o de un restaurante inactivo da 404
+`Restaurante no disponible`; el `slug` no distingue mayúsculas.
 
 ## LoginRespuestaDto
 
-Respuesta 200 de `POST /api/auth/login`: `{ token, expiraEn, nombreUsuario, rol }`. `token` es el
+Respuesta 200 de los dos logins: `{ token, expiraEn, nombreUsuario, rol }`. `token` es el
 JWT (HS256), `expiraEn` su instante de expiración y `rol` va en minúsculas.
+
+## restaurant_id (claim)
+
+Claim del JWT (`EmisorTokensJwt.ClaimRestaurante`) con el id del restaurante del usuario. Sólo se emite si
+el usuario tiene restaurante; los tokens de `administrador_plataforma` no lo llevan.
 
 ## JWT (emisor y audiencia)
 
 Los tokens llevan `iss = restaurante-api` y `aud = restaurante-web`, y los claims `sub` (id del
-usuario), `unique_name` (nombre de usuario) y `role` (rol en minúsculas). Se validan firma
+usuario), `unique_name` (nombre de usuario), `role` (rol en minúsculas) y, si el usuario tiene
+restaurante, `restaurant_id`. Se validan firma
 (HS256 con `JWT_SIGNING_KEY`), emisor, audiencia y expiración, sin tolerancia de reloj
 (`ClockSkew = 0`).
 

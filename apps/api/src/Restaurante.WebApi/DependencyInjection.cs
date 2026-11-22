@@ -33,6 +33,9 @@ public static class DependencyInjection
         services.AddProblemDetails(o => o.CustomizeProblemDetails = RespuestasProblema.Personalizar);
         services.AddHttpContextAccessor();
         services.AddScoped<IUsuarioActual, UsuarioActual>();
+        // Contexto de restaurante por petición: lo fija MiddlewareContextoRestaurante y lo leen el filtro de EF y los handlers.
+        services.AddScoped<ContextoRestaurante>();
+        services.AddScoped<IContextoRestaurante>(sp => sp.GetRequiredService<ContextoRestaurante>());
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -70,7 +73,7 @@ public static class DependencyInjection
                 Type = SecuritySchemeType.Http,
                 Scheme = "bearer",
                 BearerFormat = "JWT",
-                Description = "Token JWT obtenido en POST /api/auth/login.",
+                Description = "Token JWT obtenido en POST /api/r/{slug}/auth/login o /api/plataforma/auth/login.",
             });
             // Sin requisito global: lo añade sólo a las acciones con [RequiereRol].
             o.OperationFilter<RequisitoBearerOperationFilter>();

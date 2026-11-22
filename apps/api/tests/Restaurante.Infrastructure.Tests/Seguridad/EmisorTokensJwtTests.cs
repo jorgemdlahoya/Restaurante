@@ -33,4 +33,21 @@ public sealed class EmisorTokensJwtTests
         Assert.Equal(ahora.AddHours(8), emitido.ExpiraEn);
         Assert.Equal(ahora.AddHours(8).UtcDateTime, jwt.ValidTo);
     }
+
+    [Fact(DisplayName = "002/RF-08: el emisor incluye restaurant_id sólo si el usuario tiene restaurante")]
+    public void Incluye_restaurant_id_solo_si_el_usuario_tiene_restaurante()
+    {
+        var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
+        var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
+        var restauranteId = Guid.NewGuid();
+        var deRestaurante = Usuario.Crear(restauranteId, "Ana", "hash", Rol.Cajero, ahora);
+        var dePlataforma = Usuario.Crear(null, "Raiz", "hash", Rol.AdministradorPlataforma, ahora);
+        var lector = new JwtSecurityTokenHandler { MapInboundClaims = false };
+
+        var conRestaurante = lector.ReadJwtToken(emisor.Emitir(deRestaurante).Token);
+        var sinRestaurante = lector.ReadJwtToken(emisor.Emitir(dePlataforma).Token);
+
+        Assert.Equal(restauranteId.ToString(), conRestaurante.Claims.Single(c => c.Type == "restaurant_id").Value);
+        Assert.DoesNotContain(sinRestaurante.Claims, c => c.Type == "restaurant_id");
+    }
 }

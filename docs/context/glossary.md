@@ -19,7 +19,13 @@
   actualización; uno por restaurante.
 - **Contexto de restaurante**: restaurante en cuyo ámbito se atiende una petición
   (`IContextoRestaurante.RestauranteId`); `null` es el ámbito de plataforma. Determina qué usuarios ve
-  el filtro global de la base de datos.
+  el filtro global de la base de datos. En la API lo fija `MiddlewareContextoRestaurante` por petición
+  (`ContextoRestaurante.Establecer`): por el `slug` de `/api/r/{slug}/…`, nunca en `/api/plataforma/…`.
+- **Restaurante no disponible**: 404 que responde `/api/r/{slug}/…` cuando el `slug` no existe o el
+  restaurante está inactivo (detalle `La dirección no corresponde a un restaurante activo.`).
+- **LoginPeticion**: cuerpo `{ nombreUsuario, contrasena }` de `POST /api/r/{slug}/auth/login` y
+  `POST /api/plataforma/auth/login`.
+- **restaurant_id**: claim del JWT con el restaurante del usuario; ausente en los tokens de plataforma.
 - **PaletaDto**: paleta de un restaurante en la API (`principal`, `acento`, `oscuro`, `fondo`, `texto`),
   cada color `#RRGGBB` o `null`.
 - **RestauranteDto**: `{ id, nombre, slug, activo, paleta }`; respuesta de
