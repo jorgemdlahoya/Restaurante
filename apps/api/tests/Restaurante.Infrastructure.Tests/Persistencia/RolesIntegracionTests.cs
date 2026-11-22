@@ -20,7 +20,7 @@ public sealed class RolesIntegracionTests(PostgresFixture postgres)
         {
             await new AplicadorMigraciones(ctx).AplicarAsync(true, CancellationToken.None);
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear("plataforma", "h", Rol.AdministradorPlataforma, Ahora));
+            repo.Agregar(Usuario.Crear(null, "plataforma", "h", Rol.AdministradorPlataforma, Ahora));
             await repo.GuardarCambiosAsync(CancellationToken.None);
         }
 

@@ -19,7 +19,7 @@ public sealed class EmisorTokensJwtTests
     {
         var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
-        var usuario = Usuario.Crear("Ana", "hash", Rol.Cajero, ahora);
+        var usuario = Usuario.Crear(Guid.NewGuid(), "Ana", "hash", Rol.Cajero, ahora);
 
         var emitido = emisor.Emitir(usuario);
 

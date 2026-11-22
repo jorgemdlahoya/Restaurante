@@ -67,3 +67,19 @@ define ningún color y `Paleta.EsColorHex(color)` valida el formato.
 
 Entidad `LogoRestaurante`: imagen del restaurante (una por restaurante, `RestauranteId`) con `Contenido`
 (bytes), `Tipo` (tipo MIME), `ETag` y `ActualizadoEn`. `Reemplazar` sustituye contenido, tipo y ETag.
+
+## Contexto de restaurante
+
+Puerto `IContextoRestaurante` (`Restaurante.Application.Abstracciones`) con `Guid? RestauranteId`: el
+restaurante en cuyo ámbito se atiende la petición. `null` es el ámbito de plataforma. El
+`RestauranteDbContext` lo usa en un filtro global sobre `usuarios` (`RestauranteId == RestauranteActualId`):
+con un restaurante sólo se ven sus usuarios; con `null`, sólo los administradores de plataforma.
+`ContextoRestauranteFijo` es la implementación de valor fijo (fábrica de diseño, pruebas y registro
+provisional con `null` hasta que el middleware de restaurante lo resuelva por petición).
+
+## Usuario por restaurante
+
+Todo `Usuario` tiene `RestauranteId` salvo el administrador de plataforma, que no tiene ninguno:
+`Usuario.Crear(restauranteId, ...)` lanza `ArgumentException` si no se cumple. El nombre de usuario es
+único dentro de cada restaurante (índice `ix_usuarios_restaurante_nombre`, `NULLS NOT DISTINCT`), y la
+regla del último administrador activo se cuenta por restaurante.

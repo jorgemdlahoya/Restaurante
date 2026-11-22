@@ -152,6 +152,10 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("character varying(50)")
                         .HasColumnName("nombre_usuario_normalizado");
 
+                    b.Property<Guid?>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
                     b.Property<string>("Rol")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -160,9 +164,11 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
 
                     b.HasKey("Id");
 
-                    b.HasIndex("NombreUsuarioNormalizado")
+                    b.HasIndex("RestauranteId", "NombreUsuarioNormalizado")
                         .IsUnique()
-                        .HasDatabaseName("ix_usuarios_nombre_usuario_normalizado");
+                        .HasDatabaseName("ix_usuarios_restaurante_nombre");
+
+                    NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("RestauranteId", "NombreUsuarioNormalizado"), false);
 
                     b.ToTable("usuarios", (string)null);
                 });
@@ -174,6 +180,14 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .HasForeignKey("Restaurante.Domain.Restaurantes.LogoRestaurante", "RestauranteId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Usuarios.Usuario", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Restaurantes.Restaurante", null)
+                        .WithMany()
+                        .HasForeignKey("RestauranteId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 #pragma warning restore 612, 618
         }

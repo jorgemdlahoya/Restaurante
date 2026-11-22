@@ -8,13 +8,14 @@ namespace Restaurante.Application.Tests.Features.Usuarios;
 
 public class CambiarEstadoUsuarioTests
 {
-    private readonly UsuarioRepositoryEnMemoria _repositorio = new();
+    private static readonly Guid RestauranteId = Guid.NewGuid();
+    private readonly UsuarioRepositoryEnMemoria _repositorio = new(new ContextoRestauranteFalso(RestauranteId));
     private readonly RelojFijo _reloj = new();
     private Guid _actual = Guid.NewGuid();
 
     private Usuario Agregar(string nombre, Rol rol)
     {
-        var u = Usuario.Crear(nombre, "hash:x", rol, _reloj.Ahora);
+        var u = Usuario.Crear(RestauranteId, nombre, "hash:x", rol, _reloj.Ahora);
         _repositorio.Agregar(u);
         return u;
     }

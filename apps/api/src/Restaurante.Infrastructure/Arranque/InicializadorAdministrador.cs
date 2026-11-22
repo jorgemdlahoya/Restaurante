@@ -13,7 +13,11 @@ public sealed record ResultadoInicializacion(bool Ok, string? Error)
     public static ResultadoInicializacion Fallo(string error) => new(false, error);
 }
 
-/// <summary>Crea el administrador inicial desde el entorno sólo cuando no existe ningún usuario.</summary>
+/// <summary>
+/// Crea el administrador de plataforma inicial desde el entorno sólo cuando no existe ninguno. Se ejecuta con
+/// contexto de restaurante nulo: el filtro global hace que <c>ExisteAlgunoAsync</c> signifique
+/// "ya hay un administrador de plataforma".
+/// </summary>
 public sealed class InicializadorAdministrador(
     IUsuarioRepository usuarios, IHasherContrasenas hasher, IReloj reloj)
 {
@@ -56,7 +60,7 @@ public sealed class InicializadorAdministrador(
                 $"{CrearUsuarioValidator.LongitudMinimaContrasena} caracteres.");
         }
 
-        usuarios.Agregar(Usuario.Crear(nombre, hasher.Hashear(contrasena), Rol.AdministradorPlataforma, reloj.Ahora));
+        usuarios.Agregar(Usuario.Crear(null, nombre, hasher.Hashear(contrasena), Rol.AdministradorPlataforma, reloj.Ahora));
         await usuarios.GuardarCambiosAsync(ct);
         return ResultadoInicializacion.Exito;
     }

@@ -83,3 +83,21 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
   bytea, `tipo` varchar(20), `etag` varchar(64), `actualizado_en`.
 - `GuardarCambiosAsync` traduce la violación de unicidad a `ConflictoException` según el índice
   (nombre, slug u otro).
+
+## Usuarios por restaurante y filtro global (feature 002)
+
+- `usuarios.restaurante_id` (uuid, nulo sólo para el administrador de plataforma) con FK a `restaurantes`
+  (`Restrict`). El índice único `ix_usuarios_restaurante_nombre` (`restaurante_id`,
+  `nombre_usuario_normalizado`, `NULLS NOT DISTINCT`) sustituye a `ix_usuarios_nombre_usuario_normalizado`
+  (migración `UsuariosPorRestaurante`).
+- `RestauranteDbContext(options, IContextoRestaurante)` aplica a `Usuario` el filtro global
+  `RestauranteId == RestauranteActualId`, con `RestauranteActualId` como propiedad de instancia para que EF
+  la parametrice por contexto. Todas las consultas de `UsuarioRepository` (listar, buscar, contar
+  administradores, `ExisteAlgunoAsync`) quedan acotadas al restaurante; con contexto `null` sólo ven a
+  los administradores de plataforma (así el `InicializadorAdministrador` comprueba "ya hay uno").
+- `CrearUsuarioHandler` crea el usuario en `IContextoRestaurante.RestauranteId` y lanza
+  `InvalidOperationException` si es `null`.
+- Registro: `AddInfrastructureServices` hace `TryAddScoped<IContextoRestaurante>` con
+  `ContextoRestauranteFijo(null)` (provisional hasta el middleware de restaurante, T-07). La fábrica de
+  diseño (`dotnet ef`) usa también `ContextoRestauranteFijo(null)`. Las pruebas de la API registran un
+  contexto fijo con `FabricaApi.RestaurantePruebaId`.

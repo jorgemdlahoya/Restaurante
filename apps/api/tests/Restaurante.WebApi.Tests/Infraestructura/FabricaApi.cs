@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
 using Restaurante.Domain.Usuarios;
+using Restaurante.Infrastructure.Persistencia;
 
 namespace Restaurante.WebApi.Tests.Infraestructura;
 
@@ -35,6 +36,12 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 {
     public const string ClaveJwt = "0123456789abcdef0123456789abcdef";
     public const string ClaveAjena = "ffffffffffffffffffffffffffffffff";
+
+    /// <summary>
+    /// Restaurante fijo de las pruebas de la API hasta que T-07 resuelva el contexto por petición: los usuarios
+    /// sembrados (salvo los de plataforma) pertenecen a él y el alta de usuarios se hace en su ámbito.
+    /// </summary>
+    public static readonly Guid RestaurantePruebaId = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
 
     private readonly Dictionary<string, string?> _entorno;
 
@@ -141,6 +148,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             AjustarServicios?.Invoke(servicios);
             servicios.RemoveAll<IUsuarioRepository>();
             servicios.AddSingleton<IUsuarioRepository>(Usuarios);
+            servicios.RemoveAll<IContextoRestaurante>();
+            servicios.AddSingleton<IContextoRestaurante>(new ContextoRestauranteFijo(RestaurantePruebaId));
 
             // Sustituye el health check real de EF Core (que necesita PostgreSQL) por uno controlable.
             servicios.Configure<HealthCheckServiceOptions>(o =>

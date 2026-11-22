@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Infrastructure.Arranque;
 using Restaurante.Infrastructure.Persistencia;
@@ -17,6 +18,8 @@ public static class DependencyInjection
         // CreateExecutionStrategy().Execute(...); hoy no hay ninguna (SaveChanges ya es atómico).
         services.AddDbContext<RestauranteDbContext>(o =>
             o.UseNpgsql(cadenaConexion, npgsql => npgsql.EnableRetryOnFailure()));
+        // Provisional hasta T-07 (middleware de restaurante): ámbito de plataforma por defecto.
+        services.TryAddScoped<IContextoRestaurante>(_ => new ContextoRestauranteFijo(null));
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IRestauranteRepository, RestauranteRepository>();

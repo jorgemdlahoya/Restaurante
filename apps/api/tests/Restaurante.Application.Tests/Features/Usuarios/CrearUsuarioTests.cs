@@ -8,11 +8,15 @@ namespace Restaurante.Application.Tests.Features.Usuarios;
 
 public class CrearUsuarioTests
 {
-    private readonly UsuarioRepositoryEnMemoria _repositorio = new();
+    private static readonly Guid RestauranteId = Guid.NewGuid();
+    private readonly ContextoRestauranteFalso _contexto = new(RestauranteId);
+    private readonly UsuarioRepositoryEnMemoria _repositorio;
     private readonly HasherFalso _hasher = new();
     private readonly RelojFijo _reloj = new();
 
-    private CrearUsuarioHandler CrearHandler() => new(_repositorio, _hasher, _reloj);
+    public CrearUsuarioTests() => _repositorio = new(_contexto);
+
+    private CrearUsuarioHandler CrearHandler() => new(_repositorio, _hasher, _reloj, _contexto);
 
     [Fact(DisplayName = "001/RF-11: crea usuario activo con hash y devuelve DTO sin contraseña")]
     public async Task CreaUsuarioActivoConHash()
@@ -31,7 +35,7 @@ public class CrearUsuarioTests
     [Fact(DisplayName = "001/RF-12: nombre duplicado sin distinguir mayúsculas lanza ConflictoException")]
     public async Task NombreDuplicadoLanzaConflicto()
     {
-        _repositorio.Agregar(Usuario.Crear("Maria", "hash:x", Rol.Cajero, _reloj.Ahora));
+        _repositorio.Agregar(Usuario.Crear(RestauranteId, "Maria", "hash:x", Rol.Cajero, _reloj.Ahora));
 
         await Assert.ThrowsAsync<ConflictoException>(() =>
             CrearHandler().Handle(new CrearUsuarioCommand("MARIA", "secreta123", "cocinero"), CancellationToken.None));

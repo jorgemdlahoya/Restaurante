@@ -67,7 +67,8 @@ lo indica en el log.
 ## Recuperar el acceso de administrador
 
 El sistema impide dejar el último administrador activo (RF-17) y el administrador inicial
-sólo se crea cuando no existe ningún usuario (RF-09), así que **no se vuelve a sembrar**. Si aun así
+sólo se crea cuando no existe ningún administrador de plataforma (RF-09; el filtro global por
+restaurante hace que sólo se cuenten los usuarios sin restaurante), así que **no se vuelve a sembrar**. Si aun así
 se pierde el acceso (p. ej. dos administradores que se degradan o desactivan a la vez), la
 **única vía de recuperación** es reactivar y promover un usuario existente directamente en la base
 de datos, con el sistema levantado:

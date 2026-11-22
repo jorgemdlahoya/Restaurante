@@ -8,7 +8,8 @@ namespace Restaurante.Application.Tests.Features.Auth;
 
 public class IniciarSesionTests
 {
-    private readonly UsuarioRepositoryEnMemoria _repositorio = new();
+    private static readonly Guid RestauranteId = Guid.NewGuid();
+    private readonly UsuarioRepositoryEnMemoria _repositorio = new(new ContextoRestauranteFalso(RestauranteId));
     private readonly HasherFalso _hasher = new();
     private readonly RelojFijo _reloj = new();
 
@@ -16,7 +17,7 @@ public class IniciarSesionTests
 
     private Usuario Agregar(string nombre, string contrasena, Rol rol, bool activo = true)
     {
-        var usuario = Usuario.Crear(nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
+        var usuario = Usuario.Crear(RestauranteId, nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
         if (!activo)
         {
             usuario.Desactivar();
