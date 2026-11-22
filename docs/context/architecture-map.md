@@ -71,3 +71,15 @@ configuración nombran la variable y el motivo, nunca el valor.
 
 Un proyecto de pruebas por capa (`Domain`, `Application`, `Infrastructure`, `WebApi`) más
 `Architecture`. Las pruebas con Testcontainers llevan `[Trait("Category", "Integracion")]`.
+
+## Tablas de restaurantes (feature 002)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepository`, migración `Restaurantes`):
+
+- `restaurantes`: `id`, `nombre` varchar(80), `slug` varchar(40), `activo`, `color_principal`,
+  `color_acento`, `color_oscuro`, `color_fondo`, `color_texto` (`char(7)`, nulos; la `Paleta` es una
+  `ComplexProperty`), `creado_en`. Índices únicos `ix_restaurantes_nombre` e `ix_restaurantes_slug`.
+- `restaurantes_logo`: `restaurante_id` (PK y FK a `restaurantes`, borrado en cascada), `contenido`
+  bytea, `tipo` varchar(20), `etag` varchar(64), `actualizado_en`.
+- `GuardarCambiosAsync` traduce la violación de unicidad a `ConflictoException` según el índice
+  (nombre, slug u otro).

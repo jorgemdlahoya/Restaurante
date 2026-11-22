@@ -19,6 +19,7 @@ public static class DependencyInjection
             o.UseNpgsql(cadenaConexion, npgsql => npgsql.EnableRetryOnFailure()));
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IRestauranteRepository, RestauranteRepository>();
         services.AddScoped<AplicadorMigraciones>();
         services.AddScoped<InicializadorAdministrador>();
         services.AddSingleton<IReloj, Reloj>();
