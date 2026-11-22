@@ -20,9 +20,14 @@
 - **Contexto de restaurante**: restaurante en cuyo ámbito se atiende una petición
   (`IContextoRestaurante.RestauranteId`); `null` es el ámbito de plataforma. Determina qué usuarios ve
   el filtro global de la base de datos. En la API lo fija `MiddlewareContextoRestaurante` por petición
-  (`ContextoRestaurante.Establecer`): por el `slug` de `/api/r/{slug}/…`, nunca en `/api/plataforma/…`.
-- **Restaurante no disponible**: 404 que responde `/api/r/{slug}/…` cuando el `slug` no existe o el
-  restaurante está inactivo (detalle `La dirección no corresponde a un restaurante activo.`).
+  (`ContextoRestaurante.Establecer`): por el claim `restaurant_id` del token o, sin él, por el `slug` de
+  `/api/r/{slug}/…`; nunca en `/api/plataforma/…`.
+- **Restaurante no disponible**: 404 que responde `/api/r/{slug}/…` cuando el `slug` no existe, el
+  restaurante está inactivo o el token es de otro restaurante (detalle
+  `La dirección no corresponde a un restaurante activo.`).
+- **Restaurante no activo (token)**: 401 `No autenticado` / `El restaurante no está activo.` (con
+  `WWW-Authenticate: Bearer`) para un token cuyo `restaurant_id` no existe o está desactivado; el token
+  vuelve a valer al reactivar el restaurante.
 - **LoginPeticion**: cuerpo `{ nombreUsuario, contrasena }` de `POST /api/r/{slug}/auth/login` y
   `POST /api/plataforma/auth/login`.
 - **restaurant_id**: claim del JWT con el restaurante del usuario; ausente en los tokens de plataforma.

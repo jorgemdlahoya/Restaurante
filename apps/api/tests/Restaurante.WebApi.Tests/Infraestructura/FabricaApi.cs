@@ -38,12 +38,6 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     public const string ClaveJwt = "0123456789abcdef0123456789abcdef";
     public const string ClaveAjena = "ffffffffffffffffffffffffffffffff";
 
-    /// <summary>
-    /// Restaurante de las pruebas de <c>/api/usuarios</c> hasta que T-08 mueva la ruta a <c>/api/r/{slug}/…</c>:
-    /// sus usuarios se siembran con este id y sus tokens llevan <c>restaurant_id</c> con este valor.
-    /// </summary>
-    public static readonly Guid RestaurantePruebaId = Guid.Parse("00000000-0000-0000-0000-0000000000a1");
-
     private readonly Dictionary<string, string?> _entorno;
 
     private readonly string _entornoHospedaje;

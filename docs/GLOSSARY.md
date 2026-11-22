@@ -6,7 +6,7 @@ Perfil de permisos de un usuario del sistema (los cinco roles de la constitució
 `AdministradorPlataforma`, `AdministradorGeneral`, `AdministradorSucursal`, `Cajero` y `Cocinero`.
 En la API, el JWT y la base de datos se serializa en snake_case (`administrador_plataforma`,
 `administrador_general`, `administrador_sucursal`, `cajero`, `cocinero`); la coincidencia es exacta.
-`POST /api/usuarios` y `PUT /api/usuarios/{id}/rol` aceptan todos salvo `administrador_plataforma`.
+`POST /api/r/{slug}/usuarios` y `PUT /api/r/{slug}/usuarios/{id}/rol` aceptan todos salvo `administrador_plataforma`.
 
 ## LoginPeticion
 
@@ -25,7 +25,11 @@ JWT (HS256), `expiraEn` su instante de expiración y `rol` va en minúsculas.
 ## restaurant_id (claim)
 
 Claim del JWT (`EmisorTokensJwt.ClaimRestaurante`) con el id del restaurante del usuario. Sólo se emite si
-el usuario tiene restaurante; los tokens de `administrador_plataforma` no lo llevan.
+el usuario tiene restaurante; los tokens de `administrador_plataforma` no lo llevan. Fuera de
+`/api/plataforma/…` fija el contexto de restaurante de la petición: si el restaurante no existe o está
+inactivo, 401 `No autenticado` / `El restaurante no está activo.` (con `WWW-Authenticate: Bearer`; el token
+vuelve a valer al reactivarlo); en `/api/r/{slug}/…` con el `slug` de otro restaurante, 404
+`Restaurante no disponible`.
 
 ## JWT (emisor y audiencia)
 
@@ -38,20 +42,23 @@ restaurante, `restaurant_id`. Se validan firma
 ## UsuarioDto
 
 Representación pública de un usuario en la API: `{ id, nombreUsuario, rol, activo }`. Nunca incluye
-la contraseña ni su hash. Es la respuesta de `GET /api/usuarios` (lista), `POST /api/usuarios`
-(201), `PUT /api/usuarios/{id}/estado` y `PUT /api/usuarios/{id}/rol`.
+la contraseña ni su hash. Es la respuesta de `GET /api/r/{slug}/usuarios` (lista, sólo los del
+restaurante), `POST /api/r/{slug}/usuarios` (201, `Location: /api/r/{slug}/usuarios/{id}`),
+`PUT /api/r/{slug}/usuarios/{id}/estado` y `PUT /api/r/{slug}/usuarios/{id}/rol`. Un usuario de otro
+restaurante da 404.
 
 ## CrearUsuarioPeticion
 
-Cuerpo de `POST /api/usuarios`: `{ nombreUsuario, contrasena, rol }`. El rol va en minúsculas.
+Cuerpo de `POST /api/r/{slug}/usuarios`: `{ nombreUsuario, contrasena, rol }`. El rol va en minúsculas.
+El nombre es único sólo dentro del restaurante.
 
 ## CambiarEstadoPeticion
 
-Cuerpo de `PUT /api/usuarios/{id}/estado`: `{ activo }` (booleano).
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano).
 
 ## CambiarRolPeticion
 
-Cuerpo de `PUT /api/usuarios/{id}/rol`: `{ rol }`, en minúsculas.
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/rol`: `{ rol }`, en minúsculas.
 
 ## Restaurante
 
@@ -83,8 +90,9 @@ Puerto `IContextoRestaurante` (`Restaurante.Application.Abstracciones`) con `Gui
 restaurante en cuyo ámbito se atiende la petición. `null` es el ámbito de plataforma. El
 `RestauranteDbContext` lo usa en un filtro global sobre `usuarios` (`RestauranteId == RestauranteActualId`):
 con un restaurante sólo se ven sus usuarios; con `null`, sólo los administradores de plataforma.
-`ContextoRestauranteFijo` es la implementación de valor fijo (fábrica de diseño, pruebas y registro
-provisional con `null` hasta que el middleware de restaurante lo resuelva por petición).
+`ContextoRestauranteFijo` es la implementación de valor fijo (fábrica de diseño y pruebas). En la API lo
+resuelve `MiddlewareContextoRestaurante` por petición: el claim `restaurant_id` del token, si lo hay; si no,
+el `slug` de `/api/r/{slug}/…`; nunca en `/api/plataforma/…`.
 
 ## Usuario por restaurante
 

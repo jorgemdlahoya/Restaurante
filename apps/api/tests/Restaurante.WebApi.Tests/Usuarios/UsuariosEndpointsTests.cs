@@ -8,6 +8,7 @@ using Restaurante.Application.Abstracciones;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Tests.Infraestructura;
 using static Restaurante.WebApi.Tests.Infraestructura.AfirmacionesHttp;
+using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.WebApi.Tests.Usuarios;
 
@@ -15,15 +16,19 @@ namespace Restaurante.WebApi.Tests.Usuarios;
 public sealed class UsuariosEndpointsTests : IDisposable
 {
     private const string Contrasena = "Clave-de-prueba-123";
+    private const string Ruta = "/api/r/la-esquina/usuarios";
 
     private readonly FabricaApi _fabrica = new();
+    private readonly RestauranteEntidad _restaurante;
+
+    public UsuariosEndpointsTests() => _restaurante = _fabrica.SembrarRestaurante("La Esquina", "la-esquina");
 
     public void Dispose() => _fabrica.Dispose();
 
     private Usuario Sembrar(string nombre, Rol rol, bool activo = true)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(FabricaApi.RestaurantePruebaId, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(_restaurante.Id, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
         if (!activo)
         {
             usuario.Desactivar();
@@ -38,7 +43,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer",
-                FabricaApi.EmitirToken(rol, usuarioId: usuarioId, restauranteId: FabricaApi.RestaurantePruebaId));
+                FabricaApi.EmitirToken(rol, usuarioId: usuarioId, restauranteId: _restaurante.Id));
         return cliente;
     }
 
@@ -49,7 +54,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PostAsJsonAsync("/api/usuarios",
+        var respuesta = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cajero" });
 
         Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
@@ -60,7 +65,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Assert.Equal("maria", raiz.GetProperty("nombreUsuario").GetString());
         Assert.Equal("cajero", raiz.GetProperty("rol").GetString());
         Assert.True(raiz.GetProperty("activo").GetBoolean());
-        Assert.Equal($"/api/usuarios/{id}", respuesta.Headers.Location?.ToString());
+        Assert.Equal($"{Ruta}/{id}", respuesta.Headers.Location?.ToString());
         Assert.DoesNotContain("contrasena", cuerpo, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("hash", cuerpo, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(Contrasena, cuerpo, StringComparison.Ordinal);
@@ -72,7 +77,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Sembrar("maria", Rol.Cajero);
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PostAsJsonAsync("/api/usuarios",
+        var respuesta = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "MARIA", contrasena = Contrasena, rol = "cajero" });
 
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
@@ -83,20 +88,20 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        await AssertValidacionAsync(await cliente.PostAsync("/api/usuarios", Json("{\"contrasena\":\"x\"}")),
+        await AssertValidacionAsync(await cliente.PostAsync(Ruta, Json("{\"contrasena\":\"x\"}")),
             "nombreUsuario", "El nombre de usuario es obligatorio");
         await AssertValidacionAsync(
-            await cliente.PostAsync("/api/usuarios", Json("{\"nombreUsuario\":\"ana\",\"rol\":\"cajero\"}")),
+            await cliente.PostAsync(Ruta, Json("{\"nombreUsuario\":\"ana\",\"rol\":\"cajero\"}")),
             "contrasena", "La contraseña es obligatoria");
         await AssertValidacionAsync(
-            await cliente.PostAsync("/api/usuarios", Json("{\"nombreUsuario\":\"ana\",\"contrasena\":\"corta\",\"rol\":\"cajero\"}")),
+            await cliente.PostAsync(Ruta, Json("{\"nombreUsuario\":\"ana\",\"contrasena\":\"corta\",\"rol\":\"cajero\"}")),
             "contrasena", "La contraseña debe tener al menos 8 caracteres");
         await AssertValidacionAsync(
-            await cliente.PostAsync("/api/usuarios", Json("{\"nombreUsuario\":\"ana\",\"contrasena\":\"Clave-de-prueba-123\"}")),
+            await cliente.PostAsync(Ruta, Json("{\"nombreUsuario\":\"ana\",\"contrasena\":\"Clave-de-prueba-123\"}")),
             "rol", "El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
 
         var usuario = Sembrar("pepe", Rol.Cajero);
-        await AssertValidacionAsync(await cliente.PutAsync($"/api/usuarios/{usuario.Id}/estado", Json("{}")),
+        await AssertValidacionAsync(await cliente.PutAsync($"{Ruta}/{usuario.Id}/estado", Json("{}")),
             "activo", "El estado (activo) es obligatorio");
     }
 
@@ -105,16 +110,16 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        await AssertValidacionAsync(await cliente.PostAsync("/api/usuarios", Json("{\"nombreUsuario\":")),
+        await AssertValidacionAsync(await cliente.PostAsync(Ruta, Json("{\"nombreUsuario\":")),
             null, "El cuerpo de la petición no es válido.");
         await AssertValidacionAsync(
-            await cliente.PostAsync("/api/usuarios",
+            await cliente.PostAsync(Ruta,
                 Json("{\"nombreUsuario\":\"ana\",\"contrasena\":\"Clave-de-prueba-123\",\"rol\":\"Cajero\"}")),
             "rol", "El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
 
         var usuario = Sembrar("pepe", Rol.Cajero);
         await AssertValidacionAsync(
-            await cliente.PutAsync($"/api/usuarios/{usuario.Id}/rol", Json("{\"rol\":\"Cajero\"}")),
+            await cliente.PutAsync($"{Ruta}/{usuario.Id}/rol", Json("{\"rol\":\"Cajero\"}")),
             "rol", "El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
     }
 
@@ -124,7 +129,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = ClienteComo(Rol.AdministradorGeneral); // arrancar el host primero siembra al administrador inicial
         Sembrar("maria", Rol.Cajero, activo: false);
 
-        var respuesta = await cliente.GetAsync("/api/usuarios");
+        var respuesta = await cliente.GetAsync(Ruta);
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
@@ -135,10 +140,10 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Assert.False(maria.GetProperty("activo").GetBoolean());
     }
 
-    [Fact(DisplayName = "001/RF-14: un usuario mesero recibe 403 en GET /api/usuarios")]
+    [Fact(DisplayName = "001/RF-14: un usuario mesero recibe 403 en GET /api/r/{slug}/usuarios")]
     public async Task Mesero_recibe_403_en_listado()
     {
-        var respuesta = await ClienteComo(Rol.Cajero).GetAsync("/api/usuarios");
+        var respuesta = await ClienteComo(Rol.Cajero).GetAsync(Ruta);
 
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
     }
@@ -149,7 +154,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var objetivo = Sembrar("maria", Rol.Cajero);
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PutAsJsonAsync($"/api/usuarios/{objetivo.Id}/estado", new { activo = false });
+        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{objetivo.Id}/estado", new { activo = false });
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
@@ -163,7 +168,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var objetivo = Sembrar("maria", Rol.Cajero);
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PutAsJsonAsync($"/api/usuarios/{objetivo.Id}/rol", new { rol = "cocinero" });
+        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{objetivo.Id}/rol", new { rol = "cocinero" });
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
@@ -177,8 +182,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
         // El administrador inicial es de plataforma: este es el único administrador general activo.
         var unico = Sembrar("jefe", Rol.AdministradorGeneral);
 
-        var cambioRol = await cliente.PutAsJsonAsync($"/api/usuarios/{unico.Id}/rol", new { rol = "cajero" });
-        var desactivar = await cliente.PutAsJsonAsync($"/api/usuarios/{unico.Id}/estado", new { activo = false });
+        var cambioRol = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/rol", new { rol = "cajero" });
+        var desactivar = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/estado", new { activo = false });
 
         Assert.Equal(HttpStatusCode.Conflict, cambioRol.StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, desactivar.StatusCode);
@@ -193,7 +198,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Sembrar("otro", Rol.AdministradorGeneral);
         var cliente = ClienteComo(Rol.AdministradorGeneral, yo.Id);
 
-        var respuesta = await cliente.PutAsJsonAsync($"/api/usuarios/{yo.Id}/estado", new { activo = false });
+        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{yo.Id}/estado", new { activo = false });
 
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
         Assert.True(yo.Activo);
@@ -204,8 +209,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var estado = await cliente.PutAsJsonAsync($"/api/usuarios/{Guid.NewGuid()}/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync($"/api/usuarios/{Guid.NewGuid()}/rol", new { rol = "cajero" });
+        var estado = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { activo = true });
+        var rol = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/rol", new { rol = "cajero" });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);
@@ -216,8 +221,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var estado = await cliente.PutAsJsonAsync("/api/usuarios/abc/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync("/api/usuarios/123/rol", new { rol = "cajero" });
+        var estado = await cliente.PutAsJsonAsync($"{Ruta}/abc/estado", new { activo = true });
+        var rol = await cliente.PutAsJsonAsync($"{Ruta}/123/rol", new { rol = "cajero" });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);

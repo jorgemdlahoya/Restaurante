@@ -16,14 +16,17 @@ Content-Type: application/json
 ### Token capturado para las peticiones siguientes
 @token = {{login.response.body.$.token}}
 
-### Listar usuarios (RF-14). Sólo administrador.
-GET {{baseUrl}}/api/usuarios
+### Listar usuarios de su restaurante (001/RF-14, 002/RF-12). Sólo administrador general.
+# 401 si el restaurante del token está desactivado (002/RF-06); 404 si el slug no es el del token (002/RF-12);
+# 403 con un token de plataforma.
+GET {{baseUrl}}/api/r/{{slug}}/usuarios
 Authorization: Bearer {{token}}
 
-### Crear usuario (RF-11..RF-13). Rol exacto: administrador_general, administrador_sucursal, cajero, cocinero.
-# Responde 201 con Location: /api/usuarios/{id}; 409 si el nombre ya existe.
+### Crear usuario (001/RF-11..RF-13, 002/RF-13). Rol exacto: administrador_general, administrador_sucursal, cajero, cocinero.
+# Responde 201 con Location: /api/r/{slug}/usuarios/{id}; 409 si el nombre ya existe en este restaurante
+# (el mismo nombre puede existir en otro restaurante).
 # @name crearUsuario
-POST {{baseUrl}}/api/usuarios
+POST {{baseUrl}}/api/r/{{slug}}/usuarios
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -37,8 +40,8 @@ Content-Type: application/json
 @usuarioId = {{crearUsuario.response.body.$.id}}
 
 ### Activar o desactivar usuario (RF-15, RF-17, RF-18, RF-19).
-# 409 si es el último administrador activo o si te desactivas a ti mismo; 404 si no existe.
-PUT {{baseUrl}}/api/usuarios/{{usuarioId}}/estado
+# 409 si es el último administrador activo o si te desactivas a ti mismo; 404 si no existe o es de otro restaurante.
+PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}/estado
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
@@ -47,7 +50,7 @@ Content-Type: application/json
 }
 
 ### Cambiar rol (RF-16, RF-17, RF-19). Rol en minúsculas.
-PUT {{baseUrl}}/api/usuarios/{{usuarioId}}/rol
+PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}/rol
 Authorization: Bearer {{token}}
 Content-Type: application/json
 

@@ -20,10 +20,11 @@ public sealed record CambiarEstadoPeticion(bool? Activo);
 public sealed record CambiarRolPeticion(string? Rol);
 
 [ApiController]
-[Route("api/usuarios")]
+[Route("api/r/{slug}/usuarios")]
 [RequiereRol(Rol.AdministradorGeneral)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
+[ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")] // Restaurante no disponible
 public sealed class UsuariosController(IMediator mediador) : ControllerBase
 {
     [HttpGet]
@@ -35,13 +36,13 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
-    public async Task<ActionResult<UsuarioDto>> Crear(CrearUsuarioPeticion peticion, CancellationToken ct)
+    public async Task<ActionResult<UsuarioDto>> Crear(string slug, CrearUsuarioPeticion peticion, CancellationToken ct)
     {
         var usuario = await mediador.Send(new CrearUsuarioCommand(
             peticion.NombreUsuario ?? string.Empty,
             peticion.Contrasena ?? string.Empty,
             peticion.Rol ?? string.Empty), ct);
-        return Created($"/api/usuarios/{usuario.Id}", usuario);
+        return Created($"/api/r/{slug.ToLowerInvariant()}/usuarios/{usuario.Id}", usuario);
     }
 
     [HttpPut("{id:guid}/estado")]

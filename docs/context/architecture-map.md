@@ -40,11 +40,15 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
 - `UsuarioActual`: expone el usuario autenticado (id, rol) a la capa de aplicación.
 - `ContextoRestaurante` (scoped, implementa `IContextoRestaurante`) y `MiddlewareContextoRestaurante`
   (en `Program.cs` justo después de `UseAuthentication()`). Reglas en orden: (1) `/api/plataforma…` no fija
-  contexto aunque llegue un token de restaurante; (2) `/api/r/{slug}…` busca el restaurante por el `slug` en
-  minúsculas y responde 404 `Restaurante no disponible` (con `RespuestasProblema.EscribirAsync`) si no
-  existe o está inactivo; si no, `Establecer(id)`; (3) en el resto, provisionalmente, `Establecer` con el
-  claim `restaurant_id` del token (T-08 completa la regla del token: 401 si el restaurante está inactivo y
-  404 si no coincide con el `slug`).
+  contexto aunque llegue un token de restaurante; (2) token autenticado con `restaurant_id`:
+  `ObtenerPorIdAsync`; inexistente o inactivo → 401 `No autenticado` / `El restaurante no está activo.` con
+  `WWW-Authenticate: Bearer`; en `/api/r/{slug}…` con un `slug` (en minúsculas) distinto del suyo → 404
+  `Restaurante no disponible`; si no, `Establecer(id)`; (3) `/api/r/{slug}…` sin restaurante en el token
+  busca por el `slug` en minúsculas y responde 404 `Restaurante no disponible` si no existe o está
+  inactivo; si no, `Establecer(id)`; (4) en el resto, ámbito de plataforma. Las respuestas se escriben con
+  `RespuestasProblema.EscribirAsync`.
+- `UsuariosController` bajo `api/r/{slug}/usuarios` (sólo `administrador_general`); el filtro global por
+  contexto aísla los usuarios de cada restaurante (otro restaurante → 404).
 - Logins: `AuthController` (`POST /api/r/{slug}/auth/login`) y `PlataformaAuthController`
   (`POST /api/plataforma/auth/login`) envían el mismo `IniciarSesionCommand`; el filtro global decide qué
   usuarios existen en cada ámbito.
