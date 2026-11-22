@@ -49,6 +49,7 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   `RespuestasProblema.EscribirAsync`.
 - `UsuariosController` bajo `api/r/{slug}/usuarios` (sólo `administrador_general`); el filtro global por
   contexto aísla los usuarios de cada restaurante (otro restaurante → 404).
+- `IdentidadController`: `GET /api/r/{slug}/identidad` (anónimo; nombre, paleta y logo del restaurante).
 - Logins: `AuthController` (`POST /api/r/{slug}/auth/login`) y `PlataformaAuthController`
   (`POST /api/plataforma/auth/login`) envían el mismo `IniciarSesionCommand`; el filtro global decide qué
   usuarios existen en cada ámbito.

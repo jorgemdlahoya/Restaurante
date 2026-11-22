@@ -33,6 +33,8 @@
 - **restaurant_id**: claim del JWT con el restaurante del usuario; ausente en los tokens de plataforma.
 - **PaletaDto**: paleta de un restaurante en la API (`principal`, `acento`, `oscuro`, `fondo`, `texto`),
   cada color `#RRGGBB` o `null`.
+- **IdentidadDto**: `{ nombre, slug, paleta, logoUrl }`; respuesta anónima de
+  `GET /api/r/{slug}/identidad` (`logoUrl` es `null` sin logo).
 - **RestauranteDto**: `{ id, nombre, slug, activo, paleta }`; respuesta de
   `POST /api/plataforma/restaurantes`.
 - **CrearRestaurantePeticion**: cuerpo de `POST /api/plataforma/restaurantes`:

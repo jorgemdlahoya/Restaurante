@@ -1,0 +1,7 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+
+### Identidad pública del restaurante (002/RF-14, RF-10). No requiere token.
+# Devuelve { nombre, slug, paleta, logoUrl }; logoUrl es null si el restaurante no tiene logo.
+# El slug no distingue mayúsculas. Slug inexistente o restaurante inactivo: 404 "Restaurante no disponible".
+GET {{baseUrl}}/api/r/{{slug}}/identidad

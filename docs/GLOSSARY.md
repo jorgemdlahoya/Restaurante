@@ -106,6 +106,11 @@ regla del último administrador activo se cuenta por restaurante.
 Paleta de un restaurante en la API: `{ principal, acento, oscuro, fondo, texto }`. Cada color es
 `#RRGGBB` o ausente (`null`); el validador `ValidadorPaleta` responde `El color debe tener el formato #RRGGBB`.
 
+## IdentidadDto
+
+Identidad pública de un restaurante: `{ nombre, slug, paleta, logoUrl }`. Es la respuesta anónima de
+`GET /api/r/{slug}/identidad`; `logoUrl` es `/api/r/{slug}/logo?v={etag}` o `null` si no hay logo.
+
 ## RestauranteDto
 
 Representación pública de un restaurante en la API de plataforma: `{ id, nombre, slug, activo, paleta }`.
