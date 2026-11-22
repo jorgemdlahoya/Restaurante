@@ -111,6 +111,13 @@ Paleta de un restaurante en la API: `{ principal, acento, oscuro, fondo, texto }
 Identidad pública de un restaurante: `{ nombre, slug, paleta, logoUrl }`. Es la respuesta anónima de
 `GET /api/r/{slug}/identidad`; `logoUrl` es `/api/r/{slug}/logo?v={etag}` o `null` si no hay logo.
 
+## LogoDto
+
+Logo de un restaurante: `{ contenido, tipo, etag }` (bytes, `image/png|jpeg|webp` y SHA-256 en hexadecimal).
+Lo devuelve `ObtenerLogoQuery` y `GET /api/r/{slug}/logo` lo sirve con `ETag`, `Cache-Control: public, no-cache`
+y 304 si `If-None-Match` coincide. Se sube con `PUT /api/plataforma/restaurantes/{id}/logo` (multipart, campo
+`logo`, ≤ 1 MB, tipo detectado por firma con `DetectorTipoImagen`; SVG rechazado).
+
 ## RestauranteDto
 
 Representación pública de un restaurante en la API de plataforma: `{ id, nombre, slug, activo, paleta }`.

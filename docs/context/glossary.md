@@ -35,6 +35,8 @@
   cada color `#RRGGBB` o `null`.
 - **IdentidadDto**: `{ nombre, slug, paleta, logoUrl }`; respuesta anónima de
   `GET /api/r/{slug}/identidad` (`logoUrl` es `null` sin logo).
+- **LogoDto**: `{ contenido, tipo, etag }`; logo servido por `GET /api/r/{slug}/logo` (ETag, 304) y subido
+  por `PUT /api/plataforma/restaurantes/{id}/logo` (multipart `logo`, PNG/JPG/WebP, ≤ 1 MB).
 - **RestauranteDto**: `{ id, nombre, slug, activo, paleta }`; respuesta de
   `POST /api/plataforma/restaurantes`.
 - **CrearRestaurantePeticion**: cuerpo de `POST /api/plataforma/restaurantes`:

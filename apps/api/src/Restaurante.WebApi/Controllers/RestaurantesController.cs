@@ -5,6 +5,7 @@ using Restaurante.Application.Features.Restaurantes.CambiarEstadoRestaurante;
 using Restaurante.Application.Features.Restaurantes.CrearRestaurante;
 using Restaurante.Application.Features.Restaurantes.EditarRestaurante;
 using Restaurante.Application.Features.Restaurantes.ListarRestaurantes;
+using Restaurante.Application.Features.Restaurantes.SubirLogo;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -55,6 +56,28 @@ public sealed class RestaurantesController(IMediator mediador) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<ActionResult<RestauranteDto>> Editar(Guid id, EditarRestaurantePeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new EditarRestauranteCommand(id, peticion.Nombre ?? string.Empty, peticion.Paleta), ct));
+
+    /// <summary>Sube o reemplaza el logo (multipart, campo <c>logo</c>). El tope de petición es 10 MB para que un archivo grande llegue al validador y responda 400, no 413.</summary>
+    [HttpPut("{id:guid}/logo")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(10 * 1024 * 1024)]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> SubirLogo(Guid id, IFormFile? logo, CancellationToken ct)
+    {
+        byte[] contenido = [];
+        if (logo is not null)
+        {
+            await using var flujo = logo.OpenReadStream();
+            using var memoria = new MemoryStream();
+            await flujo.CopyToAsync(memoria, ct);
+            contenido = memoria.ToArray();
+        }
+
+        await mediador.Send(new SubirLogoCommand(id, contenido), ct);
+        return NoContent();
+    }
 
     [HttpPut("{id:guid}/estado")]
     [ProducesResponseType<RestauranteDto>(StatusCodes.Status200OK)]

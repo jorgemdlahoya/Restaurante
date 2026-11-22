@@ -68,3 +68,19 @@ Content-Type: application/json
 {
   "activo": false
 }
+
+### Subir o reemplazar el logo (RF-05). Multipart con el campo "logo"; sólo administrador_plataforma.
+# PNG, JPG o WebP (detectados por firma), máximo 1 MB. Responde 204.
+# 400 en "logo": "El logo es obligatorio", "El logo no puede superar 1 MB" (un archivo de 3 MB también da 400, no 413)
+# o "El logo debe ser PNG, JPG o WebP" (SVG rechazado). 404 si el id no existe.
+# @name subirLogo
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=BoundaryLogo
+
+--BoundaryLogo
+Content-Disposition: form-data; name="logo"; filename="<ARCHIVO_LOGO>.png"
+Content-Type: image/png
+
+< <RUTA_AL_ARCHIVO_LOGO>
+--BoundaryLogo--
