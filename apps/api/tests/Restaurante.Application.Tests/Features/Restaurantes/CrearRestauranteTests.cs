@@ -60,6 +60,16 @@ public class CrearRestauranteTests
         Assert.Equal(0, _restaurantes.GuardadosLlamados);
     }
 
+    [Fact(DisplayName = "002/RF-02: la unicidad del nombre distingue mayúsculas, como el índice de la base")]
+    public async Task NombreDistintoSoloEnMayusculasNoEsDuplicado()
+    {
+        _restaurantes.Agregar(RestauranteEntidad.Crear("la esquina", "otro", Restaurante.Domain.Restaurantes.Paleta.Vacia, _reloj.Ahora));
+
+        await CrearHandler().Handle(Comando(), CancellationToken.None);
+
+        Assert.Equal(2, _restaurantes.Restaurantes.Count);
+    }
+
     [Fact(DisplayName = "002/RF-02: el slug repetido lanza ConflictoException")]
     public async Task SlugRepetido()
     {

@@ -41,4 +41,16 @@
   `POST /api/plataforma/restaurantes`.
 - **CrearRestaurantePeticion**: cuerpo de `POST /api/plataforma/restaurantes`:
   `{ nombre, slug, paleta?, administrador: { nombreUsuario, contrasena } }`. Crea el restaurante y su
-  primer `administrador_general` en una sola transacción; sólo `administrador_plataforma`.
+  primer `administrador_general` en una sola transacción; sólo `administrador_plataforma`. El nombre es
+  único de forma exacta (distingue mayúsculas, como el índice de la base).
+- **EditarRestaurantePeticion**: cuerpo `{ nombre, paleta? }` de `PUT /api/plataforma/restaurantes/{id}`;
+  `paleta` nula borra la paleta.
+- **Sesion** (frontend): `{ token, expiraEn, nombreUsuario, rol, slug }` en `ProveedorSesion` (memoria +
+  `sessionStorage`, clave `restaurante.sesion`); caduca sola en `expiraEn`.
+- **ErrorApi** (frontend): excepción de `pedirApi` con `estado`, título, detalle y `errores` por campo.
+- **RutaProtegida** (frontend): ruta que exige sesión con un rol (y slug) válidos o redirige al login.
+- **ProveedorTema / paleta** (frontend): escribe `--color-principal|acento|oscuro|fondo|texto` en `:root`
+  (por defecto en `tema.css`); sólo se usan `var(--color-*)`.
+- **Identidad** (frontend): `{ nombre, slug, paleta, logoUrl }` cargada por `DisenoRestaurante`.
+- **VistaPreviaPaleta** (frontend): vista previa de la paleta con variables locales a su elemento.
+- **FormularioRestaurante** (frontend): alta y edición de restaurantes en plataforma.

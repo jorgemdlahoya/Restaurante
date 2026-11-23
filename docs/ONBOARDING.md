@@ -125,6 +125,16 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
   `E2E_BASE_URL` (por defecto `http://localhost:8080`) apunta a la interfaz y `E2E_API_URL`
   (por defecto `http://localhost:5000`) a la API.
 
+## Dependencias de desarrollo con avisos
+
+`npm audit --prefix apps/web` informa de 3 avisos (2 críticos, 1 moderado), todos en `vitest` (3.x) y sus
+dependencias de desarrollo: `tinypool` (contaminación de prototipo en las opciones de los workers, RCE) y
+`@vitest/mocker` (lectura de archivos y registro de mocks sin autenticar). Sólo afectan al ejecutor de pruebas
+en la máquina de desarrollo o de CI: ninguna de estas librerías entra en `dist/` ni en la imagen publicada de
+`web`. No existe arreglo compatible: `npm audit fix --force` obliga a subir a `vitest@5` (cambio incompatible),
+así que se aplaza a una actualización planificada de Vitest. Mientras tanto, no ejecutes `vitest` con
+`--api` ni con el servidor de UI expuesto fuera de `localhost`, y no corras pruebas de código no confiable.
+
 ## Documentación de apoyo
 
 - Peticiones de ejemplo (`.http`): [`context/http/`](context/http/)

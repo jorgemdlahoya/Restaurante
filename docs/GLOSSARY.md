@@ -128,5 +128,49 @@ Es la respuesta de `POST /api/plataforma/restaurantes` (201).
 Cuerpo de `POST /api/plataforma/restaurantes` (sólo `administrador_plataforma`):
 `{ nombre, slug, paleta?, administrador: { nombreUsuario, contrasena } }`. Crea el restaurante activo y
 su primer `administrador_general` en una sola transacción. Nombre o slug repetidos dan 409 (el nombre se
-compara recortado y sin distinguir mayúsculas); los campos inválidos dan 400 como `slug`, `nombre`,
-`paleta.principal` o `administrador.contrasena`.
+compara recortado y distinguiendo mayúsculas, igual que el índice único de la base); los campos inválidos
+dan 400 como `slug`, `nombre`, `paleta.principal` o `administrador.contrasena`.
+
+## EditarRestaurantePeticion
+
+Cuerpo de `PUT /api/plataforma/restaurantes/{id}` (sólo `administrador_plataforma`): `{ nombre, paleta? }`.
+El nombre se recorta y no puede repetirse (409, exacto); el `slug` no se edita. Una `paleta` ausente o `null`
+borra la paleta del restaurante (vuelve a los colores por defecto). Responde un `RestauranteDto`.
+
+## Sesion (frontend)
+
+Datos de la sesión iniciada: `{ token, expiraEn, nombreUsuario, rol, slug }` (`slug` sólo en usuarios de
+restaurante). `ProveedorSesion` la guarda en memoria y en `sessionStorage` (clave `restaurante.sesion`) y la
+cierra sola al llegar `expiraEn`. El token nunca se envía de forma implícita: cada llamada lo pasa a `pedirApi`.
+
+## ErrorApi (frontend)
+
+Excepción de `pedirApi` ante una respuesta no exitosa: lleva el `estado` HTTP, el título y el detalle del
+`problem+json` y, en validaciones, `errores` por campo (claves en camelCase, p. ej. `administrador.nombreUsuario`).
+
+## RutaProtegida (frontend)
+
+Componente de ruta que exige una sesión vigente con uno de los `roles` indicados (y el `slug` de la URL en los
+usuarios de restaurante); si no, redirige al login que corresponde (`/plataforma/login` o `/r/{slug}/login`).
+
+## ProveedorTema y paleta (frontend)
+
+`ProveedorTema` escribe la `Paleta` del restaurante en las variables CSS `--color-principal`, `--color-acento`,
+`--color-oscuro`, `--color-fondo` y `--color-texto` de `:root`, rellenando con `PALETA_POR_DEFECTO` los colores
+ausentes, y las restaura al desmontarse. Ningún componente usa colores literales: sólo `var(--color-*)` (RNF-02).
+
+## Identidad (frontend)
+
+Datos públicos del restaurante (`nombre`, `slug`, `paleta`, `logoUrl`) que `DisenoRestaurante` carga de
+`GET /api/r/{slug}/identidad` para pintar el encabezado de marca y aplicar el tema; un 404 muestra
+`Restaurante no disponible`.
+
+## VistaPreviaPaleta (frontend)
+
+Muestra en el formulario de restaurantes cómo se verá la paleta elegida, fijando las variables `--color-*` sólo
+en su propio elemento (no toca el tema de la pantalla).
+
+## FormularioRestaurante (frontend)
+
+Formulario de plataforma para dar de alta (nombre, slug, administrador inicial, paleta y logo) o editar
+(nombre, paleta y logo) un restaurante; enlaza los errores 400 del servidor a cada campo.

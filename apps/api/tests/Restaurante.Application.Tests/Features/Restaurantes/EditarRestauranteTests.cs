@@ -82,7 +82,7 @@ public class EditarRestauranteTests
         var handler = new EditarRestauranteHandler(_restaurantes);
 
         var ex = await Assert.ThrowsAsync<ConflictoException>(() =>
-            handler.Handle(new EditarRestauranteCommand(propio.Id, " ajeno ", null), CancellationToken.None));
+            handler.Handle(new EditarRestauranteCommand(propio.Id, " Ajeno ", null), CancellationToken.None));
         Assert.Equal("Ya existe un restaurante con ese nombre", ex.Message);
         Assert.Equal(0, _restaurantes.GuardadosLlamados);
 

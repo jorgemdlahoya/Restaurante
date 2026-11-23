@@ -22,7 +22,7 @@ public sealed class RestauranteRepositoryEnMemoria : IRestauranteRepository
 
     public Task<bool> ExisteNombreAsync(string nombre, Guid? excluirId, CancellationToken ct) =>
         Task.FromResult(Restaurantes.Any(r =>
-            r.Id != excluirId && string.Equals(r.Nombre, nombre.Trim(), StringComparison.OrdinalIgnoreCase)));
+            r.Id != excluirId && string.Equals(r.Nombre, nombre.Trim(), StringComparison.Ordinal)));
 
     public Task<bool> ExisteSlugAsync(string slug, CancellationToken ct) =>
         Task.FromResult(Restaurantes.Any(r => r.Slug == slug));

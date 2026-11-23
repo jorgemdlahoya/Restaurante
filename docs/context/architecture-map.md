@@ -129,8 +129,24 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
 `src/pruebas/setup.ts`) y Playwright (proyectos `escritorio` 1440x900 y `movil` 390x844).
 
-- `src/main.tsx`: monta `QueryClientProvider` (TanStack Query), `ProveedorTema` y `App`.
-- `src/App.tsx`: enrutador (`react-router`), vacío hasta las pantallas de las tareas siguientes.
+- `src/main.tsx`: monta `QueryClientProvider` (TanStack Query), `ProveedorSesion` y `App`. No hay
+  `ProveedorTema` global: `tema.css` ya fija la paleta por defecto en `:root` y uno externo pisaría la del
+  restaurante.
+- `src/App.tsx`: enrutador (`react-router`; exporta `rutas`). Rutas: `/` (redirige a `/plataforma/login`),
+  `/plataforma/login`, `/plataforma/restaurantes` (`RutaProtegida`, rol `administrador_plataforma`),
+  `/r/:slug` con hijas `login` e `inicio` (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo
+  `/r/:slug`) que muestra `PaginaNoEncontrada`.
+- `src/api/`: `cliente.ts` (`pedirApi`, `ErrorApi`, `urlApi`; el token se pasa en cada llamada, nunca
+  implícito) y `auth.ts` (login de plataforma y de restaurante).
+- `src/sesion/`: `almacenSesion.ts` (persistencia en `sessionStorage`, clave `restaurante.sesion`) y
+  `ProveedorSesion.tsx` (`useSesion`, cierre automático en `expiraEn`).
+- `src/rutas/`: `RutaProtegida.tsx` (exige rol y, en restaurante, el `slug`; si no, redirige al login).
+- `src/restaurante/`: `DisenoRestaurante` (layout de `/r/:slug`: carga la identidad con `api.ts`, aplica el
+  tema con `ProveedorTema` y muestra `RestauranteNoDisponible` ante 404), `LoginRestaurante`,
+  `InicioRestaurante`, `EncabezadoMarca`.
+- `src/plataforma/`: `LoginPlataforma`, `RestaurantesPagina` (lista, activar/desactivar con
+  `DialogoConfirmacion`), `FormularioRestaurante` (alta/edición con logo), `VistaPreviaPaleta` y `api.ts`.
+- `src/componentes/`: piezas compartidas (`FormularioLogin`, `PaginaNoEncontrada`).
 - `src/tema/`: `paleta.ts` (`Paleta`, `PALETA_POR_DEFECTO`, `resolverPaleta`, `aplicarPaleta`),
   `ProveedorTema.tsx` (escribe la paleta en variables CSS de `:root` en `useLayoutEffect` y restaura la
   paleta por defecto al desmontarse) y `tema.css` (variables `--color-principal`, `--color-acento`,
