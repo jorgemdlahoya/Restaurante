@@ -4,9 +4,12 @@ import { useNavigate } from 'react-router';
 import { useSesion } from '../sesion/ProveedorSesion';
 import { cambiarEstadoRestaurante, listarRestaurantes, type Restaurante } from './api';
 import { DialogoConfirmacion } from './DialogoConfirmacion';
+import { FormularioRestaurante } from './FormularioRestaurante';
 import estilos from './RestaurantesPagina.module.css';
 
 const CLAVE = ['restaurantes'];
+
+type Edicion = { modo: 'alta' } | { modo: 'editar'; restaurante: Restaurante } | null;
 
 export function RestaurantesPagina() {
   const { sesion, cerrar } = useSesion();
@@ -14,6 +17,13 @@ export function RestaurantesPagina() {
   const navegar = useNavigate();
   const consultas = useQueryClient();
   const [porDesactivar, setPorDesactivar] = useState<Restaurante | null>(null);
+  const [edicion, setEdicion] = useState<Edicion>(null);
+
+  function cerrarFormulario() {
+    setEdicion(null);
+    // También al cancelar: un alta guardada cuyo logo falló ya existe y debe aparecer en la lista.
+    consultas.invalidateQueries({ queryKey: CLAVE });
+  }
 
   const lista = useQuery({ queryKey: CLAVE, queryFn: () => listarRestaurantes(token) });
 
@@ -44,10 +54,19 @@ export function RestaurantesPagina() {
       <main className={estilos.contenido}>
         <div className={estilos.cabecera}>
           <h1 className={estilos.titulo}>Restaurantes</h1>
-          <button type="button" className={estilos.principal}>
+          <button type="button" className={estilos.principal} onClick={() => setEdicion({ modo: 'alta' })}>
             Nuevo restaurante
           </button>
         </div>
+
+        {edicion && (
+          <FormularioRestaurante
+            key={edicion.modo === 'editar' ? edicion.restaurante.id : 'alta'}
+            restaurante={edicion.modo === 'editar' ? edicion.restaurante : undefined}
+            onGuardado={cerrarFormulario}
+            onCancelar={cerrarFormulario}
+          />
+        )}
 
         {lista.isPending && <p>Cargando…</p>}
         {lista.isError && <p role="alert">No se pudo cargar la lista de restaurantes.</p>}
@@ -75,7 +94,11 @@ export function RestaurantesPagina() {
                       </span>
                     </td>
                     <td className={estilos.acciones}>
-                      <button type="button" className={estilos.secundario}>
+                      <button
+                        type="button"
+                        className={estilos.secundario}
+                        onClick={() => setEdicion({ modo: 'editar', restaurante: r })}
+                      >
                         Editar
                       </button>
                       {r.activo ? (
