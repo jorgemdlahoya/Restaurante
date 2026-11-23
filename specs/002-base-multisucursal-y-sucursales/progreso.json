@@ -64,6 +64,11 @@
       "estado": "hecha",
       "fecha": "2026-11-22T23:38:32",
       "commit": "108606c78c321688f7065a9c06555769f6fc8c84"
+    },
+    "T-14": {
+      "estado": "hecha",
+      "fecha": "2026-11-23T00:12:40",
+      "commit": "01a41790b2a1da7d47b4e7f0a51d49b6a1b5f8a6"
     }
   },
   "aceptadas": {}
