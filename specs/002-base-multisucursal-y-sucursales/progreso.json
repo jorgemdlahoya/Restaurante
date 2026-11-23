@@ -81,5 +81,9 @@
       "commit": "05b8e4d79e8d37d8236f5a871026ddcecd5eeb7a"
     }
   },
-  "aceptadas": {}
+  "aceptadas": {
+    "HU-01": {
+      "fecha": "2026-11-23T22:53:22"
+    }
+  }
 }
