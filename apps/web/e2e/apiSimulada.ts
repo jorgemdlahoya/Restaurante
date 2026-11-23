@@ -38,6 +38,59 @@ export async function simularRestauranteNoDisponible(page: Page, slug: string) {
   );
 }
 
+export type RestauranteSimulado = {
+  id: string;
+  nombre: string;
+  slug: string;
+  activo: boolean;
+  paleta: IdentidadSimulada['paleta'];
+};
+
+export async function simularLoginPlataforma(page: Page, credenciales: { nombreUsuario: string; contrasena: string }) {
+  await page.route('**/api/plataforma/auth/login', async (route) => {
+    const cuerpo = route.request().postDataJSON() as { nombreUsuario?: string; contrasena?: string };
+    if (cuerpo.nombreUsuario === credenciales.nombreUsuario && cuerpo.contrasena === credenciales.contrasena) {
+      return route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          token: 'token-plataforma',
+          expiraEn: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+          nombreUsuario: credenciales.nombreUsuario,
+          rol: 'administrador_plataforma',
+        }),
+      });
+    }
+    return problema(route, 401, 'No autenticado', 'Usuario o contraseña incorrectos');
+  });
+}
+
+/**
+ * Simula la gestión de restaurantes con estado en memoria: GET lista y PUT …/estado cambia el estado.
+ * Devuelve el registro de peticiones de cambio de estado para poder afirmar sobre su cuerpo.
+ */
+export async function simularRestaurantes(page: Page, iniciales: RestauranteSimulado[]) {
+  const restaurantes = iniciales.map((r) => ({ ...r }));
+  const cambiosDeEstado: { id: string; cuerpo: unknown }[] = [];
+
+  await page.route('**/api/plataforma/restaurantes', (route) => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurantes) });
+  });
+
+  await page.route('**/api/plataforma/restaurantes/*/estado', (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-2)!;
+    const cuerpo = route.request().postDataJSON() as { activo: boolean };
+    cambiosDeEstado.push({ id, cuerpo });
+    const restaurante = restaurantes.find((r) => r.id === id);
+    if (!restaurante) return problema(route, 404, 'No encontrado', 'Restaurante no encontrado');
+    restaurante.activo = cuerpo.activo;
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurante) });
+  });
+
+  return { restaurantes, cambiosDeEstado };
+}
+
 export async function simularLoginRestaurante(
   page: Page,
   slug: string,
