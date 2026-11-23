@@ -82,6 +82,13 @@ configuración nombran la variable y el motivo, nunca el valor.
 (`apps/api/Dockerfile`, puerto 5000 -> 8080, `APPLY_MIGRATIONS=true`). La configuración llega por
 `.env` (plantilla `.env.example`, sin secretos). Ver `docs/ONBOARDING.md`.
 
+El servicio `web` (`apps/web/Dockerfile`: etapa `node:22-alpine` con `npm ci && npm run build`, etapa
+`nginx:alpine` con `dist/`; puerto 8080 -> 80, `depends_on: api`) sirve la SPA con
+`apps/web/nginx.conf`: `/api/` y `/health` se reenvían a `http://api:8080` (cabeceras `Host` y
+`X-Forwarded-*`), el resto cae en `index.html`, y `client_max_body_size 10m` deja que el límite de
+tamaño del logo lo aplique la API (400) y no nginx (413). La interfaz y la API comparten origen
+(`http://localhost:8080`), de modo que las llamadas relativas `/api/...` no necesitan CORS.
+
 ## Pruebas
 
 Un proyecto de pruebas por capa (`Domain`, `Application`, `Infrastructure`, `WebApi`) más

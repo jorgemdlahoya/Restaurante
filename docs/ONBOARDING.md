@@ -35,7 +35,9 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
    ```
 
    La API aplica las migraciones al arrancar (`APPLY_MIGRATIONS=true`) y crea el administrador
-   inicial. Escucha en `http://localhost:5000`.
+   inicial. Escucha en `http://localhost:5000`. El servicio `web` (nginx con la interfaz
+   compilada, `apps/web/Dockerfile`) escucha en `http://localhost:8080` y reenvía `/api/` y
+   `/health` a la API; úsalo con `docker compose up -d --build`.
 
 4. Comprueba que está viva:
 
@@ -109,6 +111,19 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
   ```bash
   dotnet test apps/api --filter "Category=Integracion"
   ```
+
+- **Suite de punta a punta contra el sistema levantado** (`comando_e2e_stack`; requiere
+  `docker compose up -d --build` en marcha). La prueba de alta de restaurante necesita
+  `ADMIN_USERNAME` y `ADMIN_PASSWORD`, así que exporta `.env` antes:
+
+  ```bash
+  set -a; . ./.env; set +a
+  dotnet test apps/api --filter "Category=Integracion" \
+    && (cd apps/web && npx playwright test --config playwright.stack.config.ts)
+  ```
+
+  `E2E_BASE_URL` (por defecto `http://localhost:8080`) apunta a la interfaz y `E2E_API_URL`
+  (por defecto `http://localhost:5000`) a la API.
 
 ## Documentación de apoyo
 
