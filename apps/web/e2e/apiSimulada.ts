@@ -65,17 +65,79 @@ export async function simularLoginPlataforma(page: Page, credenciales: { nombreU
   });
 }
 
+type OpcionesRestaurantes = {
+  /** Si se indica, el alta (POST) responde 400 con estos errores por campo. */
+  erroresAlta?: Record<string, string[]>;
+};
+
 /**
- * Simula la gestión de restaurantes con estado en memoria: GET lista y PUT …/estado cambia el estado.
- * Devuelve el registro de peticiones de cambio de estado para poder afirmar sobre su cuerpo.
+ * Simula la gestión de restaurantes con estado en memoria: GET lista, POST alta, PUT /{id} edición,
+ * PUT …/estado cambio de estado y PUT …/logo subida del logo (multipart).
+ * Devuelve los registros de peticiones para poder afirmar sobre su cuerpo.
  */
-export async function simularRestaurantes(page: Page, iniciales: RestauranteSimulado[]) {
+export async function simularRestaurantes(
+  page: Page,
+  iniciales: RestauranteSimulado[],
+  opciones: OpcionesRestaurantes = {},
+) {
   const restaurantes = iniciales.map((r) => ({ ...r }));
   const cambiosDeEstado: { id: string; cuerpo: unknown }[] = [];
+  const altas: unknown[] = [];
+  const ediciones: { id: string; cuerpo: unknown }[] = [];
+  const logos: { id: string; tipoContenido: string; tamano: number }[] = [];
 
   await page.route('**/api/plataforma/restaurantes', (route) => {
-    if (route.request().method() !== 'GET') return route.fallback();
-    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurantes) });
+    const metodo = route.request().method();
+    if (metodo === 'GET') {
+      return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurantes) });
+    }
+    if (metodo !== 'POST') return route.fallback();
+
+    const cuerpo = route.request().postDataJSON() as { nombre: string; slug: string; paleta?: RestauranteSimulado['paleta'] };
+    altas.push(cuerpo);
+    if (opciones.erroresAlta) {
+      return route.fulfill({
+        status: 400,
+        contentType: 'application/problem+json',
+        body: JSON.stringify({
+          status: 400,
+          title: 'Datos inválidos',
+          detail: 'Uno o más campos no son válidos.',
+          errors: opciones.erroresAlta,
+        }),
+      });
+    }
+    const nuevo: RestauranteSimulado = {
+      id: `nuevo-${altas.length}`,
+      nombre: cuerpo.nombre,
+      slug: cuerpo.slug,
+      activo: true,
+      paleta: cuerpo.paleta ?? {},
+    };
+    restaurantes.push(nuevo);
+    return route.fulfill({ status: 201, contentType: 'application/json', body: JSON.stringify(nuevo) });
+  });
+
+  await page.route(/\/api\/plataforma\/restaurantes\/[^/]+$/, (route) => {
+    if (route.request().method() !== 'PUT') return route.fallback();
+    const id = new URL(route.request().url()).pathname.split('/').at(-1)!;
+    const cuerpo = route.request().postDataJSON() as { nombre: string; paleta?: RestauranteSimulado['paleta'] };
+    ediciones.push({ id, cuerpo });
+    const restaurante = restaurantes.find((r) => r.id === id);
+    if (!restaurante) return problema(route, 404, 'No encontrado', 'Restaurante no encontrado');
+    restaurante.nombre = cuerpo.nombre;
+    restaurante.paleta = cuerpo.paleta ?? {};
+    return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurante) });
+  });
+
+  await page.route('**/api/plataforma/restaurantes/*/logo', (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-2)!;
+    logos.push({
+      id,
+      tipoContenido: route.request().headers()['content-type'] ?? '',
+      tamano: route.request().postDataBuffer()?.length ?? 0,
+    });
+    return route.fulfill({ status: 204 });
   });
 
   await page.route('**/api/plataforma/restaurantes/*/estado', (route) => {
@@ -88,7 +150,7 @@ export async function simularRestaurantes(page: Page, iniciales: RestauranteSimu
     return route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(restaurante) });
   });
 
-  return { restaurantes, cambiosDeEstado };
+  return { restaurantes, cambiosDeEstado, altas, ediciones, logos };
 }
 
 export async function simularLoginRestaurante(
