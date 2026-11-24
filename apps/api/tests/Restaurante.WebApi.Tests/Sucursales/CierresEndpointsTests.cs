@@ -123,6 +123,17 @@ public sealed class CierresEndpointsTests : IDisposable
         Assert.Empty(_fabrica.Cierres.Cierres);
     }
 
+    [Theory(DisplayName = "003/RF-10: una fecha fuera de rango da 400 y no 500")]
+    [InlineData("9999-12-31T23:59")]
+    [InlineData("1999-12-31T23:59")]
+    public async Task Fecha_fuera_de_rango(string fin)
+    {
+        var respuesta = await AdminDeA().PostAsJsonAsync("/api/r/resto-a/s/centro/cierres", new { fin });
+
+        await AssertValidacionAsync(respuesta, "fin", "La fecha debe tener el formato yyyy-MM-ddTHH:mm");
+        Assert.Empty(_fabrica.Cierres.Cierres);
+    }
+
     [Fact(DisplayName = "003/RF-10: un motivo de más de 120 caracteres da 400 y uno de 120 se acepta")]
     public async Task Motivo_demasiado_largo()
     {

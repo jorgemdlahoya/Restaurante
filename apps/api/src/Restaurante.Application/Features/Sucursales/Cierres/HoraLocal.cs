@@ -9,9 +9,13 @@ public static class HoraLocal
 
     private const string FormatoParseo = "yyyy-MM-dd'T'HH:mm";
 
-    /// <summary>Lee una fecha estricta del formato <see cref="Formato"/> (sin zona).</summary>
+    private const int AnioMinimo = 2000;
+    private const int AnioMaximo = 2100;
+
+    /// <summary>Lee una fecha estricta del formato <see cref="Formato"/> (sin zona), con año entre 2000 y 2100.</summary>
     public static bool TryLeer(string? texto, out DateTime local) =>
-        DateTime.TryParseExact(texto, FormatoParseo, CultureInfo.InvariantCulture, DateTimeStyles.None, out local);
+        DateTime.TryParseExact(texto, FormatoParseo, CultureInfo.InvariantCulture, DateTimeStyles.None, out local)
+        && local.Year is >= AnioMinimo and <= AnioMaximo;
 
     /// <summary>
     /// Interpreta <paramref name="local"/> en <paramref name="zona"/>. Una hora inexistente (salto de horario de

@@ -98,6 +98,17 @@ public class CierresTests
         Assert.Empty(_cierres.Cierres);
     }
 
+    [Theory(DisplayName = "003/RF-10: HoraLocal.TryLeer rechaza años fuera de 2000-2100")]
+    [InlineData("1999-12-31T23:59", false)]
+    [InlineData("2101-01-01T00:00", false)]
+    [InlineData("9999-12-31T23:59", false)]
+    [InlineData("2000-01-01T00:00", true)]
+    [InlineData("2100-12-31T23:59", true)]
+    public void TryLeerAcotaElRango(string texto, bool esperado)
+    {
+        Assert.Equal(esperado, HoraLocal.TryLeer(texto, out _));
+    }
+
     [Fact(DisplayName = "003/RF-10: un motivo de más de 120 caracteres da 400")]
     public async Task MotivoDemasiadoLargo()
     {

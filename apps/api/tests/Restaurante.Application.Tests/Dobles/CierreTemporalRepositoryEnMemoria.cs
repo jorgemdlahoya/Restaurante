@@ -3,12 +3,6 @@ using Restaurante.Domain.Sucursales;
 
 namespace Restaurante.Application.Tests.Dobles;
 
-/// <summary>Contexto de sucursal fijo para las pruebas; <c>null</c> significa que la ruta no es de una sucursal.</summary>
-public sealed class ContextoSucursalFalso(Guid? sucursalId) : IContextoSucursal
-{
-    public Guid? SucursalId { get; } = sucursalId;
-}
-
 /// <summary>
 /// Repositorio en memoria que emula el filtro global de EF: sólo cierres de la sucursal del contexto.
 /// <see cref="Cierres"/> expone el almacén completo.
