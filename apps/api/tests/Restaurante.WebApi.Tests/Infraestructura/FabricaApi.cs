@@ -12,6 +12,7 @@ using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
 using Restaurante.Domain.Restaurantes;
 using Restaurante.Domain.Usuarios;
+using Restaurante.Infrastructure.Persistencia;
 using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.WebApi.Tests.Infraestructura;
@@ -65,6 +66,10 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     /// <summary>Almacén compartido; cada petición lo ve filtrado por su contexto de restaurante.</summary>
     public AlmacenUsuarios Usuarios { get; } = new();
+
+    public AlmacenSucursales Sucursales { get; } = new();
+
+    public AlmacenCierres Cierres { get; } = new();
 
     public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
 
@@ -167,6 +172,14 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             // Scoped: cada petición filtra el almacén compartido con el contexto que fija el middleware real.
             servicios.AddScoped<IUsuarioRepository>(sp =>
                 new UsuarioRepositoryEnMemoria(Usuarios, sp.GetRequiredService<IContextoRestaurante>()));
+            servicios.RemoveAll<ISucursalRepository>();
+            servicios.AddScoped<ISucursalRepository>(sp =>
+                new SucursalRepositoryEnMemoria(
+                    Sucursales, sp.GetRequiredService<IContextoRestaurante>(), sp.GetRequiredService<IContextoSucursal>()));
+            servicios.RemoveAll<ICierreTemporalRepository>();
+            servicios.AddScoped<ICierreTemporalRepository>(sp =>
+                new CierreTemporalRepositoryEnMemoria(
+                    Cierres, sp.GetRequiredService<IContextoRestaurante>(), sp.GetRequiredService<IContextoSucursal>()));
             servicios.RemoveAll<IRestauranteRepository>();
             servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
 

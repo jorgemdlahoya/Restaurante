@@ -1,12 +1,12 @@
-import { useNavigate, useOutletContext } from 'react-router';
+import { Link, useOutletContext } from 'react-router';
 import type { Rol } from '../api/auth';
 import { RutaProtegida } from '../rutas/RutaProtegida';
 import { useSesion } from '../sesion/ProveedorSesion';
 import type { Identidad } from './api';
-import { EncabezadoMarca } from './EncabezadoMarca';
 import estilos from './InicioRestaurante.module.css';
+import { MarcoRestaurante } from './MarcoRestaurante';
 
-const ROLES_RESTAURANTE: Rol[] = ['administrador_general', 'administrador_sucursal', 'cajero', 'cocinero'];
+export const ROLES_RESTAURANTE: Rol[] = ['administrador_general', 'administrador_sucursal', 'cajero', 'cocinero'];
 
 export function InicioRestaurante() {
   const identidad = useOutletContext<Identidad>();
@@ -18,20 +18,17 @@ export function InicioRestaurante() {
 }
 
 function ContenidoInicio({ identidad }: { identidad: Identidad }) {
-  const { sesion, cerrar } = useSesion();
-  const navegar = useNavigate();
-
-  function cerrarSesion() {
-    cerrar();
-    navegar(`/r/${identidad.slug}/login`, { replace: true });
-  }
-
+  const { sesion } = useSesion();
   return (
-    <>
-      <EncabezadoMarca identidad={identidad} nombreUsuario={sesion?.nombreUsuario ?? ''} onCerrarSesion={cerrarSesion} />
-      <main className={estilos.contenido}>
-        <h1 className={estilos.titulo}>Inicio</h1>
-      </main>
-    </>
+    <MarcoRestaurante identidad={identidad}>
+      <h1 className={estilos.titulo}>Inicio</h1>
+      {sesion?.rol === 'administrador_general' && (
+        <nav aria-label="Secciones" className={estilos.secciones}>
+          <Link className={estilos.enlace} to={`/r/${identidad.slug}/sucursales`}>
+            Sucursales
+          </Link>
+        </nav>
+      )}
+    </MarcoRestaurante>
   );
 }

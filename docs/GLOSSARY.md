@@ -174,3 +174,70 @@ en su propio elemento (no toca el tema de la pantalla).
 
 Formulario de plataforma para dar de alta (nombre, slug, administrador inicial, paleta y logo) o editar
 (nombre, paleta y logo) un restaurante; enlaza los errores 400 del servidor a cada campo.
+
+## Sucursal (feature 003)
+
+Local físico de un restaurante (`Restaurante.Domain.Sucursales.Sucursal`, implementa `IEntidadDeRestaurante`).
+Tiene nombre (1-80, recortado), dirección (1-200), teléfono y WhatsApp en E.164 (`+52XXXXXXXXXX`; al guardar
+se quitan espacios y guiones con `TelefonoMexico.Normalizar`), `slug` inmutable (`^[a-z0-9-]{3,40}\z`),
+`phone_number_id`, prefijo, zona horaria y estado activa/inactiva; nace activa. `Editar` cambia todo menos el
+`slug`; `Activar`/`Desactivar` sólo cambian el estado. Los formatos inválidos lanzan `ArgumentException`.
+
+## Prefijo (sucursal)
+
+Una a tres letras mayúsculas (`^[A-Z]{1,3}\z`) que identifican a la sucursal (p. ej. `A`, `BC`).
+
+## Zona horaria (sucursal)
+
+Zona IANA en que se interpretan los horarios y cierres de la sucursal. Sólo se admiten las 12 de
+`ZonasHorarias.Admitidas` (México); por defecto `America/Mexico_City`.
+
+## phone_number_id
+
+Identificador numérico (`^[0-9]{1,30}\z`, sólo dígitos ASCII) del número de WhatsApp Business de la sucursal; es opcional (puede ser
+ausente).
+
+## DatosSucursalDto
+
+Datos editables de una sucursal tal como llegan por la API:
+`{ nombre, direccion, telefono, whatsApp, phoneNumberId?, prefijo, zonaHoraria? }`. Una `zonaHoraria` ausente
+usa `America/Mexico_City`; un `phoneNumberId` vacío se trata como ausente. `ValidadorDatosSucursal` aplica los
+formatos (nombre 1-80, dirección 1-200, teléfonos `+52` y 10 dígitos ASCII, prefijo, zona admitida) y lo
+reutilizan el alta y la edición.
+
+## SucursalDto
+
+Representación pública de una sucursal: `{ id, nombre, direccion, telefono, slug, whatsApp, phoneNumberId,
+prefijo, zonaHoraria, activa }`. Es la respuesta de `POST /api/r/{slug}/sucursales` (201,
+`Location: /api/r/{slug}/sucursales/{id}`; sólo `administrador_general`). Nombre, slug y prefijo son únicos
+dentro del restaurante; WhatsApp y `phone_number_id`, en toda la plataforma (409 si se repiten).
+
+## HorarioDiaDto
+
+Horario de un día de la semana: `{ dia, cerrado, apertura?, cierre? }`, con `dia` en español (`lunes` … `domingo`)
+y horas `HH:mm` de 24 h. `GET /api/r/{slug}/s/{sucursal}/horario` devuelve los siete días de lunes a domingo y
+`PUT` los reemplaza con `{ dias: [...] }` (exactamente siete días distintos; en un día `cerrado` las horas se
+ignoran). Un cierre anterior a la apertura es un turno nocturno (`18:00`–`02:00`); apertura y cierre iguales se
+rechazan. Los errores salen en las claves `dias` y `dias[i].apertura` / `dias[i].cierre`. Sólo `administrador_general`.
+
+## CierreTemporalDto
+
+Cierre temporal de una sucursal: `{ id, inicio, fin, motivo? }`, con `inicio` y `fin` en la hora local de la sucursal
+sin zona (`yyyy-MM-ddTHH:mm`); en BD se guardan en UTC. `GET /api/r/{slug}/s/{sucursal}/cierres` lista los vigentes y
+futuros (`fin` posterior a ahora); `POST` crea uno (201; `inicio` opcional, vacío = ahora; `fin` posterior al inicio y
+no pasado; `motivo` hasta 120 caracteres); `POST …/cierres/{id}/cancelar` lo cancela (200). Un cierre inexistente, de
+otra sucursal, ya cancelado o ya terminado responde 404 `Cierre no encontrado`. Los errores de fecha salen en las
+claves `inicio` y `fin`. Sólo `administrador_general`.
+
+## Estado de atención / EstadoAtencionDto
+
+Estado de atención: si una sucursal acepta pedidos en este momento, según su horario semanal, sus cierres temporales
+y su zona horaria. `EstadoAtencionDto` es `{ abierta, mensaje }`: `mensaje` es `null` si está abierta; si no, `Estamos
+cerrados, abrimos {hoy|mañana|día} a las HH:mm` o, sin apertura en 14 días, `Estamos cerrados por el momento`.
+`GET /api/r/{slug}/s/{sucursal}/estado` es público (sin token); una sucursal inexistente o inactiva responde 404
+`Sucursal no disponible`. La imagen de la API incluye `tzdata` para resolver las zonas horarias.
+
+## IEntidadDeRestaurante / IEntidadDeSucursal
+
+Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el
+aislamiento por restaurante y por sucursal.

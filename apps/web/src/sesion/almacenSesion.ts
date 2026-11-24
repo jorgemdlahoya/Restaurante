@@ -1,6 +1,7 @@
 import type { LoginRespuesta } from '../api/auth';
 
-export type Sesion = LoginRespuesta & { slug: string | null }; // slug null = plataforma
+// slug null = plataforma; sucursalActiva = slug de la sucursal elegida en el selector (feature 003).
+export type Sesion = LoginRespuesta & { slug: string | null; sucursalActiva?: string | null };
 
 const CLAVE = 'restaurante.sesion';
 let enMemoria: Sesion | null = null;

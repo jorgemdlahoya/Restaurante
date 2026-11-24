@@ -54,3 +54,20 @@
 - **Identidad** (frontend): `{ nombre, slug, paleta, logoUrl }` cargada por `DisenoRestaurante`.
 - **VistaPreviaPaleta** (frontend): vista previa de la paleta con variables locales a su elemento.
 - **FormularioRestaurante** (frontend): alta y edición de restaurantes en plataforma.
+- **Sucursal** (003): local de un restaurante; `slug` inmutable, teléfono/WhatsApp E.164 (`TelefonoMexico`),
+  prefijo `^[A-Z]{1,3}\z`, zona horaria admitida (`ZonasHorarias`), `phone_number_id` opcional; nace activa.
+- **Prefijo**: 1-3 letras mayúsculas de la sucursal.
+- **Zona horaria**: una de las 12 zonas mexicanas admitidas; por defecto `America/Mexico_City`.
+- **phone_number_id**: identificador numérico (1-30 dígitos) del número de WhatsApp Business; opcional.
+- **DatosSucursalDto**: `{ nombre, direccion, telefono, whatsApp, phoneNumberId?, prefijo, zonaHoraria? }`; zona
+  ausente = `America/Mexico_City`, `phoneNumberId` vacío = ausente; validado por `ValidadorDatosSucursal`.
+- **SucursalDto**: `{ id, nombre, direccion, telefono, slug, whatsApp, phoneNumberId, prefijo, zonaHoraria, activa }`;
+  respuesta de `POST /api/r/{slug}/sucursales` (201, 409 por duplicados; sólo `administrador_general`).
+- **HorarioDiaDto**: `{ dia, cerrado, apertura?, cierre? }` (día en español, horas `HH:mm`); `GET`/`PUT
+  /api/r/{slug}/s/{sucursal}/horario` (siete días lunes→domingo; cierre < apertura = turno nocturno; sólo `administrador_general`).
+- **CierreTemporalDto**: `{ id, inicio, fin, motivo? }` con fechas locales de la sucursal `yyyy-MM-ddTHH:mm` (UTC en BD);
+  `GET`/`POST /api/r/{slug}/s/{sucursal}/cierres` (vigentes y futuros / crear, `inicio` opcional = ahora) y
+  `POST …/cierres/{id}/cancelar` (404 si es de otra sucursal, ya cancelado o ya terminado; sólo `administrador_general`).
+- **Estado de atención / EstadoAtencionDto**: `{ abierta, mensaje? }` (horario + cierres + zona de la sucursal);
+  `GET /api/r/{slug}/s/{sucursal}/estado` público sin token; 404 `Sucursal no disponible` si no existe o está inactiva.
+- **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

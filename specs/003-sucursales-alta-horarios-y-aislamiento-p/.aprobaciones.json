@@ -1,0 +1,14 @@
+{
+  "requerimiento.md": {
+    "sha256": "4674c8def142f0417e0b7fe18f73637ffa8e97178b4dbdc5390fb9d9cca85d4e",
+    "fecha": "2026-11-24T04:05:34"
+  },
+  "diseno.md": {
+    "sha256": "ff1b0854031dae329284abd323abc3f2df67006b290e0bd95a2fbd1ced05715c",
+    "fecha": "2026-11-24T04:05:34"
+  },
+  "tareas.md": {
+    "sha256": "ae27b729271c46b39390da31715ec6348ad68d81467f7ce7ecb964ee51cada4e",
+    "fecha": "2026-11-24T04:12:37"
+  }
+}

@@ -20,6 +20,8 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IRestauranteRepository, RestauranteRepository>();
+        services.AddScoped<ISucursalRepository, SucursalRepository>();
+        services.AddScoped<ICierreTemporalRepository, CierreTemporalRepository>();
         services.AddScoped<AplicadorMigraciones>();
         services.AddScoped<InicializadorAdministrador>();
         services.AddSingleton<IReloj, Reloj>();

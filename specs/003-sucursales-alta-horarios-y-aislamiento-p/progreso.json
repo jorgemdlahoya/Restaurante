@@ -1,0 +1,75 @@
+{
+  "tareas": {
+    "T-01": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:18:02",
+      "commit": "5b0f95efe81077e8b4b6c3f85c1b1700441f9fd4"
+    },
+    "T-02": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:21:07",
+      "commit": "16a91614642518983b81ba44064fb985f070ef9d"
+    },
+    "T-03": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:25:39",
+      "commit": "0a43ec91fcbb9373511bf5af42290c811eef119d"
+    },
+    "T-04": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:34:14",
+      "commit": "ca192a4375b70b160293b39b7902aa7d72cbe8f2"
+    },
+    "T-05": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:39:19",
+      "commit": "18970ed43815f22bc0f53ef9c253c1937857485c"
+    },
+    "T-06": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:43:46",
+      "commit": "1fd6d78ba3ef7b5a613860805fb7ef1a90fd5184"
+    },
+    "T-07": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:49:45",
+      "commit": "5d47fb77610ef82ab63b8784abbf7459352232c0"
+    },
+    "T-08": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T04:55:28",
+      "commit": "35344e38f4adae5b7e3e1b3bcfcbf22ae165193a"
+    },
+    "T-09": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T05:04:52",
+      "commit": "3565aab8b6e88ecb5d600a6af3830b8edca8b639"
+    },
+    "T-10": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T05:09:09",
+      "commit": "e31b95cef427e77ebccac08735351ee40b2f0bdf"
+    },
+    "T-11": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T05:19:28",
+      "commit": "d30ef96a8e4ea112f0598b7935d2b9a7e2e86adf"
+    },
+    "T-12": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T05:31:39",
+      "commit": "dd2fb853beccb74ba41be08e9fc559a95cf187f0"
+    },
+    "T-13": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T05:39:38",
+      "commit": "a681b3bb8129fdee5eb4dd6f2fbcb91204f355b6"
+    },
+    "T-14": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T12:09:57",
+      "commit": "463955820ee588f5dedcbc42d88b1727ef77c1af"
+    }
+  },
+  "aceptadas": {}
+}

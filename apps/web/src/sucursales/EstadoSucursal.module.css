@@ -1,0 +1,23 @@
+.estado,
+.abierta,
+.cerrada {
+  display: inline-block;
+  margin: 0 0 1rem;
+  padding: 0.375rem 0.75rem;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.estado {
+  background: color-mix(in srgb, var(--color-oscuro) 8%, transparent);
+}
+
+.abierta {
+  background: color-mix(in srgb, var(--color-principal) 22%, transparent);
+  color: var(--color-oscuro);
+}
+
+.cerrada {
+  background: color-mix(in srgb, var(--color-oscuro) 12%, transparent);
+  color: var(--color-texto);
+}

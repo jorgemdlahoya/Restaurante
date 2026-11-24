@@ -40,10 +40,11 @@ public sealed class RelojTests
     [Fact(DisplayName = "001/RNF-03: el DbContext usa la estrategia de reintentos de Npgsql")]
     public void DbContext_usa_estrategia_de_reintentos()
     {
-        // El contexto de restaurante lo registra el host (WebApi, por petición); aquí basta uno fijo.
+        // Los contextos de restaurante y sucursal los registra el host (WebApi, por petición); aquí bastan fijos.
         using var servicios = new ServiceCollection()
             .AddInfrastructureServices("Host=no-existe;Database=x;Username=u;Password=p", new string('k', 32))
             .AddScoped<IContextoRestaurante>(_ => new Restaurante.Infrastructure.Persistencia.ContextoRestauranteFijo(null))
+            .AddScoped<IContextoSucursal>(_ => new Restaurante.Infrastructure.Persistencia.ContextoSucursalFijo(null))
             .BuildServiceProvider();
         using var ambito = servicios.CreateScope();
         var contexto = ambito.ServiceProvider.GetRequiredService<Restaurante.Infrastructure.Persistencia.RestauranteDbContext>();

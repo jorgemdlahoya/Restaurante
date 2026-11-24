@@ -47,6 +47,10 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
 
    Debe responder `200` (si la base de datos no es accesible responde `503`).
 
+La imagen de la API (`apps/api/Dockerfile`) instala `tzdata` en la etapa de ejecución: la imagen
+`aspnet` no trae la base de zonas horarias IANA y sin ella `TimeZoneInfo` no resuelve
+`America/Mexico_City` ni las demás zonas de las sucursales (horario y estado de atención).
+
 Para parar: `docker compose down` (añade `-v` para borrar también el volumen `datos-db`).
 
 ## Ejecutar la API sin compose
@@ -124,6 +128,14 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
 
   `E2E_BASE_URL` (por defecto `http://localhost:8080`) apunta a la interfaz y `E2E_API_URL`
   (por defecto `http://localhost:5000`) a la API.
+
+  Qué cubre la suite completa (`apps/web/e2e-stack/`):
+  - `salud.spec.ts`: `/health` responde 200 en el sistema levantado.
+  - `restaurante.spec.ts` (002): la plataforma da de alta un restaurante y su administrador entra en `/r/<slug>/login`.
+  - `sucursales.spec.ts` (003/RF-01, RF-12): el administrador general crea la sucursal `Centro` desde
+    `Sucursales`, guarda su horario de lunes a domingo 00:00–23:59 y `GET /api/r/<slug>/s/centro/estado`
+    (sin token) responde 200 con `abierta` booleano. Comprueba de paso que la imagen de la API resuelve las
+    zonas horarias IANA (`tzdata`).
 
 ## Dependencias de desarrollo con avisos
 

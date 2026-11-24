@@ -47,6 +47,8 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   busca por el `slug` en minúsculas y responde 404 `Restaurante no disponible` si no existe o está
   inactivo; si no, `Establecer(id)`; (4) en el resto, ámbito de plataforma. Las respuestas se escriben con
   `RespuestasProblema.EscribirAsync`.
+- `MiddlewareContextoSucursal` (tras el de restaurante): fija `ContextoSucursal` en
+  `/api/r/{slug}/s/{sucursal}…` o responde 404 `Sucursal no disponible` (ver la sección de sucursales).
 - `UsuariosController` bajo `api/r/{slug}/usuarios` (sólo `administrador_general`); el filtro global por
   contexto aísla los usuarios de cada restaurante (otro restaurante → 404).
 - `IdentidadController`: `GET /api/r/{slug}/identidad` (anónimo; nombre, paleta y logo del restaurante).
@@ -80,7 +82,9 @@ configuración nombran la variable y el motivo, nunca el valor.
 
 `docker-compose.yml` define `db` (PostgreSQL 16, volumen `datos-db`, healthcheck) y `api`
 (`apps/api/Dockerfile`, puerto 5000 -> 8080, `APPLY_MIGRATIONS=true`). La configuración llega por
-`.env` (plantilla `.env.example`, sin secretos). Ver `docs/ONBOARDING.md`.
+`.env` (plantilla `.env.example`, sin secretos). Ver `docs/ONBOARDING.md`. La imagen de la API instala
+`tzdata` (la imagen base no lo trae): las zonas horarias de las sucursales (`America/Mexico_City`, etc.)
+dependen de ella para resolver el horario y el estado de atención.
 
 El servicio `web` (`apps/web/Dockerfile`: etapa `node:22-alpine` con `npm ci && npm run build`, etapa
 `nginx:alpine` con `dist/`; puerto 8080 -> 80, `depends_on: api`) sirve la SPA con
@@ -123,6 +127,46 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
   con el `ContextoRestaurante` por petición. La fábrica de diseño (`dotnet ef`) y las pruebas de
   integración usan `ContextoRestauranteFijo`. Las pruebas de la API usan el contexto y el middleware reales
   con un `UsuarioRepositoryEnMemoria` scoped que filtra el almacén compartido `FabricaApi.Usuarios`.
+
+## Sucursales y filtro global por convención (feature 003)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Sucursales`, aditiva):
+
+- `sucursales`: `id`, `restaurante_id` (FK a `restaurantes`, `Restrict`), `nombre` varchar(80),
+  `direccion` varchar(200), `telefono` y `whatsapp` varchar(13) (E.164), `slug` varchar(40),
+  `phone_number_id` varchar(30) nulo, `prefijo` varchar(3), `zona_horaria` varchar(40), `activa`,
+  `creada_en`. Índices únicos `ix_sucursales_restaurante_nombre`, `ix_sucursales_restaurante_slug`,
+  `ix_sucursales_restaurante_prefijo` (por restaurante), `ix_sucursales_whatsapp` e
+  `ix_sucursales_phone_number_id` (filtrado `phone_number_id IS NOT NULL`), únicos en la plataforma.
+- `horarios_sucursal`: PK (`sucursal_id`, `dia_semana` smallint 0–6, lunes = 0, con check),
+  `restaurante_id`, `apertura` y `cierre` (`time`, nulos), `cerrado` (columna calculada almacenada
+  `apertura IS NULL`; el dominio lo deriva igual). FK a `sucursales`.
+- `cierres_temporales`: `id`, `restaurante_id`, `sucursal_id` (FK), `inicio` y `fin` (timestamptz, UTC),
+  `motivo` varchar(120) nulo, `creado_en`, `cancelado_en` nulo; índice `ix_cierres_temporales_sucursal_fin`.
+- `SucursalRepository` y `CierreTemporalRepository` (puertos `ISucursalRepository` e
+  `ICierreTemporalRepository` en Application). `GuardarCambiosAsync` de sucursales traduce la violación de
+  unicidad por `ConstraintName` a `ConflictoException` ("Ya existe una sucursal con ese nombre / slug /
+  prefijo / WhatsApp / phone_number_id"). WhatsApp y `phone_number_id` se comprueban con
+  `IgnoreQueryFilters` (toda la plataforma).
+- `RestauranteDbContext(options, IContextoRestaurante, IContextoSucursal)`: además del filtro explícito de
+  `Usuario` (sin cambios), `FiltrosGlobales.Aplicar` recorre el modelo y, por convención, filtra toda
+  entidad `IEntidadDeRestaurante` (`Sucursal`) con `RestauranteId == RestauranteActualId` y toda
+  `IEntidadDeSucursal` (`HorarioDia`, `CierreTemporal`) además con `SucursalId == SucursalActualId`. Las
+  lambdas se construyen con `System.Linq.Expressions` sobre `Expression.Constant(contexto)` y las
+  propiedades de instancia privadas del contexto, como haría una lambda de C#: EF las parametriza por
+  contexto y el modelo cacheado sirve para todos. Con sucursal `null` no se ve ningún horario ni cierre;
+  con restaurante `null`, ninguna sucursal. Una entidad nueva sólo tiene que implementar la interfaz.
+- Registro: `AddInfrastructureServices` registra los repositorios pero no `IContextoSucursal`; lo hace
+  `AddWebApiServices` con el `ContextoSucursal` por petición (scoped + reenvío a la interfaz, como
+  `ContextoRestaurante`). La fábrica de diseño, `PostgresFixture.CrearContexto(cadena, restauranteId,
+  sucursalId)` y las pruebas que construyen el DbContext fuera de la API usan `ContextoSucursalFijo`.
+- `ContextoSucursal` (scoped, implementa `IContextoSucursal`) y `MiddlewareContextoSucursal` (en
+  `Program.cs` justo después de `MiddlewareContextoRestaurante`): si la ruta cumple
+  `^/api/r/[^/]+/s/([^/]+)` (sin distinguir mayúsculas) y hay restaurante en el contexto, busca
+  `ObtenerPorSlugAsync(slug en minúsculas)` (el filtro de restaurante ya aplica, así que una sucursal de otro
+  restaurante no se encuentra); nula → 404 `Sucursal no disponible` / `La dirección no corresponde a una
+  sucursal de este restaurante.` (constantes `TituloNoDisponible` y `DetalleNoDisponible`); si existe,
+  activa o no, `Establecer(id)`. Fuera de `/s/` el contexto queda en `null`.
 
 ## Frontend (`apps/web`)
 

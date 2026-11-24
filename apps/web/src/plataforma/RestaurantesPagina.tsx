@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useSesion } from '../sesion/ProveedorSesion';
 import { cambiarEstadoRestaurante, listarRestaurantes, type Restaurante } from './api';
-import { DialogoConfirmacion } from './DialogoConfirmacion';
+import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import { FormularioRestaurante } from './FormularioRestaurante';
 import estilos from './RestaurantesPagina.module.css';
 

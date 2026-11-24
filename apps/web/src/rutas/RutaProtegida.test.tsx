@@ -65,4 +65,27 @@ describe('RutaProtegida', () => {
     montar('/r/b/inicio');
     expect(screen.getByText('contenido restaurante')).toBeInTheDocument();
   });
+
+  it('003/RF-20: un rol no permitido con sesión válida va a la ruta indicada', () => {
+    guardarSesion(sesion({ rol: 'cajero' }));
+    render(
+      <ProveedorSesion>
+        <MemoryRouter initialEntries={['/r/b/sucursales']}>
+          <Routes>
+            <Route path="/r/b/login" element={<p>login restaurante</p>} />
+            <Route path="/r/b/inicio" element={<p>inicio restaurante</p>} />
+            <Route
+              path="/r/b/sucursales"
+              element={
+                <RutaProtegida roles={['administrador_general']} slug="b" redirigirSinRol="/r/b/inicio">
+                  <p>sucursales</p>
+                </RutaProtegida>
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      </ProveedorSesion>,
+    );
+    expect(screen.getByText('inicio restaurante')).toBeInTheDocument();
+  });
 });

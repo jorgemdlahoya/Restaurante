@@ -1,0 +1,15 @@
+.selector {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selector select {
+  font: inherit;
+  padding: 0.375rem 0.5rem;
+  border: 1px solid var(--color-fondo);
+  border-radius: 0.5rem;
+  background: var(--color-oscuro);
+  color: var(--color-fondo);
+  max-width: 12rem;
+}

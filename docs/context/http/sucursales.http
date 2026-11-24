@@ -1,0 +1,134 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador general. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador general en su restaurante. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Crear sucursal (003/RF-01..RF-03, RF-07). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Responde 201 con Location: /api/r/{slug}/sucursales/{id}; nace activa y con la semana cerrada.
+# telefono y whatsApp: +52 y 10 dígitos (se aceptan espacios y guiones y se guardan como +52XXXXXXXXXX).
+# slug: 3-40 caracteres [a-z0-9-]. prefijo: 1-3 letras mayúsculas. zonaHoraria y phoneNumberId son opcionales
+# (por defecto America/Mexico_City). 400 por campo si un formato es inválido; 409 si nombre, slug o prefijo se
+# repiten en el restaurante, o si whatsApp o phoneNumberId ya existen en cualquier restaurante.
+# @name crearSucursal
+POST {{baseUrl}}/api/r/{{slug}}/sucursales
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_SUCURSAL>",
+  "direccion": "<DIRECCION>",
+  "telefono": "<+52 y 10 digitos>",
+  "slug": "<slug-de-la-sucursal>",
+  "whatsApp": "<+52 y 10 digitos>",
+  "phoneNumberId": "<PHONE_NUMBER_ID_OPCIONAL>",
+  "prefijo": "<A>",
+  "zonaHoraria": "America/Mexico_City"
+}
+
+### Listar sucursales del restaurante (003/RF-04). Sólo administrador general. Ordenadas por nombre; incluye inactivas.
+# @name listarSucursales
+GET {{baseUrl}}/api/r/{{slug}}/sucursales
+Authorization: Bearer {{token}}
+
+### Editar sucursal (003/RF-05). Mismo cuerpo que el alta salvo `slug`, que es inmutable (si se envía, se ignora).
+# 404 si el id no existe o es de otro restaurante; 409 si nombre o prefijo chocan con otra sucursal del restaurante,
+# o si whatsApp o phoneNumberId pertenecen a otra sucursal de cualquier restaurante (los valores propios no chocan).
+# @name editarSucursal
+PUT {{baseUrl}}/api/r/{{slug}}/sucursales/{{crearSucursal.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_SUCURSAL>",
+  "direccion": "<DIRECCION>",
+  "telefono": "<+52 y 10 digitos>",
+  "whatsApp": "<+52 y 10 digitos>",
+  "phoneNumberId": "<PHONE_NUMBER_ID_OPCIONAL>",
+  "prefijo": "<A>",
+  "zonaHoraria": "America/Mexico_City"
+}
+
+### Activar o desactivar sucursal (003/RF-06). Conserva horario y cierres. Sin `activa` responde 400 "El estado es obligatorio".
+# @name cambiarEstadoSucursal
+PUT {{baseUrl}}/api/r/{{slug}}/sucursales/{{crearSucursal.response.body.$.id}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activa": false
+}
+
+### Consultar el horario de la sucursal (003/RF-08). Sólo administrador general. Siete días, lunes a domingo.
+# La sucursal va en la ruta (slug de la sucursal); una sucursal inexistente o de otro restaurante responde 404 "Sucursal no disponible".
+# @name obtenerHorario
+GET {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/horario
+Authorization: Bearer {{token}}
+
+### Guardar el horario de la sucursal (003/RF-08, RF-09). Reemplaza la semana completa; responde 200 con los siete días.
+# `dias` debe tener exactamente siete días distintos (lunes, martes, miércoles, jueves, viernes, sábado, domingo).
+# Horas HH:mm de 24 h; un cierre anterior a la apertura es un turno nocturno; un día `cerrado` ignora las horas.
+# 400 en `dias` si no son los siete días y en `dias[i].apertura` / `dias[i].cierre` si falta una hora, está mal
+# escrita o apertura y cierre son iguales.
+# @name guardarHorario
+PUT {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/horario
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "dias": [
+    { "dia": "lunes", "cerrado": false, "apertura": "09:00", "cierre": "22:00" },
+    { "dia": "martes", "cerrado": false, "apertura": "09:00", "cierre": "22:00" },
+    { "dia": "miércoles", "cerrado": false, "apertura": "09:00", "cierre": "22:00" },
+    { "dia": "jueves", "cerrado": false, "apertura": "09:00", "cierre": "22:00" },
+    { "dia": "viernes", "cerrado": false, "apertura": "18:00", "cierre": "02:00" },
+    { "dia": "sábado", "cerrado": false, "apertura": "18:00", "cierre": "02:00" },
+    { "dia": "domingo", "cerrado": true, "apertura": null, "cierre": null }
+  ]
+}
+
+### Listar los cierres temporales de la sucursal (003/RF-10). Sólo administrador general. Vigentes y futuros (fin posterior a ahora).
+# Inicio y fin son hora local de la sucursal (formato yyyy-MM-ddTHH:mm), según su zona horaria.
+# @name listarCierres
+GET {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres
+Authorization: Bearer {{token}}
+
+### Crear un cierre temporal (003/RF-10). Responde 201 con { id, inicio, fin, motivo }.
+# `inicio` es opcional (sin él, empieza ahora); `fin` es obligatorio. Las fechas son hora local de la sucursal sin zona:
+# con la sucursal en America/Tijuana, "2026-12-24T09:00" son las 09:00 de Tijuana. `motivo` hasta 120 caracteres.
+# 400 en `inicio`/`fin` si la fecha no tiene el formato, en `fin` si no es posterior al inicio o está en el pasado,
+# y en `motivo` si pasa de 120 caracteres.
+# @name crearCierre
+POST {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "inicio": "2026-12-24T09:00",
+  "fin": "2026-12-25T09:00",
+  "motivo": "Navidad"
+}
+
+### Estado de atención de la sucursal (003/RF-12, RF-13, RF-14). Público: sin token.
+# 200 { "abierta": true, "mensaje": null } o { "abierta": false, "mensaje": "Estamos cerrados, abrimos mañana a las 09:00" }
+# (sin apertura en 14 días: "Estamos cerrados por el momento"). 404 "Sucursal no disponible" si no existe o está inactiva.
+# @name estadoAtencion
+GET {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/estado
+
+### Cancelar un cierre temporal (003/RF-11). Responde 200 con el cierre; deja de aparecer en los vigentes.
+# 404 "Cierre no encontrado" si no existe, es de otra sucursal, ya fue cancelado o ya terminó.
+# @name cancelarCierre
+POST {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres/<id-del-cierre>/cancelar
+Authorization: Bearer {{token}}

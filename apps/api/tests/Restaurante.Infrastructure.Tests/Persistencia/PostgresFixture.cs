@@ -32,10 +32,14 @@ public sealed class PostgresFixture : IAsyncLifetime
         return new Npgsql.NpgsqlConnectionStringBuilder(CadenaConexion) { Database = nombre }.ConnectionString;
     }
 
-    /// <summary>Contexto con el filtro global del restaurante indicado; <c>null</c> es el ámbito de plataforma.</summary>
-    public static RestauranteDbContext CrearContexto(string cadena, Guid? restauranteId = null) =>
+    /// <summary>
+    /// Contexto con el filtro global del restaurante y la sucursal indicados; restaurante <c>null</c> es el
+    /// ámbito de plataforma y sucursal <c>null</c> no ve ninguna entidad de sucursal.
+    /// </summary>
+    public static RestauranteDbContext CrearContexto(string cadena, Guid? restauranteId = null, Guid? sucursalId = null) =>
         new(new DbContextOptionsBuilder<RestauranteDbContext>().UseNpgsql(cadena).Options,
-            new ContextoRestauranteFijo(restauranteId));
+            new ContextoRestauranteFijo(restauranteId),
+            new ContextoSucursalFijo(sucursalId));
 
     /// <summary>Inserta un restaurante (base ya migrada) y devuelve su id.</summary>
     public static async Task<Guid> SembrarRestauranteAsync(string cadena, string slug)
