@@ -315,8 +315,9 @@ public sealed class UsuariosSucursalesTests : IDisposable
         var sello = cajero.SelloSesion;
         var cliente = ClienteDe(Sembrar("admin-centro", Rol.AdministradorSucursal, _centro));
 
+        // Desde T-06 el rol se edita con PUT /{id} (sustituye a PUT /{id}/rol).
         await AssertAccesoDenegadoAsync(
-            await cliente.PutAsJsonAsync($"{Ruta}/{cajero.Id}/rol", new { rol = "administrador_general" }));
+            await cliente.PutAsJsonAsync($"{Ruta}/{cajero.Id}", new { rol = "administrador_general", sucursales = Array.Empty<string>() }));
 
         Assert.Equal(Rol.Cajero, cajero.Rol);
         Assert.Equal([_centro.Id], cajero.Sucursales);

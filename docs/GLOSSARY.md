@@ -6,7 +6,8 @@ Perfil de permisos de un usuario del sistema (los cinco roles de la constitució
 `AdministradorPlataforma`, `AdministradorGeneral`, `AdministradorSucursal`, `Cajero` y `Cocinero`.
 En la API, el JWT y la base de datos se serializa en snake_case (`administrador_plataforma`,
 `administrador_general`, `administrador_sucursal`, `cajero`, `cocinero`); la coincidencia es exacta.
-`POST /api/r/{slug}/usuarios` y `PUT /api/r/{slug}/usuarios/{id}/rol` aceptan todos salvo `administrador_plataforma`.
+`POST /api/r/{slug}/usuarios` y `PUT /api/r/{slug}/usuarios/{id}` aceptan todos salvo `administrador_plataforma`
+(reglas compartidas en `ReglasRolYSucursales`).
 
 ## LoginPeticion
 
@@ -56,7 +57,7 @@ consulta puede modificarlo (`AlcanceGestionUsuarios.PuedeGestionar`). Nunca incl
 la contraseña ni su hash. Es la respuesta de `GET /api/r/{slug}/usuarios` (lista, sólo los del
 restaurante; el administrador de sucursal sólo ve a quien tiene su sucursal, sin administradores generales),
 `POST /api/r/{slug}/usuarios` (201, `Location: /api/r/{slug}/usuarios/{id}`),
-`PUT /api/r/{slug}/usuarios/{id}/estado` y `PUT /api/r/{slug}/usuarios/{id}/rol`. Un usuario de otro
+`PUT /api/r/{slug}/usuarios/{id}/estado` y `PUT /api/r/{slug}/usuarios/{id}`. Un usuario de otro
 restaurante da 404. Los endpoints de usuarios admiten `administrador_general` y `administrador_sucursal`;
 cajero y cocinero reciben 403 (004/RF-11).
 
@@ -82,11 +83,20 @@ inexistentes; para el administrador de sucursal, 403 antes que el slug inexisten
 
 ## CambiarEstadoPeticion
 
-Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano).
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano). Orden de errores: 400 → 404 → 403
+alcance → 409 (desactivarse a sí mismo o al último administrador general activo). Desactivar renueva el sello de
+sesión; reactivar no.
 
-## CambiarRolPeticion
+## EditarUsuarioPeticion
 
-Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/rol`: `{ rol }`, en minúsculas.
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}` (004/RF-04; sustituye a `PUT /{id}/rol` de 001): `{ rol, sucursales }`,
+con las mismas reglas que `CrearUsuarioPeticion` (rol en minúsculas, sucursales por slug con la cardinalidad de
+004/RF-02). El nombre de usuario no se edita (un `nombreUsuario` en el cuerpo se ignora). Lo atiende
+`EditarUsuarioCommand(Id, Rol, Sucursales)` → `UsuarioDto`. Orden de errores: 400 (validador; slug inexistente) →
+404 (otro restaurante) → 403 alcance (el administrador de sucursal sólo edita cajeros y cocineros exclusivos de su
+sucursal y sólo asigna cajero o cocinero con ella) → 409 (quitarse a sí mismo el rol de administrador general o
+dejar el restaurante sin administradores generales activos). Sólo si cambian el rol o el conjunto de sucursales se
+renueva el sello de sesión del usuario (004/RF-13).
 
 ## Restaurante
 

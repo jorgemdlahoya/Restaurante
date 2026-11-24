@@ -51,12 +51,7 @@ public sealed class Usuario
         IReadOnlyCollection<Guid> sucursales,
         DateTimeOffset creadoEn)
     {
-        if ((rol == Rol.AdministradorPlataforma) != (restauranteId is null))
-        {
-            throw new ArgumentException(
-                "Sólo el administrador de plataforma carece de restaurante.", nameof(restauranteId));
-        }
-
+        ValidarRestaurante(rol, restauranteId);
         ValidarSinDuplicados(sucursales);
         ValidarSucursales(rol, sucursales.Count);
 
@@ -86,9 +81,13 @@ public sealed class Usuario
         }
     }
 
-    /// <summary>Asigna rol y sucursales; devuelve si cambió algo. Sólo entonces renueva el sello.</summary>
+    /// <summary>
+    /// Asigna rol y sucursales; devuelve si cambió algo. Sólo entonces renueva el sello. Como en <see cref="Crear"/>,
+    /// sólo el administrador de plataforma carece de restaurante (004/RF-04).
+    /// </summary>
     public bool AsignarRolYSucursales(Rol rol, IReadOnlyCollection<Guid> sucursales)
     {
+        ValidarRestaurante(rol, RestauranteId);
         ValidarSinDuplicados(sucursales);
         ValidarSucursales(rol, sucursales.Count);
 
@@ -118,19 +117,16 @@ public sealed class Usuario
 
     public void Reactivar() => Activo = true;
 
-    // Se elimina junto con CambiarRolUsuarioHandler en T-06.
-    public void CambiarRol(Rol nuevo)
-    {
-        if (nuevo == Rol)
-        {
-            return;
-        }
-
-        Rol = nuevo;
-        RenovarSello();
-    }
-
     private void RenovarSello() => SelloSesion = Guid.NewGuid();
+
+    private static void ValidarRestaurante(Rol rol, Guid? restauranteId)
+    {
+        if ((rol == Rol.AdministradorPlataforma) != (restauranteId is null))
+        {
+            throw new ArgumentException(
+                "Sólo el administrador de plataforma carece de restaurante.", nameof(restauranteId));
+        }
+    }
 
     private void ReemplazarSucursales(IReadOnlyCollection<Guid> sucursales)
     {

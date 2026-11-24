@@ -36,7 +36,12 @@
   `Vuelve a iniciar sesión.` (`WWW-Authenticate: Bearer`) si falta, no coincide o el usuario no existe o está inactivo.
 - **Cardinalidad rol ↔ sucursales** (004/RF-02): `administrador_general`/`administrador_plataforma` 0,
   `administrador_sucursal` exactamente 1, `cajero`/`cocinero` ≥ 1, sin repetir (`Usuario.CardinalidadValida`;
-  `Usuario.Crear` la exige). La API indica las sucursales por `slug`; error 400 en `sucursales`.
+  `Usuario.Crear` y `Usuario.AsignarRolYSucursales` la exigen). La API indica las sucursales por `slug`; error 400
+  en `sucursales`. Alta y edición validan rol y sucursales con las mismas reglas (`ReglasRolYSucursales`).
+- **EditarUsuarioPeticion**: cuerpo `{ rol, sucursales }` de `PUT /api/r/{slug}/usuarios/{id}` (004/RF-04; sustituye
+  a `PUT /{id}/rol`). El nombre de usuario no se edita. Errores: 400 → 404 (otro restaurante) → 403 alcance → 409
+  (quitarse a sí mismo el rol de administrador general o dejar el restaurante sin ninguno activo). Sólo un cambio
+  real de rol o del conjunto de sucursales renueva el sello de sesión (`AsignarRolYSucursales` devuelve si cambió).
 - **UsuarioDto**: `{ id, nombreUsuario, rol, activo, sucursales: [{ slug, nombre, activa }], gestionable }`;
   sucursales por nombre; `gestionable` según el alcance de quien consulta.
 - **ResolutorActor**: arma el `ActorUsuarios` desde `IUsuarioActual` (403 si no puede operar), resuelve slugs de

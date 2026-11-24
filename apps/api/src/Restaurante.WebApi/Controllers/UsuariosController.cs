@@ -2,8 +2,8 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Features.Usuarios;
 using Restaurante.Application.Features.Usuarios.CambiarEstadoUsuario;
-using Restaurante.Application.Features.Usuarios.CambiarRolUsuario;
 using Restaurante.Application.Features.Usuarios.CrearUsuario;
+using Restaurante.Application.Features.Usuarios.EditarUsuario;
 using Restaurante.Application.Features.Usuarios.ListarUsuarios;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
@@ -19,8 +19,11 @@ public sealed record CrearUsuarioPeticion(string? NombreUsuario, string? Contras
 /// <summary>Cuerpo del cambio de estado (activar/desactivar).</summary>
 public sealed record CambiarEstadoPeticion(bool? Activo);
 
-/// <summary>Cuerpo del cambio de rol.</summary>
-public sealed record CambiarRolPeticion(string? Rol);
+/// <summary>
+/// Cuerpo de la edición de rol y sucursales (004/RF-04). <see cref="Sucursales"/> son slugs; ausente equivale a
+/// ninguna. El nombre de usuario no se edita: un <c>nombreUsuario</c> en el cuerpo se ignora.
+/// </summary>
+public sealed record EditarUsuarioPeticion(string? Rol, string[]? Sucursales);
 
 [ApiController]
 [Route("api/r/{slug}/usuarios")]
@@ -58,11 +61,11 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
     public async Task<ActionResult<UsuarioDto>> CambiarEstado(Guid id, CambiarEstadoPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarEstadoUsuarioCommand(id, peticion.Activo), ct));
 
-    [HttpPut("{id:guid}/rol")]
+    [HttpPut("{id:guid}")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
-    public async Task<ActionResult<UsuarioDto>> CambiarRol(Guid id, CambiarRolPeticion peticion, CancellationToken ct) =>
-        Ok(await mediador.Send(new CambiarRolUsuarioCommand(id, peticion.Rol ?? string.Empty), ct));
+    public async Task<ActionResult<UsuarioDto>> Editar(Guid id, EditarUsuarioPeticion peticion, CancellationToken ct) =>
+        Ok(await mediador.Send(new EditarUsuarioCommand(id, peticion.Rol ?? string.Empty, peticion.Sucursales ?? []), ct));
 }

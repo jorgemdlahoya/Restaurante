@@ -25,7 +25,7 @@ public class CambiarEstadoUsuarioTests
     {
         var actual = new UsuarioActualFalso(_actual);
         return new CambiarEstadoUsuarioHandler(
-                _repositorio, actual, new ResolutorActor(actual, new SucursalRepositoryEnMemoria(Contexto)))
+                _repositorio, new ResolutorActor(actual, new SucursalRepositoryEnMemoria(Contexto)))
             .Handle(new CambiarEstadoUsuarioCommand(id, activo), CancellationToken.None);
     }
 

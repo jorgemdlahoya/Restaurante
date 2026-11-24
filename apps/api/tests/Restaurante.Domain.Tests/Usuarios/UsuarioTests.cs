@@ -61,12 +61,33 @@ public class UsuarioTests
     }
 
     [Fact(DisplayName = "001/RF-16: cambiar rol")]
-    public void CambiarRol_AsignaElNuevoRol()
+    public void AsignarRolYSucursales_AsignaElNuevoRol()
     {
         var usuario = NuevoUsuario();
 
-        usuario.CambiarRol(Rol.Cajero);
+        // Desde 004/RF-04 el rol cambia junto con las sucursales (AsignarRolYSucursales sustituye a CambiarRol).
+        Assert.True(usuario.AsignarRolYSucursales(Rol.Cocinero, usuario.Sucursales));
 
-        Assert.Equal(Rol.Cajero, usuario.Rol);
+        Assert.Equal(Rol.Cocinero, usuario.Rol);
+    }
+
+    [Fact(DisplayName = "004/RF-04: AsignarRolYSucursales respeta que sólo el administrador de plataforma carece de restaurante")]
+    public void AsignarRolYSucursales_RespetaElRestauranteDelRol()
+    {
+        var general = NuevoUsuario(Rol.AdministradorGeneral);
+        var plataforma = Usuario.Crear(null, "root", "hash", Rol.AdministradorPlataforma, [], Ahora);
+        var selloGeneral = general.SelloSesion;
+        var selloPlataforma = plataforma.SelloSesion;
+
+        Assert.Throws<ArgumentException>(() => general.AsignarRolYSucursales(Rol.AdministradorPlataforma, []));
+        foreach (var rol in new[] { Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero, Rol.Cocinero })
+        {
+            Assert.Throws<ArgumentException>(() => plataforma.AsignarRolYSucursales(rol, SucursalesPara(rol)));
+        }
+
+        Assert.Equal(Rol.AdministradorGeneral, general.Rol);
+        Assert.Equal(selloGeneral, general.SelloSesion);
+        Assert.Equal(Rol.AdministradorPlataforma, plataforma.Rol);
+        Assert.Equal(selloPlataforma, plataforma.SelloSesion);
     }
 }

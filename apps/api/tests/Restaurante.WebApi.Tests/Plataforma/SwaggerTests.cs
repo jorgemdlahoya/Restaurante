@@ -65,8 +65,12 @@ public sealed class SwaggerTests
             Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios", "post")));
         Assert.Equal(["200", "400", "401", "403", "404", "409"],
             Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}/estado", "put")));
+        // PUT /{id} (rol y sucursales, 004/RF-04) sustituye a PUT /{id}/rol, que ya no existe.
         Assert.Equal(["200", "400", "401", "403", "404", "409"],
-            Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}/rol", "put")));
+            Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}", "put")));
+        using var fabrica = new FabricaApi(entornoHospedaje: "Development");
+        using var documento = JsonDocument.Parse(await fabrica.CreateClient().GetStringAsync(RutaDocumento));
+        Assert.False(documento.RootElement.GetProperty("paths").TryGetProperty("/api/r/{slug}/usuarios/{id}/rol", out _));
     }
 
     [Fact(DisplayName = "001/RF-25: Swagger no disponible en Production")]

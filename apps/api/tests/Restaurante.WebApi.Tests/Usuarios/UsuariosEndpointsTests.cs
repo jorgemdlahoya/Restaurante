@@ -124,7 +124,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
 
         var usuario = Sembrar("pepe", Rol.Cajero);
         await AssertValidacionAsync(
-            await cliente.PutAsync($"{Ruta}/{usuario.Id}/rol", Json("{\"rol\":\"Cajero\"}")),
+            await cliente.PutAsync($"{Ruta}/{usuario.Id}", Json("{\"rol\":\"Cajero\",\"sucursales\":[]}")),
             "rol", "El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
     }
 
@@ -173,10 +173,13 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-16: cambiar rol → 200")]
     public async Task Cambiar_rol_responde_200()
     {
+        // Desde 004/RF-04 el rol se edita junto con las sucursales en PUT /{id} (sustituye a PUT /{id}/rol).
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var objetivo = Sembrar("maria", Rol.Cajero);
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{objetivo.Id}/rol", new { rol = "cocinero" });
+        var respuesta = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{objetivo.Id}", new { rol = "cocinero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
@@ -188,12 +191,14 @@ public sealed class UsuariosEndpointsTests : IDisposable
     {
         // El administrador inicial es de plataforma: este es el único administrador general activo. Con el
         // sello de sesión (004/RF-14) quien llama debe ser un administrador general existente y activo, así que
-        // el único administrador sólo puede ser él mismo: el cambio de rol choca con "último administrador" y la
-        // desactivación con la autoprotección; ambos responden 409.
+        // el único administrador sólo puede ser él mismo: el cambio de rol y la desactivación chocan con la
+        // autoprotección (004/RF-05), que se comprueba antes que la regla del último administrador; ambos 409.
         var unico = Sembrar("jefe", Rol.AdministradorGeneral);
         var cliente = ClienteComo(Rol.AdministradorGeneral, unico.Id);
 
-        var cambioRol = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/rol", new { rol = "cajero" });
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
+        var cambioRol = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{unico.Id}", new { rol = "cajero", sucursales = new[] { "centro" } });
         var desactivar = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/estado", new { activo = false });
 
         Assert.Equal(HttpStatusCode.Conflict, cambioRol.StatusCode);
@@ -221,7 +226,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var estado = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/rol", new { rol = "cajero" });
+        var rol = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{Guid.NewGuid()}", new { rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);
@@ -233,7 +239,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var estado = await cliente.PutAsJsonAsync($"{Ruta}/abc/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync($"{Ruta}/123/rol", new { rol = "cajero" });
+        var rol = await cliente.PutAsJsonAsync($"{Ruta}/123", new { rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);

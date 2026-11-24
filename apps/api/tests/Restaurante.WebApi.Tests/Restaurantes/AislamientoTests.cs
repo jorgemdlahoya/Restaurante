@@ -141,7 +141,9 @@ public sealed class AislamientoTests : IDisposable
         var cliente = AdminDe(_a);
 
         var estado = await cliente.PutAsJsonAsync($"/api/r/resto-a/usuarios/{deB.Id}/estado", new { activo = false });
-        var rol = await cliente.PutAsJsonAsync($"/api/r/resto-a/usuarios/{deB.Id}/rol", new { rol = "cocinero" });
+        // Edición de rol y sucursales (004/RF-04; sustituye a PUT /{id}/rol).
+        var rol = await cliente.PutAsJsonAsync(
+            $"/api/r/resto-a/usuarios/{deB.Id}", new { rol = "cocinero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);

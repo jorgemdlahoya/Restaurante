@@ -5,10 +5,13 @@ using Restaurante.Domain.Usuarios;
 
 namespace Restaurante.Application.Features.Usuarios.CambiarEstadoUsuario;
 
-public sealed class CambiarEstadoUsuarioHandler(
-    IUsuarioRepository usuarios,
-    IUsuarioActual usuarioActual,
-    ResolutorActor resolutor) : IRequestHandler<CambiarEstadoUsuarioCommand, UsuarioDto>
+/// <summary>
+/// Activa o desactiva (001/RF-15, 004/RF-05, RF-09, RF-10). Tras el validador (400): usuario de otro restaurante o
+/// inexistente (404), alcance del actor (403) y, al desactivar, autoprotección y último administrador (409).
+/// Desactivar renueva el sello (RF-13); reactivar no.
+/// </summary>
+public sealed class CambiarEstadoUsuarioHandler(IUsuarioRepository usuarios, ResolutorActor resolutor)
+    : IRequestHandler<CambiarEstadoUsuarioCommand, UsuarioDto>
 {
     public async Task<UsuarioDto> Handle(CambiarEstadoUsuarioCommand request, CancellationToken cancellationToken)
     {
@@ -27,7 +30,7 @@ public sealed class CambiarEstadoUsuarioHandler(
         }
         else
         {
-            if (usuario.Id == usuarioActual.Id)
+            if (usuario.Id == actor.Id)
             {
                 throw new ConflictoException("No puedes desactivar tu propio usuario");
             }

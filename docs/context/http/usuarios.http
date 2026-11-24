@@ -47,8 +47,11 @@ Content-Type: application/json
 ### Id del usuario creado
 @usuarioId = {{crearUsuario.response.body.$.id}}
 
-### Activar o desactivar usuario (RF-15, RF-17, RF-18, RF-19).
-# 409 si es el último administrador activo o si te desactivas a ti mismo; 404 si no existe o es de otro restaurante.
+### Activar o desactivar usuario (001/RF-15, RF-17..RF-19, 004/RF-05, RF-09, RF-10, RF-13).
+# Orden de errores: 400 → 404 (no existe o es de otro restaurante) → 403 alcance → 409.
+# 409 si es el último administrador general activo o si te desactivas a ti mismo. El administrador de sucursal sólo
+# gestiona cajeros y cocineros cuya única sucursal es la suya (nunca a sí mismo): si no, 403.
+# Desactivar corta las sesiones del usuario (sus tokens anteriores dan 401 "Sesión no válida"); reactivar no.
 PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}/estado
 Authorization: Bearer {{token}}
 Content-Type: application/json
@@ -57,11 +60,20 @@ Content-Type: application/json
   "activo": false
 }
 
-### Cambiar rol (RF-16, RF-17, RF-19). Rol en minúsculas.
-PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}/rol
+### Editar rol y sucursales (004/RF-04, RF-05, RF-09, RF-10, RF-13; sustituye a PUT /{id}/rol de 001).
+# Mismas reglas que el alta: rol exacto en minúsculas y "sucursales" por slug con la cardinalidad del rol (400 en
+# "sucursales"). El nombre de usuario no se edita: un "nombreUsuario" en el cuerpo se ignora.
+# Orden de errores: 400 → 404 (no existe o es de otro restaurante) → 403 alcance → 409.
+# 409 si te quitas a ti mismo el rol de administrador general o si el restaurante se quedaría sin administradores
+# generales activos. El administrador de sucursal sólo edita cajeros y cocineros cuya única sucursal es la suya y sólo
+# asigna cajero o cocinero con su sucursal (otro rol u otra sucursal, exista o no: 403).
+# Si cambian el rol o el conjunto de sucursales, los tokens anteriores del usuario dan 401 "Sesión no válida"; reenviar
+# lo mismo (aunque sea en otro orden) no corta su sesión. Responde 200 con el UsuarioDto.
+PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}
 Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "rol": "cocinero"
+  "rol": "cocinero",
+  "sucursales": ["<SLUG_SUCURSAL>"]
 }

@@ -77,7 +77,7 @@ public class UsuariosPorRestauranteTests
         var actual = new UsuarioActualFalso(Guid.NewGuid());
         var resolutor = new ResolutorActor(actual, new SucursalRepositoryEnMemoria(new ContextoRestauranteFalso(A)));
         await Assert.ThrowsAsync<ConflictoException>(() =>
-            new CambiarEstadoUsuarioHandler(repositorio, actual, resolutor)
+            new CambiarEstadoUsuarioHandler(repositorio, resolutor)
                 .Handle(new CambiarEstadoUsuarioCommand(adminA.Id, false), CancellationToken.None));
 
         Assert.True(adminA.Activo);
