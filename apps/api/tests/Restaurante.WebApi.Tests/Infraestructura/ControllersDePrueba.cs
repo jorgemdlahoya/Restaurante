@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Restaurante.Application.Abstracciones;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -22,6 +23,21 @@ public sealed class ControllerDePrueba : ControllerBase
     [HttpGet("explota")]
     [EndpointAnonimo]
     public IActionResult Explota() => throw new InvalidOperationException(MensajeInterno);
+}
+
+/// <summary>Devuelve el contexto de sucursal que fijó el middleware (003/RF-14, RF-15).</summary>
+[ApiController]
+public sealed class ControllerEcoContextoSucursal : ControllerBase
+{
+    [HttpGet("api/r/{slug}/s/{sucursal}/eco-contexto")]
+    [EndpointAnonimo]
+    public IActionResult EnSucursal([FromServices] IContextoSucursal contexto) =>
+        Ok(new { sucursalId = contexto.SucursalId });
+
+    [HttpGet("api/r/{slug}/eco-contexto")]
+    [EndpointAnonimo]
+    public IActionResult FueraDeSucursal([FromServices] IContextoSucursal contexto) =>
+        Ok(new { sucursalId = contexto.SucursalId });
 }
 
 /// <summary>Incumple a propósito el Art. 9 (sin rol ni marca anónima): sirve para probar la prueba de guarda.</summary>

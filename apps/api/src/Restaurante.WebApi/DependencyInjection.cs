@@ -36,6 +36,9 @@ public static class DependencyInjection
         // Contexto de restaurante por petición: lo fija MiddlewareContextoRestaurante y lo leen el filtro de EF y los handlers.
         services.AddScoped<ContextoRestaurante>();
         services.AddScoped<IContextoRestaurante>(sp => sp.GetRequiredService<ContextoRestaurante>());
+        // Contexto de sucursal por petición: lo fija MiddlewareContextoSucursal (rutas /api/r/{slug}/s/{sucursal}…).
+        services.AddScoped<ContextoSucursal>();
+        services.AddScoped<IContextoSucursal>(sp => sp.GetRequiredService<ContextoSucursal>());
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

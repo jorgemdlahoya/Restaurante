@@ -47,6 +47,8 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   busca por el `slug` en minúsculas y responde 404 `Restaurante no disponible` si no existe o está
   inactivo; si no, `Establecer(id)`; (4) en el resto, ámbito de plataforma. Las respuestas se escriben con
   `RespuestasProblema.EscribirAsync`.
+- `MiddlewareContextoSucursal` (tras el de restaurante): fija `ContextoSucursal` en
+  `/api/r/{slug}/s/{sucursal}…` o responde 404 `Sucursal no disponible` (ver la sección de sucursales).
 - `UsuariosController` bajo `api/r/{slug}/usuarios` (sólo `administrador_general`); el filtro global por
   contexto aísla los usuarios de cada restaurante (otro restaurante → 404).
 - `IdentidadController`: `GET /api/r/{slug}/identidad` (anónimo; nombre, paleta y logo del restaurante).
@@ -152,10 +154,17 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Sucursale
   propiedades de instancia privadas del contexto, como haría una lambda de C#: EF las parametriza por
   contexto y el modelo cacheado sirve para todos. Con sucursal `null` no se ve ningún horario ni cierre;
   con restaurante `null`, ninguna sucursal. Una entidad nueva sólo tiene que implementar la interfaz.
-- Registro: `AddInfrastructureServices` registra los repositorios y, con `TryAddScoped`, un
-  `IContextoSucursal` provisional `ContextoSucursalFijo(null)` (la API registrará el real, resuelto por
-  ruta). La fábrica de diseño y `PostgresFixture.CrearContexto(cadena, restauranteId, sucursalId)` usan
-  `ContextoSucursalFijo`.
+- Registro: `AddInfrastructureServices` registra los repositorios pero no `IContextoSucursal`; lo hace
+  `AddWebApiServices` con el `ContextoSucursal` por petición (scoped + reenvío a la interfaz, como
+  `ContextoRestaurante`). La fábrica de diseño, `PostgresFixture.CrearContexto(cadena, restauranteId,
+  sucursalId)` y las pruebas que construyen el DbContext fuera de la API usan `ContextoSucursalFijo`.
+- `ContextoSucursal` (scoped, implementa `IContextoSucursal`) y `MiddlewareContextoSucursal` (en
+  `Program.cs` justo después de `MiddlewareContextoRestaurante`): si la ruta cumple
+  `^/api/r/[^/]+/s/([^/]+)` (sin distinguir mayúsculas) y hay restaurante en el contexto, busca
+  `ObtenerPorSlugAsync(slug en minúsculas)` (el filtro de restaurante ya aplica, así que una sucursal de otro
+  restaurante no se encuentra); nula → 404 `Sucursal no disponible` / `La dirección no corresponde a una
+  sucursal de este restaurante.` (constantes `TituloNoDisponible` y `DetalleNoDisponible`); si existe,
+  activa o no, `Establecer(id)`. Fuera de `/s/` el contexto queda en `null`.
 
 ## Frontend (`apps/web`)
 
