@@ -90,3 +90,8 @@
 - **Estado de atención / EstadoAtencionDto**: `{ abierta, mensaje? }` (horario + cierres + zona de la sucursal);
   `GET /api/r/{slug}/s/{sucursal}/estado` público sin token; 404 `Sucursal no disponible` si no existe o está inactiva.
 - **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).
+- **MiSesionDto / SucursalDeSesionDto**: `{ nombreUsuario, rol, sucursales: [{ slug, nombre }] }`; respuesta de
+  `GET /api/r/{slug}/mi-sesion` (004/RF-16; cualquier rol de restaurante). General: todas las sucursales activas; resto:
+  asignadas y activas, ordenadas por nombre; el nombre sale de la base de datos.
+- **SinSucursalesActivasException**: login con credenciales válidas y usuario activo, pero con todas sus sucursales
+  desactivadas (no aplica al administrador general): 403 `Sin sucursales activas` y ningún token (004/RF-17).

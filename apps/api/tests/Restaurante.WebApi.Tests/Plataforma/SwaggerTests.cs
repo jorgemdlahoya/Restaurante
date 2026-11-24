@@ -57,7 +57,8 @@ public sealed class SwaggerTests
     [Fact(DisplayName = "001/RF-25: Swagger documenta las respuestas de login y de usuarios")]
     public async Task Swagger_documenta_las_respuestas()
     {
-        Assert.Equal(["200", "400", "401", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/auth/login", "post")));
+        // 403 en el login del restaurante: sin sucursales activas (004/RF-17).
+        Assert.Equal(["200", "400", "401", "403", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/auth/login", "post")));
         Assert.Equal(["200", "400", "401"], Codigos(await LeerOperacionAsync("/api/plataforma/auth/login", "post")));
         // 404 en todas: restaurante no disponible (o token de otro restaurante) en /api/r/{slug}.
         Assert.Equal(["200", "401", "403", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios", "get")));

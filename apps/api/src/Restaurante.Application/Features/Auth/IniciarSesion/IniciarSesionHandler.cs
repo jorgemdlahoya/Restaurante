@@ -3,15 +3,18 @@ using MediatR;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
 using Restaurante.Application.Comun.Excepciones;
+using Restaurante.Domain.Usuarios;
 
 namespace Restaurante.Application.Features.Auth.IniciarSesion;
 
 public sealed class IniciarSesionHandler(
     IUsuarioRepository usuarios,
     IHasherContrasenas hasher,
-    IEmisorTokens emisor) : IRequestHandler<IniciarSesionCommand, LoginRespuestaDto>
+    IEmisorTokens emisor,
+    ISucursalRepository sucursales) : IRequestHandler<IniciarSesionCommand, LoginRespuestaDto>
 {
     private const string MensajeCredenciales = "Usuario o contraseña incorrectos";
+    private const string MensajeSinSucursales = "No tienes sucursales activas. Habla con tu administrador.";
 
     // Hash producido por el propio hasher (mismo coste que uno real), calculado una vez por hasher.
     private static readonly ConditionalWeakTable<IHasherContrasenas, string> HashesFicticios = new();
@@ -34,8 +37,23 @@ public sealed class IniciarSesionHandler(
             throw new CredencialesInvalidasException(MensajeCredenciales);
         }
 
+        // Sólo tras credenciales válidas y usuario activo (no adelanta información); los administradores general y
+        // de plataforma no tienen sucursales asignadas y quedan fuera (004/RF-17).
+        if (usuario.Rol is Rol.AdministradorSucursal or Rol.Cajero or Rol.Cocinero
+            && !await TieneSucursalActivaAsync(usuario, cancellationToken))
+        {
+            throw new SinSucursalesActivasException(MensajeSinSucursales);
+        }
+
         var token = emisor.Emitir(usuario);
         return new LoginRespuestaDto(token.Token, token.ExpiraEn, usuario.NombreUsuario,
             usuario.Rol.ComoTexto());
+    }
+
+    private async Task<bool> TieneSucursalActivaAsync(Usuario usuario, CancellationToken ct)
+    {
+        var asignadas = usuario.Sucursales;
+        var todas = await sucursales.ListarAsync(ct);
+        return todas.Any(s => s.Activa && asignadas.Contains(s.Id));
     }
 }

@@ -287,3 +287,18 @@ cerrados, abrimos {hoy|mañana|día} a las HH:mm` o, sin apertura en 14 días, `
 
 Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el
 aislamiento por restaurante y por sucursal.
+
+## MiSesionDto
+
+Respuesta de `GET /api/r/{slug}/mi-sesion` (004/RF-16): `{ nombreUsuario, rol, sucursales }`, con `sucursales` como lista de
+`SucursalDeSesionDto` `{ slug, nombre }` ordenadas por nombre. El nombre sale de la base de datos, no del token. El
+administrador general recibe todas las sucursales activas del restaurante; el resto, las asignadas y activas. Lo
+atiende `ObtenerMiSesionHandler`; cualquier rol de restaurante puede consultarlo.
+
+## SinSucursalesActivasException
+
+Excepción de Application que `IniciarSesionHandler` lanza (004/RF-17) cuando las credenciales son válidas, el usuario
+está activo y es administrador de sucursal, cajero o cocinero con todas sus sucursales desactivadas. `FiltroExcepciones`
+la convierte en 403 `Sin sucursales activas` (ProblemDetails) y no se emite token. Se evalúa después de verificar la
+contraseña y `Activo`, por lo que una contraseña incorrecta sigue dando 401. El administrador general y el de
+plataforma quedan fuera de la regla.
