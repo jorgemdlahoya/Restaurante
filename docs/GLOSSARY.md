@@ -212,6 +212,14 @@ prefijo, zonaHoraria, activa }`. Es la respuesta de `POST /api/r/{slug}/sucursal
 `Location: /api/r/{slug}/sucursales/{id}`; sólo `administrador_general`). Nombre, slug y prefijo son únicos
 dentro del restaurante; WhatsApp y `phone_number_id`, en toda la plataforma (409 si se repiten).
 
+## HorarioDiaDto
+
+Horario de un día de la semana: `{ dia, cerrado, apertura?, cierre? }`, con `dia` en español (`lunes` … `domingo`)
+y horas `HH:mm` de 24 h. `GET /api/r/{slug}/s/{sucursal}/horario` devuelve los siete días de lunes a domingo y
+`PUT` los reemplaza con `{ dias: [...] }` (exactamente siete días distintos; en un día `cerrado` las horas se
+ignoran). Un cierre anterior a la apertura es un turno nocturno (`18:00`–`02:00`); apertura y cierre iguales se
+rechazan. Los errores salen en las claves `dias` y `dias[i].apertura` / `dias[i].cierre`. Sólo `administrador_general`.
+
 ## IEntidadDeRestaurante / IEntidadDeSucursal
 
 Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el

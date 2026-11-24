@@ -16,7 +16,8 @@ public sealed class AlmacenSucursales
 /// restaurante del <see cref="IContextoRestaurante"/> de la petición; WhatsApp y phone_number_id, en toda la
 /// plataforma. El contexto se lee en cada consulta porque el middleware lo fija después de crear el ámbito.
 /// </summary>
-public sealed class SucursalRepositoryEnMemoria(AlmacenSucursales almacen, IContextoRestaurante contexto) : ISucursalRepository
+public sealed class SucursalRepositoryEnMemoria(
+    AlmacenSucursales almacen, IContextoRestaurante contexto, IContextoSucursal contextoSucursal) : ISucursalRepository
 {
     private IEnumerable<Sucursal> Visibles => almacen.Sucursales.Where(s => s.RestauranteId == contexto.RestauranteId);
 
@@ -50,8 +51,12 @@ public sealed class SucursalRepositoryEnMemoria(AlmacenSucursales almacen, ICont
         almacen.Horarios.AddRange(horario);
     }
 
+    /// <summary>Emula el filtro global: sólo filas del restaurante y la sucursal del contexto de la petición.</summary>
     public Task<IReadOnlyList<HorarioDia>> ObtenerHorarioAsync(CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<HorarioDia>>(almacen.Horarios.OrderBy(h => h.Dia).ToList());
+        Task.FromResult<IReadOnlyList<HorarioDia>>(almacen.Horarios
+            .Where(h => h.RestauranteId == contexto.RestauranteId && h.SucursalId == contextoSucursal.SucursalId)
+            .OrderBy(h => h.Dia)
+            .ToList());
 
     public Task GuardarCambiosAsync(CancellationToken ct) => Task.CompletedTask;
 }

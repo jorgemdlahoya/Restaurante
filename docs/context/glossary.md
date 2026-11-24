@@ -63,4 +63,6 @@
   ausente = `America/Mexico_City`, `phoneNumberId` vacío = ausente; validado por `ValidadorDatosSucursal`.
 - **SucursalDto**: `{ id, nombre, direccion, telefono, slug, whatsApp, phoneNumberId, prefijo, zonaHoraria, activa }`;
   respuesta de `POST /api/r/{slug}/sucursales` (201, 409 por duplicados; sólo `administrador_general`).
+- **HorarioDiaDto**: `{ dia, cerrado, apertura?, cierre? }` (día en español, horas `HH:mm`); `GET`/`PUT
+  /api/r/{slug}/s/{sucursal}/horario` (siete días lunes→domingo; cierre < apertura = turno nocturno; sólo `administrador_general`).
 - **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

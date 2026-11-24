@@ -172,7 +172,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
                 new UsuarioRepositoryEnMemoria(Usuarios, sp.GetRequiredService<IContextoRestaurante>()));
             servicios.RemoveAll<ISucursalRepository>();
             servicios.AddScoped<ISucursalRepository>(sp =>
-                new SucursalRepositoryEnMemoria(Sucursales, sp.GetRequiredService<IContextoRestaurante>()));
+                new SucursalRepositoryEnMemoria(
+                    Sucursales, sp.GetRequiredService<IContextoRestaurante>(), sp.GetRequiredService<IContextoSucursal>()));
             servicios.RemoveAll<IRestauranteRepository>();
             servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
 
