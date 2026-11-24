@@ -1,0 +1,37 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-weight: 700;
+}
+
+.campo input,
+.campo select {
+  font: inherit;
+  font-weight: 400;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--color-oscuro);
+  border-radius: 0.5rem;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  min-width: 0;
+}
+
+.campo input[type='color'] {
+  padding: 0.125rem;
+  height: 2.5rem;
+}
+
+.campo input[aria-invalid='true'],
+.campo select[aria-invalid='true'] {
+  border-color: var(--color-acento);
+}
+
+.campo input:disabled {
+  opacity: 0.6;
+}
+
+.error {
+  font-weight: 400;
+  color: var(--color-acento);
+}

@@ -6,6 +6,7 @@ import { DisenoRestaurante } from './restaurante/DisenoRestaurante';
 import { InicioRestaurante } from './restaurante/InicioRestaurante';
 import { LoginRestaurante } from './restaurante/LoginRestaurante';
 import { RutaProtegida } from './rutas/RutaProtegida';
+import { SucursalesPagina } from './sucursales/SucursalesPagina';
 
 export const rutas: RouteObject[] = [
   { path: '/', element: <Navigate replace to="/plataforma/login" /> },
@@ -25,6 +26,7 @@ export const rutas: RouteObject[] = [
       { index: true, element: <Navigate replace to="login" /> },
       { path: 'login', element: <LoginRestaurante /> },
       { path: 'inicio', element: <InicioRestaurante /> },
+      { path: 'sucursales', element: <SucursalesPagina /> },
       { path: '*', element: <PaginaNoEncontrada /> },
     ],
   },

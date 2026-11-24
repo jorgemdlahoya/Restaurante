@@ -1,5 +1,6 @@
-import { useId, useMemo, useState, type FormEvent, type InputHTMLAttributes } from 'react';
+import { useMemo, useState, type FormEvent } from 'react';
 import { ErrorApi } from '../api/cliente';
+import { CampoFormulario } from '../componentes/CampoFormulario';
 import { useSesion } from '../sesion/ProveedorSesion';
 import { resolverPaleta, type Paleta } from '../tema/paleta';
 import { crearRestaurante, editarRestaurante, subirLogo, type Restaurante } from './api';
@@ -107,15 +108,15 @@ export function FormularioRestaurante({ restaurante, onGuardado, onCancelar }: P
       <div className={estilos.columnas}>
         <fieldset className={estilos.grupo}>
           <legend>Datos</legend>
-          <Campo etiqueta="Nombre" errores={errores.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} />
-          <Campo
+          <CampoFormulario etiqueta="Nombre" errores={errores.nombre} value={nombre} onChange={(e) => setNombre(e.target.value)} />
+          <CampoFormulario
             etiqueta="Slug"
             errores={errores.slug}
             value={slug}
             disabled={!esAlta || idCreado !== null}
             onChange={(e) => setSlug(e.target.value)}
           />
-          <Campo
+          <CampoFormulario
             etiqueta="Logo"
             errores={errores.logo}
             type="file"
@@ -124,14 +125,14 @@ export function FormularioRestaurante({ restaurante, onGuardado, onCancelar }: P
           />
           {esAlta && (
             <>
-              <Campo
+              <CampoFormulario
                 etiqueta="Usuario administrador"
                 errores={errores['administrador.nombreUsuario']}
                 autoComplete="off"
                 value={adminUsuario}
                 onChange={(e) => setAdminUsuario(e.target.value)}
               />
-              <Campo
+              <CampoFormulario
                 etiqueta="Contraseña del administrador"
                 errores={errores['administrador.contrasena']}
                 type="password"
@@ -147,7 +148,7 @@ export function FormularioRestaurante({ restaurante, onGuardado, onCancelar }: P
           <legend>Colores</legend>
           <div className={estilos.colores}>
             {COLORES.map(({ clave, etiqueta }) => (
-              <Campo
+              <CampoFormulario
                 key={clave}
                 etiqueta={etiqueta}
                 errores={errores[`paleta.${clave}`]}
@@ -170,30 +171,5 @@ export function FormularioRestaurante({ restaurante, onGuardado, onCancelar }: P
         </button>
       </div>
     </form>
-  );
-}
-
-type PropsCampo = InputHTMLAttributes<HTMLInputElement> & { etiqueta: string; errores?: string[] };
-
-/** Campo con etiqueta y, si hay errores del servidor, mensaje asociado por aria-describedby. */
-function Campo({ etiqueta, errores, ...input }: PropsCampo) {
-  const idCampo = useId();
-  const idError = useId();
-  const conError = !!errores?.length;
-  return (
-    <div className={estilos.campo}>
-      <label htmlFor={idCampo}>{etiqueta}</label>
-      <input
-        {...input}
-        id={idCampo}
-        aria-invalid={conError || undefined}
-        aria-describedby={conError ? idError : undefined}
-      />
-      {conError && (
-        <span id={idError} className={estilos.error}>
-          {errores.join(' ')}
-        </span>
-      )}
-    </div>
   );
 }

@@ -1,8 +1,20 @@
-.contenido {
-  padding: 1.5rem 1rem;
+.titulo {
+  margin: 0 0 1rem;
+  color: var(--color-oscuro);
 }
 
-.titulo {
-  margin: 0;
-  color: var(--color-oscuro);
+.secciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.enlace {
+  display: inline-block;
+  padding: 0.75rem 1.25rem;
+  border-radius: 0.5rem;
+  background: var(--color-principal);
+  color: var(--color-fondo);
+  font-weight: 700;
+  text-decoration: none;
 }
