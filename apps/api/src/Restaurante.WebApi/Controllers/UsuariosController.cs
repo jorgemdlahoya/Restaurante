@@ -1,6 +1,7 @@
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Features.Usuarios;
+using Restaurante.Application.Features.Usuarios.CambiarContrasenaUsuario;
 using Restaurante.Application.Features.Usuarios.CambiarEstadoUsuario;
 using Restaurante.Application.Features.Usuarios.CrearUsuario;
 using Restaurante.Application.Features.Usuarios.EditarUsuario;
@@ -24,6 +25,9 @@ public sealed record CambiarEstadoPeticion(bool? Activo);
 /// ninguna. El nombre de usuario no se edita: un <c>nombreUsuario</c> en el cuerpo se ignora.
 /// </summary>
 public sealed record EditarUsuarioPeticion(string? Rol, string[]? Sucursales);
+
+/// <summary>Cuerpo de la asignación de contraseña (004/RF-06); anulable para que su ausencia la rechace el validador.</summary>
+public sealed record CambiarContrasenaPeticion(string? Contrasena);
 
 [ApiController]
 [Route("api/r/{slug}/usuarios")]
@@ -60,6 +64,16 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
     public async Task<ActionResult<UsuarioDto>> CambiarEstado(Guid id, CambiarEstadoPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarEstadoUsuarioCommand(id, peticion.Activo), ct));
+
+    [HttpPut("{id:guid}/contrasena")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
+    public async Task<IActionResult> CambiarContrasena(Guid id, CambiarContrasenaPeticion peticion, CancellationToken ct)
+    {
+        await mediador.Send(new CambiarContrasenaUsuarioCommand(id, peticion.Contrasena ?? string.Empty), ct);
+        return NoContent();
+    }
 
     [HttpPut("{id:guid}")]
     [ProducesResponseType<UsuarioDto>(StatusCodes.Status200OK)]

@@ -87,6 +87,14 @@ Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano). Ord
 alcance → 409 (desactivarse a sí mismo o al último administrador general activo). Desactivar renueva el sello de
 sesión; reactivar no.
 
+## CambiarContrasenaPeticion
+
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/contrasena` (004/RF-06): `{ contrasena }` (mínimo 8 caracteres, la misma
+constante que el alta). Lo atiende `CambiarContrasenaUsuarioCommand(Id, Contrasena)` → 204. Orden de errores: 400 → 404
+(otro restaurante) → 403 alcance. El administrador general puede cambiar la suya (su token anterior da 401 `Sesión no
+válida`); el de sucursal sólo la de cajeros y cocineros exclusivos de su sucursal. Guarda sólo el hash y renueva el
+sello de sesión (004/RF-13).
+
 ## EditarUsuarioPeticion
 
 Cuerpo de `PUT /api/r/{slug}/usuarios/{id}` (004/RF-04; sustituye a `PUT /{id}/rol` de 001): `{ rol, sucursales }`,

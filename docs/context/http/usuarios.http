@@ -60,6 +60,19 @@ Content-Type: application/json
   "activo": false
 }
 
+### Asignar contraseña nueva (004/RF-06, RF-10, RF-13).
+# "contrasena" de al menos 8 caracteres (400 si falta o es corta). Orden de errores: 400 → 404 (no existe o es de otro
+# restaurante) → 403 alcance. El administrador general puede cambiar la suya: su token anterior da 401 "Sesión no
+# válida" y debe volver a entrar. El administrador de sucursal sólo cambia a cajeros y cocineros cuya única sucursal es
+# la suya (nunca a sí mismo): si no, 403. Cambia la contraseña y renueva el sello de sesión. Responde 204 sin cuerpo.
+PUT {{baseUrl}}/api/r/{{slug}}/usuarios/{{usuarioId}}/contrasena
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "contrasena": "<CONTRASENA_NUEVA>"
+}
+
 ### Editar rol y sucursales (004/RF-04, RF-05, RF-09, RF-10, RF-13; sustituye a PUT /{id}/rol de 001).
 # Mismas reglas que el alta: rol exacto en minúsculas y "sucursales" por slug con la cardinalidad del rol (400 en
 # "sucursales"). El nombre de usuario no se edita: un "nombreUsuario" en el cuerpo se ignora.

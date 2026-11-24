@@ -42,6 +42,9 @@
   a `PUT /{id}/rol`). El nombre de usuario no se edita. Errores: 400 → 404 (otro restaurante) → 403 alcance → 409
   (quitarse a sí mismo el rol de administrador general o dejar el restaurante sin ninguno activo). Sólo un cambio
   real de rol o del conjunto de sucursales renueva el sello de sesión (`AsignarRolYSucursales` devuelve si cambió).
+- **CambiarContrasenaPeticion**: cuerpo `{ contrasena }` de `PUT /api/r/{slug}/usuarios/{id}/contrasena` (004/RF-06, 204);
+  mínimo 8 caracteres. Errores: 400 → 404 → 403 alcance. El general puede cambiar la suya (su token anterior da 401);
+  renueva el sello de sesión.
 - **UsuarioDto**: `{ id, nombreUsuario, rol, activo, sucursales: [{ slug, nombre, activa }], gestionable }`;
   sucursales por nombre; `gestionable` según el alcance de quien consulta.
 - **ResolutorActor**: arma el `ActorUsuarios` desde `IUsuarioActual` (403 si no puede operar), resuelve slugs de
