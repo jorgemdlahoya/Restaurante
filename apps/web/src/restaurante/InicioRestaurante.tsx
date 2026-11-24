@@ -19,13 +19,20 @@ export function InicioRestaurante() {
 
 function ContenidoInicio({ identidad }: { identidad: Identidad }) {
   const { sesion } = useSesion();
+  const esGeneral = sesion?.rol === 'administrador_general';
+  const gestionaUsuarios = esGeneral || sesion?.rol === 'administrador_sucursal';
   return (
     <MarcoRestaurante identidad={identidad}>
       <h1 className={estilos.titulo}>Inicio</h1>
-      {sesion?.rol === 'administrador_general' && (
+      {gestionaUsuarios && (
         <nav aria-label="Secciones" className={estilos.secciones}>
-          <Link className={estilos.enlace} to={`/r/${identidad.slug}/sucursales`}>
-            Sucursales
+          {esGeneral && (
+            <Link className={estilos.enlace} to={`/r/${identidad.slug}/sucursales`}>
+              Sucursales
+            </Link>
+          )}
+          <Link className={estilos.enlace} to={`/r/${identidad.slug}/usuarios`}>
+            Usuarios
           </Link>
         </nav>
       )}
