@@ -99,6 +99,78 @@ export async function simularSucursales(
   return { sucursales, altas, ediciones, cambiosDeEstado };
 }
 
+export type HorarioDiaSimulado = { dia: string; cerrado: boolean; apertura: string | null; cierre: string | null };
+export type CierreSimulado = { id: string; inicio: string; fin: string; motivo: string | null };
+
+export const DIAS = ['lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado', 'domingo'];
+
+export function semanaCerrada(): HorarioDiaSimulado[] {
+  return DIAS.map((dia) => ({ dia, cerrado: true, apertura: null, cierre: null }));
+}
+
+/**
+ * Simula el detalle de una sucursal: `/horario` (GET/PUT), `/cierres` (GET/POST),
+ * `/cierres/{id}/cancelar` (POST) y `/estado` (GET). El estado se toma de `estado` en cada
+ * petición, así una prueba puede cambiarlo tras crear o cancelar un cierre.
+ */
+export async function simularDetalleSucursal(
+  page: Page,
+  slugRestaurante: string,
+  slugSucursal: string,
+  inicial: { horario?: HorarioDiaSimulado[]; cierres?: CierreSimulado[]; estado?: { abierta: boolean; mensaje: string | null } } = {},
+) {
+  const datos = {
+    horario: inicial.horario ?? semanaCerrada(),
+    cierres: [...(inicial.cierres ?? [])],
+    estado: inicial.estado ?? { abierta: true, mensaje: null as string | null },
+    guardadosHorario: [] as unknown[],
+    altasCierre: [] as Record<string, unknown>[],
+    cancelaciones: [] as string[],
+    peticionesEstado: [] as { autorizacion: string | undefined }[],
+  };
+  const base = `/api/r/${slugRestaurante}/s/${slugSucursal}`;
+
+  await page.route(`**${base}/horario`, (route) => {
+    if (route.request().method() === 'PUT') {
+      const cuerpo = route.request().postDataJSON() as { dias: HorarioDiaSimulado[] };
+      datos.guardadosHorario.push(cuerpo);
+      datos.horario = cuerpo.dias;
+    }
+    return json(route, 200, datos.horario);
+  });
+
+  await page.route(`**${base}/cierres`, (route) => {
+    if (route.request().method() === 'POST') {
+      const cuerpo = route.request().postDataJSON() as Record<string, unknown>;
+      datos.altasCierre.push(cuerpo);
+      const nuevo: CierreSimulado = {
+        id: `cierre-${datos.altasCierre.length}`,
+        inicio: (cuerpo.inicio as string | null) ?? '2027-01-04T12:00',
+        fin: String(cuerpo.fin),
+        motivo: (cuerpo.motivo as string | null) ?? null,
+      };
+      datos.cierres.push(nuevo);
+      return json(route, 201, nuevo);
+    }
+    return json(route, 200, datos.cierres);
+  });
+
+  await page.route(`**${base}/cierres/*/cancelar`, (route) => {
+    const id = new URL(route.request().url()).pathname.split('/').at(-2)!;
+    datos.cancelaciones.push(id);
+    const cierre = datos.cierres.find((c) => c.id === id);
+    datos.cierres = datos.cierres.filter((c) => c.id !== id);
+    return cierre ? json(route, 200, cierre) : json(route, 404, { status: 404, title: 'No encontrado', detail: 'Cierre no encontrado' });
+  });
+
+  await page.route(`**${base}/estado`, (route) => {
+    datos.peticionesEstado.push({ autorizacion: route.request().headers()['authorization'] });
+    return json(route, 200, datos.estado);
+  });
+
+  return datos;
+}
+
 export function sucursal(parcial: Partial<SucursalSimulada> & Pick<SucursalSimulada, 'id' | 'nombre' | 'slug'>): SucursalSimulada {
   return {
     direccion: 'Av. Juárez 1',
