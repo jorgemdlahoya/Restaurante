@@ -1,8 +1,11 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { alSesionInvalida } from '../api/cliente';
 import { borrarSesion, guardarSesion, leerSesion, type Sesion } from './almacenSesion';
 
 type ContextoSesion = {
   sesion: Sesion | null;
+  /** La API rechazó la sesión ("Sesión no válida"): el login muestra el aviso hasta el próximo inicio. */
+  sesionTerminada: boolean;
   iniciar(s: Sesion): void;
   cerrar(): void;
   /** Guarda la sucursal activa (slug) en la sesión; `null` la quita. */
@@ -16,16 +19,29 @@ const RETARDO_MAXIMO = 2_147_483_647;
 
 export function ProveedorSesion({ children }: { children: ReactNode }) {
   const [sesion, setSesion] = useState<Sesion | null>(() => leerSesion());
+  const [sesionTerminada, setSesionTerminada] = useState(false);
 
   const iniciar = useCallback((s: Sesion) => {
     guardarSesion(s);
     setSesion(s);
+    setSesionTerminada(false);
   }, []);
 
   const cerrar = useCallback(() => {
     borrarSesion();
     setSesion(null);
   }, []);
+
+  // Un 401 "Sesión no válida" cierra la sesión local; las rutas protegidas llevan entonces al login.
+  useEffect(
+    () =>
+      alSesionInvalida(() => {
+        borrarSesion();
+        setSesion(null);
+        setSesionTerminada(true);
+      }),
+    [],
+  );
 
   const expiraEn = sesion?.expiraEn;
   useEffect(() => {
@@ -45,8 +61,8 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
   }, []);
 
   const valor = useMemo(
-    () => ({ sesion, iniciar, cerrar, elegirSucursal }),
-    [sesion, iniciar, cerrar, elegirSucursal],
+    () => ({ sesion, sesionTerminada, iniciar, cerrar, elegirSucursal }),
+    [sesion, sesionTerminada, iniciar, cerrar, elegirSucursal],
   );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }

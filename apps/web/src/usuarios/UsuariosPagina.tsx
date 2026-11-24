@@ -64,6 +64,8 @@ function ListaUsuarios({ slugRestaurante }: { slugRestaurante: string }) {
   function contrasenaAsignada() {
     if (porContrasena) setAviso(`Contraseña asignada a ${porContrasena.nombreUsuario}.`);
     setPorContrasena(null);
+    // Si la contraseña era la propia, la API ya rechaza el token: al recargar, la sesión vuelve al login (RF-23).
+    consultas.invalidateQueries({ queryKey: clave });
   }
 
   const errorEstado =

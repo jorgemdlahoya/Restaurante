@@ -9,10 +9,11 @@ import type { Identidad } from './api';
 import estilos from './LoginRestaurante.module.css';
 
 export const MENSAJE_SIN_SUCURSALES = 'No tienes sucursales activas. Habla con tu administrador.';
+export const MENSAJE_SESION_TERMINADA = 'Tu sesión terminó. Vuelve a iniciar sesión.';
 
 export function LoginRestaurante() {
   const identidad = useOutletContext<Identidad>();
-  const { iniciar, elegirSucursal } = useSesion();
+  const { iniciar, elegirSucursal, sesionTerminada } = useSesion();
   const consultas = useQueryClient();
   const navegar = useNavigate();
   const slug = identidad.slug;
@@ -53,6 +54,11 @@ export function LoginRestaurante() {
           <img className={estilos.logo} src={urlApi(identidad.logoUrl)} alt={`Logo de ${identidad.nombre}`} />
         )}
         <h1 className={estilos.nombre}>{identidad.nombre}</h1>
+        {sesionTerminada && (
+          <p role="status" className={estilos.aviso}>
+            {MENSAJE_SESION_TERMINADA}
+          </p>
+        )}
         <FormularioLogin titulo={`Iniciar sesión en ${identidad.nombre}`} onEnviar={entrar} />
       </div>
     </main>
