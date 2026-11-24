@@ -49,9 +49,10 @@ export function FormularioUsuario({
   const [rol, setRol] = useState<RolRestaurante>(
     usuario && roles.includes(usuario.rol as RolRestaurante) ? (usuario.rol as RolRestaurante) : 'cajero',
   );
-  const [sucursales, setSucursales] = useState<string[]>(
-    sucursalesFijas ?? usuario?.sucursales.map((s) => s.slug) ?? [],
-  );
+  const [sucursalesMarcadas, setSucursales] = useState<string[]>(usuario?.sucursales.map((s) => s.slug) ?? []);
+  // Las sucursales fijas salen de las props en cada render (no del estado inicial): si `mi-sesion`
+  // llega después de montar el formulario, se muestran y se envían igualmente.
+  const sucursales = sucursalesFijas ?? sucursalesMarcadas;
   const [errores, setErrores] = useState<Record<string, string[]>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);

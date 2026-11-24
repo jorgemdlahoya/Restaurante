@@ -85,6 +85,35 @@ describe('FormularioUsuario', () => {
     expect(centro).toBeDisabled();
   });
 
+  it('004/RF-19: si mi-sesion llega después de montar, el administrador de sucursal envía su sucursal', async () => {
+    const fetch = responder(201, { id: 'u9' });
+    const formulario = (sucursales: typeof CENTRO[]) => (
+      <ProveedorSesion>
+        <FormularioUsuario
+          slugRestaurante="la-esquina"
+          rolActual="administrador_sucursal"
+          sucursalesDisponibles={sucursales}
+          onGuardado={vi.fn()}
+          onCancelar={vi.fn()}
+        />
+      </ProveedorSesion>
+    );
+    const { rerender } = render(formulario([]));
+    rerender(formulario([CENTRO]));
+
+    expect(within(screen.getByRole('group', { name: 'Sucursales' })).getByLabelText('Centro')).toBeChecked();
+    await userEvent.type(screen.getByLabelText('Usuario'), 'lola');
+    await userEvent.type(screen.getByLabelText('Contraseña'), 'Clave-123');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+
+    expect(JSON.parse(fetch.mock.calls[0][1]!.body as string)).toEqual({
+      nombreUsuario: 'lola',
+      contrasena: 'Clave-123',
+      rol: 'cajero',
+      sucursales: ['centro'],
+    });
+  });
+
   it('004/RF-18: la edición bloquea el nombre, no pide contraseña y muestra también sucursales asignadas fuera de la sesión', () => {
     montar('administrador_general', {
       sucursales: [CENTRO],

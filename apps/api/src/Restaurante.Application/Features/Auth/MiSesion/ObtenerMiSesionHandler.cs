@@ -17,10 +17,11 @@ public sealed class ObtenerMiSesionHandler(
         var usuario = await usuarios.ObtenerPorIdAsync(actual.Id, cancellationToken)
             ?? throw new NoEncontradoException("Usuario no encontrado");
 
+        // Se conserva el orden del repositorio (por nombre, con la intercalación de la base de datos),
+        // el mismo que usa UsuarioDto: reordenar aquí con otra comparación daría órdenes distintos.
         var todas = await sucursales.ListarAsync(cancellationToken);
         var accesibles = todas
             .Where(s => s.Activa && (actual.Rol == Rol.AdministradorGeneral || actual.Sucursales.Contains(s.Id)))
-            .OrderBy(s => s.Nombre, StringComparer.Ordinal)
             .Select(s => new SucursalDeSesionDto(s.Slug, s.Nombre))
             .ToList();
 

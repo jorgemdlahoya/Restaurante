@@ -68,16 +68,20 @@ function ListaUsuarios({ slugRestaurante }: { slugRestaurante: string }) {
     consultas.invalidateQueries({ queryKey: clave });
   }
 
-  const errorEstado =
-    cambiarEstado.error instanceof ErrorApi && cambiarEstado.error.estado === 403
-      ? MENSAJE_SIN_PERMISO
-      : 'No se pudo cambiar el estado del usuario.';
+  const errorEstado = mensajeErrorEstado(cambiarEstado.error);
+  // El formulario necesita las sucursales de `mi-sesion` (el administrador de sucursal las envía fijas).
+  const sinMiSesion = !miSesion.data;
 
   return (
     <>
       <div className={estilos.cabecera}>
         <h1 className={estilos.titulo}>Usuarios</h1>
-        <button type="button" className={estilos.principal} onClick={() => setEdicion({ modo: 'alta' })}>
+        <button
+          type="button"
+          className={estilos.principal}
+          disabled={sinMiSesion}
+          onClick={() => setEdicion({ modo: 'alta' })}
+        >
           Nuevo usuario
         </button>
       </div>
@@ -138,7 +142,12 @@ function ListaUsuarios({ slugRestaurante }: { slugRestaurante: string }) {
                   <td className={estilos.acciones}>
                     {u.gestionable && (
                       <>
-                        <button type="button" className={estilos.secundario} onClick={() => setEdicion({ modo: 'editar', usuario: u })}>
+                        <button
+                          type="button"
+                          className={estilos.secundario}
+                          disabled={sinMiSesion}
+                          onClick={() => setEdicion({ modo: 'editar', usuario: u })}
+                        >
                           Editar
                         </button>
                         <button type="button" className={estilos.secundario} onClick={() => setPorContrasena(u)}>
@@ -187,4 +196,11 @@ function ListaUsuarios({ slugRestaurante }: { slugRestaurante: string }) {
       )}
     </>
   );
+}
+
+/** Mensaje al fallar activar/desactivar: 403 sin permiso; 409 con el motivo de la API (p. ej. el propio usuario). */
+function mensajeErrorEstado(error: unknown): string {
+  if (error instanceof ErrorApi && error.estado === 403) return MENSAJE_SIN_PERMISO;
+  if (error instanceof ErrorApi && error.estado === 409) return error.detalle ?? error.titulo;
+  return 'No se pudo cambiar el estado del usuario.';
 }

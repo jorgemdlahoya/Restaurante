@@ -1,5 +1,6 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Rol } from '../api/auth';
@@ -54,6 +55,19 @@ function simularApi(usuarios: { status: number; cuerpo: unknown }) {
   });
 }
 
+const USUARIO_GESTIONABLE = {
+  id: 'u2',
+  nombreUsuario: 'maria',
+  rol: 'cajero',
+  activo: true,
+  gestionable: true,
+  sucursales: [{ slug: 'centro', nombre: 'Centro', activa: true }],
+};
+
+function respuestaJson(status: number, cuerpo: unknown) {
+  return new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
 beforeEach(() => sesion('administrador_sucursal'));
 
 afterEach(() => {
@@ -89,6 +103,42 @@ describe('UsuariosPagina', () => {
     const fila = (await screen.findByRole('cell', { name: 'pedro' })).closest('tr')!;
     expect(fila).toHaveTextContent('Centro, Sur (inactiva)');
     expect(within(fila).queryAllByRole('button')).toHaveLength(0);
+  });
+
+  it('004/RF-19: "Nuevo usuario" y "Editar" esperan a que mi-sesion esté disponible', async () => {
+    let entregarMiSesion: (r: Response) => void = () => {};
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada) => {
+      const url = String(entrada);
+      if (url.endsWith('/mi-sesion')) return new Promise<Response>((resolver) => (entregarMiSesion = resolver));
+      return respuestaJson(200, [USUARIO_GESTIONABLE]);
+    });
+    montar();
+    const fila = (await screen.findByRole('cell', { name: 'maria' })).closest('tr')!;
+    expect(screen.getByRole('button', { name: 'Nuevo usuario' })).toBeDisabled();
+    expect(within(fila).getByRole('button', { name: 'Editar' })).toBeDisabled();
+
+    entregarMiSesion(
+      respuestaJson(200, { nombreUsuario: 'ana', rol: 'administrador_sucursal', sucursales: [{ slug: 'centro', nombre: 'Centro' }] }),
+    );
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Nuevo usuario' })).toBeEnabled());
+    expect(within(fila).getByRole('button', { name: 'Editar' })).toBeEnabled();
+  });
+
+  it('004/RF-18: un 409 al cambiar el estado muestra el motivo de la API', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada) => {
+      const url = String(entrada);
+      if (url.endsWith('/estado'))
+        return respuestaJson(409, { status: 409, title: 'Conflicto', detail: 'No puedes desactivar tu propio usuario.' });
+      if (url.endsWith('/mi-sesion'))
+        return respuestaJson(200, { nombreUsuario: 'ana', rol: 'administrador_sucursal', sucursales: [] });
+      return respuestaJson(200, [USUARIO_GESTIONABLE]);
+    });
+    montar();
+    const fila = (await screen.findByRole('cell', { name: 'maria' })).closest('tr')!;
+    await userEvent.click(within(fila).getByRole('button', { name: 'Desactivar' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Desactivar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No puedes desactivar tu propio usuario.');
   });
 
   it('004/RF-22: un cajero vuelve al inicio', async () => {

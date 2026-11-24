@@ -78,20 +78,24 @@ cualquier slug que no sea el suyo, exista o no) y proyecta `UsuarioDto`.
 Cuerpo de `POST /api/r/{slug}/usuarios`: `{ nombreUsuario, contrasena, rol, sucursales }`. El rol va en
 minúsculas; `sucursales` son slugs (ausente = ninguna) con la cardinalidad de 004/RF-02: `administrador_general`
 ninguna, `administrador_sucursal` exactamente una, `cajero` y `cocinero` al menos una, sin repetir (error 400 en
-`sucursales`). El nombre es único sólo dentro del restaurante. Orden de errores: 400 (validador y slugs
-inexistentes; para el administrador de sucursal, 403 antes que el slug inexistente) → 403 alcance → 409 nombre.
+`sucursales`). El nombre es único sólo dentro del restaurante. Orden de errores: 400 (validador) → 403 si el
+administrador de sucursal tiene su sucursal desactivada (004/RF-26) → 403 slug ajeno (administrador de sucursal,
+exista o no) / 400 slug inexistente (administrador general) → 403 si no puede asignar ese rol y sucursales → 409
+nombre.
 
 ## CambiarEstadoPeticion
 
-Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano). Orden de errores: 400 → 404 → 403
-alcance → 409 (desactivarse a sí mismo o al último administrador general activo). Desactivar renueva el sello de
+Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/estado`: `{ activo }` (booleano). Orden de errores: 400 (validador) →
+403 si el administrador de sucursal tiene su sucursal desactivada (004/RF-26) → 404 (otro restaurante) → 403 si no
+puede gestionarlo → 409 (desactivarse a sí mismo o al último administrador general activo). Desactivar renueva el sello de
 sesión; reactivar no.
 
 ## CambiarContrasenaPeticion
 
 Cuerpo de `PUT /api/r/{slug}/usuarios/{id}/contrasena` (004/RF-06): `{ contrasena }` (mínimo 8 caracteres, la misma
-constante que el alta). Lo atiende `CambiarContrasenaUsuarioCommand(Id, Contrasena)` → 204. Orden de errores: 400 → 404
-(otro restaurante) → 403 alcance. El administrador general puede cambiar la suya (su token anterior da 401 `Sesión no
+constante que el alta). Lo atiende `CambiarContrasenaUsuarioCommand(Id, Contrasena)` → 204. Orden de errores: 400 (validador) →
+403 si el administrador de sucursal tiene su sucursal desactivada (004/RF-26) → 404 (otro restaurante) → 403 si no
+puede gestionarlo. El administrador general puede cambiar la suya (su token anterior da 401 `Sesión no
 válida`); el de sucursal sólo la de cajeros y cocineros exclusivos de su sucursal. Guarda sólo el hash y renueva el
 sello de sesión (004/RF-13).
 
@@ -100,10 +104,13 @@ sello de sesión (004/RF-13).
 Cuerpo de `PUT /api/r/{slug}/usuarios/{id}` (004/RF-04; sustituye a `PUT /{id}/rol` de 001): `{ rol, sucursales }`,
 con las mismas reglas que `CrearUsuarioPeticion` (rol en minúsculas, sucursales por slug con la cardinalidad de
 004/RF-02). El nombre de usuario no se edita (un `nombreUsuario` en el cuerpo se ignora). Lo atiende
-`EditarUsuarioCommand(Id, Rol, Sucursales)` → `UsuarioDto`. Orden de errores: 400 (validador; slug inexistente) →
-404 (otro restaurante) → 403 alcance (el administrador de sucursal sólo edita cajeros y cocineros exclusivos de su
-sucursal y sólo asigna cajero o cocinero con ella) → 409 (quitarse a sí mismo el rol de administrador general o
-dejar el restaurante sin administradores generales activos). Sólo si cambian el rol o el conjunto de sucursales se
+`EditarUsuarioCommand(Id, Rol, Sucursales)` → `UsuarioDto`. Orden de errores: 400 (validador) → 404 (usuario de
+otro restaurante) → 403 si no puede gestionarlo (el administrador de sucursal sólo edita cajeros y cocineros
+exclusivos de su sucursal) → 403 slug ajeno (administrador de sucursal, exista o no) / 400 slug inexistente
+(administrador general) → 403 si no puede asignar ese rol y sucursales (el de sucursal sólo asigna cajero o cocinero
+con la suya) → 409 (quitarse a sí mismo el rol de administrador general o dejar el restaurante sin administradores
+generales activos). Un administrador de sucursal cuya sucursal está desactivada recibe 403 antes que todo lo demás
+salvo el 400 del validador (004/RF-26). Sólo si cambian el rol o el conjunto de sucursales se
 renueva el sello de sesión del usuario (004/RF-13).
 
 ## Restaurante
@@ -188,6 +195,48 @@ borra la paleta del restaurante (vuelve a los colores por defecto). Responde un 
 Datos de la sesión iniciada: `{ token, expiraEn, nombreUsuario, rol, slug }` (`slug` sólo en usuarios de
 restaurante). `ProveedorSesion` la guarda en memoria y en `sessionStorage` (clave `restaurante.sesion`) y la
 cierra sola al llegar `expiraEn`. El token nunca se envía de forma implícita: cada llamada lo pasa a `pedirApi`.
+También guarda `sucursalActiva` (slug elegido con `elegirSucursal`) y, desde 004, expone `sesionTerminada`. Al cerrar la
+sesión (`cerrar` o "Sesión no válida") vacía la caché de TanStack Query, para que quien entre después en la misma
+pestaña no vea las listas del usuario anterior.
+
+## TITULO_SESION_INVALIDA / alSesionInvalida (frontend)
+
+`TITULO_SESION_INVALIDA` (`'Sesión no válida'`, en `api/cliente.ts`) es el título del 401 con que la API rechaza un
+token cuyo usuario cambió de acceso (004/RF-13, RF-14). Cuando una petición **con token** lo recibe, `pedirApi` avisa
+a los manejadores suscritos con `alSesionInvalida(manejador)` (devuelve la función para cancelar la suscripción).
+`ProveedorSesion` se suscribe: borra la sesión, vacía la caché de consultas y marca `sesionTerminada`.
+
+## sesionTerminada / MENSAJE_SESION_TERMINADA (frontend)
+
+`sesionTerminada` (en `useSesion()`) indica que la API rechazó la sesión con "Sesión no válida"; dura hasta el
+siguiente `iniciar`. Mientras vale `true`, `LoginRestaurante` muestra `MENSAJE_SESION_TERMINADA`:
+"Tu sesión terminó. Vuelve a iniciar sesión." (004/RF-23).
+
+## MENSAJE_SIN_SUCURSALES (frontend)
+
+"No tienes sucursales activas. Habla con tu administrador." (`restaurante/LoginRestaurante.tsx`): lo muestra el login
+ante el 403 `Sin sucursales activas` (004/RF-24) y el inicio cuando `mi-sesion` no trae sucursales (004/RF-27).
+
+## MENSAJE_SIN_PERMISO (frontend)
+
+"No tienes permiso para esta acción." (`usuarios/FormularioUsuario.tsx`): texto de la gestión de usuarios ante un 403
+(lista, formulario, asignación de contraseña y cambio de estado). Un 409 al cambiar el estado muestra en cambio el detalle de la API (p. ej.
+"No puedes desactivar tu propio usuario").
+
+## ROLES_GESTION_USUARIOS / NOMBRES_ROL (frontend)
+
+`ROLES_GESTION_USUARIOS` (`usuarios/UsuariosPagina.tsx`): roles que pueden abrir `/r/{slug}/usuarios`
+(`administrador_general` y `administrador_sucursal`); el resto vuelve a `/r/{slug}/inicio` (004/RF-22).
+`NOMBRES_ROL` (`usuarios/api.ts`): nombre visible de cada rol de restaurante ("Administrador general",
+"Administrador de sucursal", "Cajero", "Cocinero").
+
+## claveMiSesion / mi-sesion (frontend)
+
+`sesion/miSesion.ts`: `obtenerMiSesion(token, slug)` pide `GET /api/r/{slug}/mi-sesion` (`MiSesion`: nombre, rol y
+`SucursalDeSesion[]`) y `claveMiSesion(slug)` es su clave de TanStack Query (`['mi-sesion', slug]`). Lo usan el
+login y la elección de sucursal, el inicio (aviso sin sucursales), el selector del encabezado del personal y la
+gestión de usuarios (las sucursales fijas del
+administrador de sucursal: "Nuevo usuario" y "Editar" esperan a que lleguen).
 
 ## ErrorApi (frontend)
 
@@ -291,7 +340,8 @@ aislamiento por restaurante y por sucursal.
 ## MiSesionDto
 
 Respuesta de `GET /api/r/{slug}/mi-sesion` (004/RF-16): `{ nombreUsuario, rol, sucursales }`, con `sucursales` como lista de
-`SucursalDeSesionDto` `{ slug, nombre }` ordenadas por nombre. El nombre sale de la base de datos, no del token. El
+`SucursalDeSesionDto` `{ slug, nombre }` ordenadas por nombre en el orden que da `ISucursalRepository.ListarAsync`
+(intercalación de la base de datos, el mismo que `UsuarioDto`; el handler no reordena). El nombre sale de la base de datos, no del token. El
 administrador general recibe todas las sucursales activas del restaurante; el resto, las asignadas y activas. Lo
 atiende `ObtenerMiSesionHandler`; cualquier rol de restaurante puede consultarlo.
 

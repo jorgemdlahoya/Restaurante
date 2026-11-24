@@ -61,8 +61,11 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   `RespuestasProblema.EscribirAsync`.
 - `MiddlewareContextoSucursal` (tras el de restaurante): fija `ContextoSucursal` en
   `/api/r/{slug}/s/{sucursal}…` o responde 404 `Sucursal no disponible` (ver la sección de sucursales).
-- `UsuariosController` bajo `api/r/{slug}/usuarios` (sólo `administrador_general`); el filtro global por
-  contexto aísla los usuarios de cada restaurante (otro restaurante → 404).
+- `UsuariosController` bajo `api/r/{slug}/usuarios` (`administrador_general` y `administrador_sucursal`; cajero y
+  cocinero → 403). El alcance fino lo deciden los handlers con `ResolutorActor` y `AlcanceGestionUsuarios` (ver la
+  sección de la feature 004); el filtro global por contexto aísla los usuarios de cada restaurante (otro
+  restaurante → 404).
+- `MiSesionController`: `GET /api/r/{slug}/mi-sesion` (cualquier rol de restaurante; 004/RF-16).
 - `IdentidadController`: `GET /api/r/{slug}/identidad` (anónimo; nombre, paleta y logo del restaurante).
 - Logins: `AuthController` (`POST /api/r/{slug}/auth/login`) y `PlataformaAuthController`
   (`POST /api/plataforma/auth/login`) envían el mismo `IniciarSesionCommand`; el filtro global decide qué
@@ -179,25 +182,68 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Sucursale
   `^/api/r/[^/]+/s/([^/]+)` (sin distinguir mayúsculas) y hay restaurante en el contexto, busca
   `ObtenerPorSlugAsync(slug en minúsculas)` (el filtro de restaurante ya aplica, así que una sucursal de otro
   restaurante no se encuentra); nula → 404 `Sucursal no disponible` / `La dirección no corresponde a una
-  sucursal de este restaurante.` (constantes `TituloNoDisponible` y `DetalleNoDisponible`); si existe,
-  activa o no, `Establecer(id)`. Fuera de `/s/` el contexto queda en `null`.
+  sucursal de este restaurante.` (constantes `TituloNoDisponible` y `DetalleNoDisponible`). Desde 004
+  (RF-15, RF-25), con sesión, todo rol salvo el administrador general recibe ese mismo 404 si la sucursal no está
+  entre sus asignadas (`IUsuarioActual.Sucursales`) o está inactiva (nunca 403). Sin sesión (p. ej. el `estado`
+  público) no cambia nada: si existe, activa o no, `Establecer(id)`; el administrador general también entra a
+  cualquiera, activa o no. Fuera de `/s/` el contexto queda en `null`.
+
+## Usuarios, roles y sucursales asignadas (feature 004)
+
+Persistencia (migración `UsuariosSucursales`, aditiva):
+
+- `usuarios.sello_sesion` (uuid, no nulo): sello de sesión del usuario; la migración da a cada usuario existente
+  uno propio (`gen_random_uuid()`), así que los tokens anteriores (sin claim `sello`) dejan de valer.
+- `usuarios_sucursales`: PK (`usuario_id`, `sucursal_id`), `restaurante_id`; FK a `usuarios` (cascada) y a
+  `sucursales` (`Restrict`); índice `ix_usuarios_sucursales_sucursal`. Es la colección `_sucursales` de `Usuario`
+  (`Usuario.Sucursales`); `UsuarioRepository` la incluye al leer (`ObtenerPorIdAsync`, `ListarAsync`,
+  `ObtenerParaSesionAsync`, éste sin filtro de restaurante y sin seguimiento).
+- `Usuario.AsignarRolYSucursales`, `CambiarContrasena` y `Desactivar` renuevan el sello (el primero sólo si cambia el
+  rol o el conjunto de sucursales); `Reactivar` no.
+
+Application (`Features/Usuarios`):
+
+- `AlcanceGestionUsuarios`: reglas puras sobre un `ActorUsuarios` (`PuedeOperar`, `PuedeVer`, `PuedeGestionar`,
+  `PuedeAsignar`; 004/RF-07..RF-11, RF-26). El general opera siempre; el de sucursal, sólo con su sucursal activa:
+  ve a quien tiene su sucursal (sin administradores generales) y sólo gestiona cajeros y cocineros exclusivos de ella.
+- `ResolutorActor` (scoped): arma el actor desde `IUsuarioActual` (403 si no puede operar), resuelve slugs de
+  sucursal (403 slug ajeno para el de sucursal, 400 inexistente para el general) y proyecta `UsuarioDto` (sucursales
+  en el orden de `ISucursalRepository.ListarAsync`). Los handlers de usuarios lo usan en este orden: actor → usuario
+  (404) → `PuedeGestionar` (403) → slugs → `PuedeAsignar` (403) → reglas de conflicto (409).
+- `ObtenerMiSesionHandler` (`Features/Auth/MiSesion`): nombre desde la base de datos y sucursales activas (todas
+  para el general; las asignadas para el resto) en el orden del repositorio.
+- `IniciarSesionHandler` lanza `SinSucursalesActivasException` (403 `Sin sucursales activas`) si un usuario que no es
+  general no tiene ninguna sucursal activa (004/RF-17); el token lleva el claim `sello`.
 
 ## Frontend (`apps/web`)
 
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
 `src/pruebas/setup.ts`) y Playwright (proyectos `escritorio` 1440x900 y `movil` 390x844).
 
-- `src/main.tsx`: monta `QueryClientProvider` (TanStack Query), `ProveedorSesion` y `App`. No hay
-  `ProveedorTema` global: `tema.css` ya fija la paleta por defecto en `:root` y uno externo pisaría la del
-  restaurante.
+- `src/main.tsx`: monta `QueryClientProvider` (TanStack Query), `ProveedorSesion` (dentro del primero) y `App`.
+  Las consultas no se reintentan ante un `ErrorApi` con estado < 500 (un 403 se muestra en seguida); el resto,
+  hasta 3 veces. No hay `ProveedorTema` global: `tema.css` ya fija la paleta por defecto en `:root` y uno externo
+  pisaría la del restaurante.
 - `src/App.tsx`: enrutador (`react-router`; exporta `rutas`). Rutas: `/` (redirige a `/plataforma/login`),
   `/plataforma/login`, `/plataforma/restaurantes` (`RutaProtegida`, rol `administrador_plataforma`),
-  `/r/:slug` con hijas `login` e `inicio` (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo
-  `/r/:slug`) que muestra `PaginaNoEncontrada`.
+  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal` y `usuarios`
+  (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo `/r/:slug`) que muestra `PaginaNoEncontrada`.
 - `src/api/`: `cliente.ts` (`pedirApi`, `ErrorApi`, `urlApi`; el token se pasa en cada llamada, nunca
-  implícito) y `auth.ts` (login de plataforma y de restaurante).
-- `src/sesion/`: `almacenSesion.ts` (persistencia en `sessionStorage`, clave `restaurante.sesion`) y
-  `ProveedorSesion.tsx` (`useSesion`, cierre automático en `expiraEn`).
+  implícito; `TITULO_SESION_INVALIDA` y `alSesionInvalida`, que avisa a los suscritos cuando una petición con
+  token recibe 401 "Sesión no válida") y `auth.ts` (login de plataforma y de restaurante).
+- `src/sesion/`: `almacenSesion.ts` (persistencia en `sessionStorage`, clave `restaurante.sesion`),
+  `ProveedorSesion.tsx` (`useSesion`, cierre automático en `expiraEn`, `elegirSucursal`; se suscribe a
+  `alSesionInvalida` y expone `sesionTerminada` para el aviso del login; al cerrar la sesión vacía la caché de
+  TanStack Query, leída con `QueryClientContext` para no fallar sin proveedor) y `miSesion.ts` (`obtenerMiSesion`,
+  `claveMiSesion`: `GET /api/r/{slug}/mi-sesion`).
+- `src/sucursales/`: gestión de sucursales (feature 003), `ElegirSucursalPagina` (`/r/{slug}/elegir-sucursal`, tras
+  el login de quien tiene varias sucursales; 004/RF-20) y `SelectorSucursal`, el selector del encabezado para todo
+  el personal: el administrador general lo llena con la lista de sucursales activas y va a su detalle; el resto,
+  con `mi-sesion` (con una sola sucursal se muestra su nombre; 004/RF-21).
+- `src/usuarios/`: `UsuariosPagina` (`/r/{slug}/usuarios`, `ROLES_GESTION_USUARIOS`; lista, activar/desactivar,
+  "Nuevo usuario" y "Editar" deshabilitados hasta tener `mi-sesion`), `FormularioUsuario` (alta/edición; para el
+  administrador de sucursal, sólo cajero/cocinero y su sucursal fija, tomada de las props al enviar),
+  `DialogoContrasena` y `api.ts` (`NOMBRES_ROL`, `claveUsuarios`).
 - `src/rutas/`: `RutaProtegida.tsx` (exige rol y, en restaurante, el `slug`; si no, redirige al login).
 - `src/restaurante/`: `DisenoRestaurante` (layout de `/r/:slug`: carga la identidad con `api.ts`, aplica el
   tema con `ProveedorTema` y muestra `RestauranteNoDisponible` ante 404), `LoginRestaurante`,

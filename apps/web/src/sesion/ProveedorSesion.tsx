@@ -1,3 +1,4 @@
+import { QueryClientContext } from '@tanstack/react-query';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { alSesionInvalida } from '../api/cliente';
 import { borrarSesion, guardarSesion, leerSesion, type Sesion } from './almacenSesion';
@@ -27,10 +28,16 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     setSesionTerminada(false);
   }, []);
 
+  // Opcional (sin useQueryClient, que lanza sin proveedor): algunas pruebas montan la sesión sin caché.
+  const clienteConsultas = useContext(QueryClientContext);
+
+  // Al cerrar la sesión se vacía la caché de consultas: quien entre después en la misma pestaña
+  // no debe ver las listas del usuario anterior.
   const cerrar = useCallback(() => {
     borrarSesion();
     setSesion(null);
-  }, []);
+    clienteConsultas?.clear();
+  }, [clienteConsultas]);
 
   // Un 401 "Sesión no válida" cierra la sesión local; las rutas protegidas llevan entonces al login.
   useEffect(
@@ -39,8 +46,9 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
         borrarSesion();
         setSesion(null);
         setSesionTerminada(true);
+        clienteConsultas?.clear();
       }),
-    [],
+    [clienteConsultas],
   );
 
   const expiraEn = sesion?.expiraEn;

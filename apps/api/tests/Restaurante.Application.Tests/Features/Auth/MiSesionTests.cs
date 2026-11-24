@@ -1,3 +1,4 @@
+using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Application.Features.Auth.IniciarSesion;
 using Restaurante.Application.Features.Auth.MiSesion;
@@ -77,6 +78,54 @@ public class MiSesionTests
         var sesion = await MiSesionAsync(usuario);
 
         Assert.Equal(["centro", "norte"], sesion.Sucursales.Select(s => s.Slug));
+    }
+
+    [Fact(DisplayName = "004/RF-16: mi-sesion conserva el orden por nombre que da el repositorio")]
+    public async Task ConservaElOrdenDelRepositorio()
+    {
+        // El doble devuelve la lista tal cual: simula el orden de la base de datos (acentos y minúsculas
+        // intercalados), que difiere del ordinal ("Centro" < "bosque" < "Ávila").
+        var avila = SucursalesDePrueba.Crear(RestauranteId, "avila", "Ávila", "A", "+525500000001");
+        var bosque = SucursalesDePrueba.Crear(RestauranteId, "bosque", "bosque", "B", "+525500000002");
+        var centro = SucursalesDePrueba.Crear(RestauranteId, "centro", "Centro", "C", "+525500000003");
+        var usuario = AgregarUsuario("caja", Rol.Cajero, avila, bosque, centro);
+        var repositorio = new SucursalesEnOrdenFijo([avila, bosque, centro]);
+
+        var sesion = await new ObtenerMiSesionHandler(
+                new UsuarioActualFalso(usuario.Id, usuario.Rol, usuario.Sucursales), _usuarios, repositorio)
+            .Handle(new ObtenerMiSesionQuery(), CancellationToken.None);
+
+        Assert.Equal(["avila", "bosque", "centro"], sesion.Sucursales.Select(s => s.Slug));
+    }
+
+    /// <summary>Sólo <see cref="ListarAsync"/>: devuelve las sucursales en el orden recibido, sin reordenar.</summary>
+    private sealed class SucursalesEnOrdenFijo(IReadOnlyList<Sucursal> lista) : ISucursalRepository
+    {
+        public Task<IReadOnlyList<Sucursal>> ListarAsync(CancellationToken ct) => Task.FromResult(lista);
+
+        public Task<Sucursal?> ObtenerPorIdAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<Sucursal?> ObtenerPorSlugAsync(string slug, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<bool> ExisteNombreAsync(string nombre, Guid? excluirId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public Task<bool> ExisteSlugAsync(string slug, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<bool> ExistePrefijoAsync(string prefijo, Guid? excluirId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public Task<bool> ExisteWhatsAppAsync(string whatsApp, Guid? excluirId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public Task<bool> ExistePhoneNumberIdAsync(string phoneNumberId, Guid? excluirId, CancellationToken ct) =>
+            throw new NotSupportedException();
+
+        public void Agregar(Sucursal sucursal, IReadOnlyList<HorarioDia> horario) => throw new NotSupportedException();
+
+        public Task<IReadOnlyList<HorarioDia>> ObtenerHorarioAsync(CancellationToken ct) => throw new NotSupportedException();
+
+        public Task GuardarCambiosAsync(CancellationToken ct) => throw new NotSupportedException();
     }
 
     private IniciarSesionHandler Login() => new(_usuarios, _hasher, new EmisorTokensFalso(), _sucursales);

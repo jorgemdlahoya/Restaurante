@@ -159,6 +159,74 @@ public sealed class UsuariosSucursalesTests(PostgresFixture postgres)
         Assert.Equal(2, sellos.Distinct().Count());
     }
 
+    [Fact(DisplayName = "004/RF-04: reasignar sucursales con solapamiento persiste")]
+    public async Task Reasignar_sucursales_con_solapamiento_persiste()
+    {
+        var cadena = await BaseMigradaAsync();
+        var r = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
+        var a = await SembrarSucursalAsync(cadena, r, "sucursal-a", "A");
+        var b = await SembrarSucursalAsync(cadena, r, "sucursal-b", "B");
+        var c = await SembrarSucursalAsync(cadena, r, "sucursal-c", "C");
+        var usuario = await SembrarUsuarioAsync(cadena, r, "Ana", Rol.Cajero, a.Id, b.Id);
+
+        // A se conserva, B se quita y C se añade, en un contexto nuevo como en cada petición.
+        await using (var ctx = PostgresFixture.CrearContexto(cadena, r))
+        {
+            var repo = new UsuarioRepository(ctx);
+            var cargado = await repo.ObtenerPorIdAsync(usuario.Id, CancellationToken.None);
+            Assert.NotNull(cargado);
+            Assert.True(cargado.AsignarRolYSucursales(Rol.Cajero, [a.Id, c.Id]));
+            await repo.GuardarCambiosAsync(CancellationToken.None);
+        }
+
+        await using var lectura = PostgresFixture.CrearContexto(cadena, r);
+        var releido = await new UsuarioRepository(lectura).ObtenerPorIdAsync(usuario.Id, CancellationToken.None);
+
+        Assert.NotNull(releido);
+        Assert.Equal(new[] { a.Id, c.Id }.Order(), releido.Sucursales.Order());
+        Assert.NotEqual(usuario.SelloSesion, releido.SelloSesion);
+    }
+
+    [Fact(DisplayName = "004/RF-13: desactivar y cambiar la contraseña persisten el sello nuevo")]
+    public async Task Desactivar_y_cambiar_contrasena_persisten_el_sello_nuevo()
+    {
+        var cadena = await BaseMigradaAsync();
+        var r = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
+        var centro = await SembrarSucursalAsync(cadena, r, "centro", "C");
+        var conContrasena = await SembrarUsuarioAsync(cadena, r, "Ana", Rol.Cajero, centro.Id);
+        var desactivado = await SembrarUsuarioAsync(cadena, r, "Beto", Rol.Cocinero, centro.Id);
+
+        Guid selloContrasena, selloDesactivado;
+        await using (var ctx = PostgresFixture.CrearContexto(cadena, r))
+        {
+            var repo = new UsuarioRepository(ctx);
+            var ana = await repo.ObtenerPorIdAsync(conContrasena.Id, CancellationToken.None);
+            var beto = await repo.ObtenerPorIdAsync(desactivado.Id, CancellationToken.None);
+            Assert.NotNull(ana);
+            Assert.NotNull(beto);
+            ana.CambiarContrasena("hash-nuevo");
+            beto.Desactivar();
+            selloContrasena = ana.SelloSesion;
+            selloDesactivado = beto.SelloSesion;
+            await repo.GuardarCambiosAsync(CancellationToken.None);
+        }
+
+        // Se relee como lo hace la validación del token en cada petición.
+        await using var lectura = PostgresFixture.CrearContexto(cadena);
+        var repoLectura = new UsuarioRepository(lectura);
+        var anaReleida = await repoLectura.ObtenerParaSesionAsync(conContrasena.Id, CancellationToken.None);
+        var betoReleido = await repoLectura.ObtenerParaSesionAsync(desactivado.Id, CancellationToken.None);
+
+        Assert.NotNull(anaReleida);
+        Assert.NotNull(betoReleido);
+        Assert.NotEqual(conContrasena.SelloSesion, selloContrasena);
+        Assert.Equal(selloContrasena, anaReleida.SelloSesion);
+        Assert.Equal("hash-nuevo", anaReleida.HashContrasena);
+        Assert.NotEqual(desactivado.SelloSesion, selloDesactivado);
+        Assert.Equal(selloDesactivado, betoReleido.SelloSesion);
+        Assert.False(betoReleido.Activo);
+    }
+
     [Fact(DisplayName = "004/RF-13: la consulta de sesión tarda menos de 10 ms de mediana")]
     public async Task La_consulta_de_sesion_tarda_menos_de_10_ms()
     {
