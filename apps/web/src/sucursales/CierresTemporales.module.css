@@ -1,0 +1,76 @@
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-oscuro);
+}
+
+.lista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.cierre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, var(--color-oscuro) 6%, transparent);
+}
+
+.formulario {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.ayuda {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.875rem;
+}
+
+.alerta {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--color-acento);
+  font-weight: 700;
+}
+
+.principal,
+.secundario {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.principal {
+  justify-self: start;
+  border: none;
+  background: var(--color-principal);
+  color: var(--color-fondo);
+}
+
+.principal:disabled {
+  opacity: 0.6;
+}
+
+.secundario {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+}

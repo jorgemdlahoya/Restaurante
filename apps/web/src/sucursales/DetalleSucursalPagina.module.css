@@ -1,0 +1,28 @@
+.volver {
+  display: inline-block;
+  margin-bottom: 0.75rem;
+  color: var(--color-oscuro);
+  font-weight: 700;
+}
+
+.titulo {
+  margin: 0 0 0.5rem;
+  color: var(--color-oscuro);
+}
+
+.seccion {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.subtitulo {
+  margin: 0;
+  color: var(--color-oscuro);
+}
+
+.mensaje {
+  margin: 0;
+  font-weight: 700;
+}

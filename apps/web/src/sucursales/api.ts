@@ -66,5 +66,54 @@ export function cambiarEstadoSucursal(
   return pedirApi<Sucursal>(`${base(slugRestaurante)}/${id}/estado`, json('PUT', { activa }, token));
 }
 
+export type HorarioDia = { dia: string; cerrado: boolean; apertura: string | null; cierre: string | null };
+/** Fechas en hora local de la sucursal, sin zona (`yyyy-MM-ddTHH:mm`). */
+export type Cierre = { id: string; inicio: string; fin: string; motivo: string | null };
+export type EstadoAtencion = { abierta: boolean; mensaje: string | null };
+export type DatosCierre = { inicio: string | null; fin: string; motivo: string | null };
+
+const baseSucursal = (slugRestaurante: string, slugSucursal: string) =>
+  `/api/r/${encodeURIComponent(slugRestaurante)}/s/${encodeURIComponent(slugSucursal)}`;
+
+export function obtenerHorario(token: string, slugRestaurante: string, slugSucursal: string): Promise<HorarioDia[]> {
+  return pedirApi<HorarioDia[]>(`${baseSucursal(slugRestaurante, slugSucursal)}/horario`, { token });
+}
+
+export function guardarHorario(
+  token: string,
+  slugRestaurante: string,
+  slugSucursal: string,
+  dias: HorarioDia[],
+): Promise<HorarioDia[]> {
+  return pedirApi<HorarioDia[]>(`${baseSucursal(slugRestaurante, slugSucursal)}/horario`, json('PUT', { dias }, token));
+}
+
+export function listarCierres(token: string, slugRestaurante: string, slugSucursal: string): Promise<Cierre[]> {
+  return pedirApi<Cierre[]>(`${baseSucursal(slugRestaurante, slugSucursal)}/cierres`, { token });
+}
+
+export function crearCierre(
+  token: string,
+  slugRestaurante: string,
+  slugSucursal: string,
+  datos: DatosCierre,
+): Promise<Cierre> {
+  return pedirApi<Cierre>(`${baseSucursal(slugRestaurante, slugSucursal)}/cierres`, json('POST', datos, token));
+}
+
+export function cancelarCierre(token: string, slugRestaurante: string, slugSucursal: string, id: string): Promise<Cierre> {
+  return pedirApi<Cierre>(`${baseSucursal(slugRestaurante, slugSucursal)}/cierres/${id}/cancelar`, {
+    method: 'POST',
+    token,
+  });
+}
+
+/** Estado público: nunca lleva token (un token de otro restaurante daría 404). */
+export function obtenerEstado(slugRestaurante: string, slugSucursal: string): Promise<EstadoAtencion> {
+  return pedirApi<EstadoAtencion>(`${baseSucursal(slugRestaurante, slugSucursal)}/estado`);
+}
+
+export const claveEstado = (slugRestaurante: string, slugSucursal: string) => ['estado', slugRestaurante, slugSucursal];
+
 /** Clave de consulta compartida por la lista y el selector de sucursal. */
 export const claveSucursales = (slugRestaurante: string) => ['sucursales', slugRestaurante];
