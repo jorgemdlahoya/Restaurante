@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { useNavigate } from 'react-router';
 import { useSesion } from '../sesion/ProveedorSesion';
+import { SelectorSucursal } from '../sucursales/SelectorSucursal';
 import type { Identidad } from './api';
 import { EncabezadoMarca } from './EncabezadoMarca';
 import estilos from './MarcoRestaurante.module.css';
@@ -17,7 +18,12 @@ export function MarcoRestaurante({ identidad, children }: { identidad: Identidad
 
   return (
     <>
-      <EncabezadoMarca identidad={identidad} nombreUsuario={sesion?.nombreUsuario ?? ''} onCerrarSesion={cerrarSesion} />
+      <EncabezadoMarca
+        identidad={identidad}
+        nombreUsuario={sesion?.nombreUsuario ?? ''}
+        onCerrarSesion={cerrarSesion}
+        extra={sesion?.rol === 'administrador_general' ? <SelectorSucursal slugRestaurante={identidad.slug} /> : null}
+      />
       <main className={estilos.contenido}>{children}</main>
     </>
   );

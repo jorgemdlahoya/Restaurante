@@ -1,7 +1,13 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { borrarSesion, guardarSesion, leerSesion, type Sesion } from './almacenSesion';
 
-type ContextoSesion = { sesion: Sesion | null; iniciar(s: Sesion): void; cerrar(): void };
+type ContextoSesion = {
+  sesion: Sesion | null;
+  iniciar(s: Sesion): void;
+  cerrar(): void;
+  /** Guarda la sucursal activa (slug) en la sesión; `null` la quita. */
+  elegirSucursal(slug: string | null): void;
+};
 
 const Contexto = createContext<ContextoSesion | null>(null);
 
@@ -29,7 +35,19 @@ export function ProveedorSesion({ children }: { children: ReactNode }) {
     return () => clearTimeout(temporizador);
   }, [expiraEn, cerrar]);
 
-  const valor = useMemo(() => ({ sesion, iniciar, cerrar }), [sesion, iniciar, cerrar]);
+  const elegirSucursal = useCallback((slug: string | null) => {
+    setSesion((actual) => {
+      if (!actual) return actual;
+      const nueva = { ...actual, sucursalActiva: slug };
+      guardarSesion(nueva);
+      return nueva;
+    });
+  }, []);
+
+  const valor = useMemo(
+    () => ({ sesion, iniciar, cerrar, elegirSucursal }),
+    [sesion, iniciar, cerrar, elegirSucursal],
+  );
   return <Contexto.Provider value={valor}>{children}</Contexto.Provider>;
 }
 
