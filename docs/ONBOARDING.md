@@ -53,6 +53,18 @@ La imagen de la API (`apps/api/Dockerfile`) instala `tzdata` en la etapa de ejec
 
 Para parar: `docker compose down` (añade `-v` para borrar también el volumen `datos-db`).
 
+### Al desplegar la feature 004 (usuarios y sucursales)
+
+La migración de la 004 es aditiva (RNF-04), pero tiene dos efectos visibles:
+
+- **Todas las sesiones abiertas terminan**: cada usuario recibe un sello de sesión nuevo, los
+  tokens previos dejan de valer y todo el mundo debe volver a iniciar sesión.
+- **El personal existente queda sin sucursales**: los usuarios que no son administrador general
+  (administrador de sucursal, cajero, cocinero) conservan su rol, pero no pueden entrar
+  («No tienes sucursales activas…») hasta que un administrador general les asigne sucursales
+  desde la pantalla **Usuarios** (`/r/<slug>/usuarios`, botón *Editar*). La asignación no es
+  automática; hazla justo después del despliegue.
+
 ## Ejecutar la API sin compose
 
 La API lee `DB_CONNECTION_STRING` del entorno del proceso; compose la construye por ti, pero si
@@ -136,6 +148,11 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
     `Sucursales`, guarda su horario de lunes a domingo 00:00–23:59 y `GET /api/r/<slug>/s/centro/estado`
     (sin token) responde 200 con `abierta` booleano. Comprueba de paso que la imagen de la API resuelve las
     zonas horarias IANA (`tzdata`).
+  - `usuarios.spec.ts` (004/RF-01, RF-20, RF-13): en dos contextos de navegador, el administrador
+    general crea las sucursales `Centro` y `Norte` y un cajero con ambas desde `Usuarios`; el cajero
+    entra, elige sucursal en `/r/<slug>/elegir-sucursal` y llega al inicio con el selector `Sucursal`;
+    al desactivarlo, su siguiente petición autenticada recibe 401 y vuelve al login con el aviso
+    «Tu sesión terminó. Vuelve a iniciar sesión.».
 
 ## Dependencias de desarrollo con avisos
 
