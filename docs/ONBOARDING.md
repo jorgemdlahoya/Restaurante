@@ -47,6 +47,10 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
 
    Debe responder `200` (si la base de datos no es accesible responde `503`).
 
+La imagen de la API (`apps/api/Dockerfile`) instala `tzdata` en la etapa de ejecución: la imagen
+`aspnet` no trae la base de zonas horarias IANA y sin ella `TimeZoneInfo` no resuelve
+`America/Mexico_City` ni las demás zonas de las sucursales (horario y estado de atención).
+
 Para parar: `docker compose down` (añade `-v` para borrar también el volumen `datos-db`).
 
 ## Ejecutar la API sin compose

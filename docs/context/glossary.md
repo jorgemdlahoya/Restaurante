@@ -68,4 +68,6 @@
 - **CierreTemporalDto**: `{ id, inicio, fin, motivo? }` con fechas locales de la sucursal `yyyy-MM-ddTHH:mm` (UTC en BD);
   `GET`/`POST /api/r/{slug}/s/{sucursal}/cierres` (vigentes y futuros / crear, `inicio` opcional = ahora) y
   `POST …/cierres/{id}/cancelar` (404 si es de otra sucursal, ya cancelado o ya terminado; sólo `administrador_general`).
+- **Estado de atención / EstadoAtencionDto**: `{ abierta, mensaje? }` (horario + cierres + zona de la sucursal);
+  `GET /api/r/{slug}/s/{sucursal}/estado` público sin token; 404 `Sucursal no disponible` si no existe o está inactiva.
 - **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

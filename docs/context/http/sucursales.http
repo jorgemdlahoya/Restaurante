@@ -121,6 +121,12 @@ Content-Type: application/json
   "motivo": "Navidad"
 }
 
+### Estado de atención de la sucursal (003/RF-12, RF-13, RF-14). Público: sin token.
+# 200 { "abierta": true, "mensaje": null } o { "abierta": false, "mensaje": "Estamos cerrados, abrimos mañana a las 09:00" }
+# (sin apertura en 14 días: "Estamos cerrados por el momento"). 404 "Sucursal no disponible" si no existe o está inactiva.
+# @name estadoAtencion
+GET {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/estado
+
 ### Cancelar un cierre temporal (003/RF-11). Responde 200 con el cierre; deja de aparecer en los vigentes.
 # 404 "Cierre no encontrado" si no existe, es de otra sucursal, ya fue cancelado o ya terminó.
 # @name cancelarCierre

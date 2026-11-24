@@ -229,6 +229,14 @@ no pasado; `motivo` hasta 120 caracteres); `POST …/cierres/{id}/cancelar` lo c
 otra sucursal, ya cancelado o ya terminado responde 404 `Cierre no encontrado`. Los errores de fecha salen en las
 claves `inicio` y `fin`. Sólo `administrador_general`.
 
+## Estado de atención / EstadoAtencionDto
+
+Estado de atención: si una sucursal acepta pedidos en este momento, según su horario semanal, sus cierres temporales
+y su zona horaria. `EstadoAtencionDto` es `{ abierta, mensaje }`: `mensaje` es `null` si está abierta; si no, `Estamos
+cerrados, abrimos {hoy|mañana|día} a las HH:mm` o, sin apertura en 14 días, `Estamos cerrados por el momento`.
+`GET /api/r/{slug}/s/{sucursal}/estado` es público (sin token); una sucursal inexistente o inactiva responde 404
+`Sucursal no disponible`. La imagen de la API incluye `tzdata` para resolver las zonas horarias.
+
 ## IEntidadDeRestaurante / IEntidadDeSucursal
 
 Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el

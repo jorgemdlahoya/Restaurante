@@ -16,6 +16,10 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
         {
             ValidationException validacion => Validacion(validacion),
             CredencialesInvalidasException e => Problema(StatusCodes.Status401Unauthorized, "No autenticado", e.Message),
+            SucursalNoDisponibleException => Problema(
+                StatusCodes.Status404NotFound,
+                Seguridad.MiddlewareContextoSucursal.TituloNoDisponible,
+                Seguridad.MiddlewareContextoSucursal.DetalleNoDisponible),
             NoEncontradoException e => Problema(StatusCodes.Status404NotFound, "No encontrado", e.Message),
             ConflictoException e => Problema(StatusCodes.Status409Conflict, "Conflicto", e.Message),
             _ => ErrorInterno(context),
