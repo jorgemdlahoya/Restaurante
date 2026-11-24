@@ -61,10 +61,12 @@ public sealed class UsuariosSucursalesTests(PostgresFixture postgres)
         var porId = await repo.ObtenerPorIdAsync(usuario.Id, CancellationToken.None);
         var porNombre = await repo.ObtenerPorNombreNormalizadoAsync("ana", CancellationToken.None);
 
+        // Los Guid son aleatorios: se comparan ambos lados ordenados.
+        var esperadas = new[] { centro.Id, norte.Id }.Order().ToList();
         Assert.NotNull(porId);
-        Assert.Equal([centro.Id, norte.Id], porId.Sucursales.Order());
+        Assert.Equal(esperadas, porId.Sucursales.Order());
         Assert.NotNull(porNombre);
-        Assert.Equal([centro.Id, norte.Id], porNombre.Sucursales.Order());
+        Assert.Equal(esperadas, porNombre.Sucursales.Order());
         Assert.Equal(usuario.SelloSesion, porId.SelloSesion);
     }
 

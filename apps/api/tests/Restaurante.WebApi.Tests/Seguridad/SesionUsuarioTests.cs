@@ -138,6 +138,19 @@ public sealed class SesionUsuarioTests : IDisposable
         await AssertSesionInvalidaAsync(await GetAsync(RutaUsuarios, token));
     }
 
+    [Fact(DisplayName = "004/RF-14: un usuario inactivo con el sello vigente responde 401 Sesión no válida")]
+    public async Task Usuario_inactivo_con_sello_vigente_responde_401()
+    {
+        var admin = Sembrar("jefa", Rol.AdministradorGeneral);
+        admin.Desactivar();
+
+        // Token con el sello ACTUAL (ya renovado al desactivar): sólo la comprobación de Activo puede rechazarlo.
+        var token = FabricaApi.FirmarToken(Rol.AdministradorGeneral, admin.Id, admin.SelloSesion.ToString("D"),
+            restauranteId: _restaurante.Id);
+
+        await AssertSesionInvalidaAsync(await GetAsync(RutaUsuarios, token));
+    }
+
     [Fact(DisplayName = "004/RF-14: un token de un usuario inexistente responde 401")]
     public async Task Token_de_usuario_inexistente_responde_401()
     {
