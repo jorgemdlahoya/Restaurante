@@ -16,4 +16,10 @@ public class TelefonoMexicoTests
     {
         Assert.Equal(esperado, TelefonoMexico.Normalizar(entrada));
     }
+
+    [Fact(DisplayName = "003/RF-02: los teléfonos sólo admiten dígitos ASCII")]
+    public void Normalizar_RechazaDigitosNoAscii()
+    {
+        Assert.Null(TelefonoMexico.Normalizar("+52٠١٢٣٤٥٦٧٨٩"));
+    }
 }

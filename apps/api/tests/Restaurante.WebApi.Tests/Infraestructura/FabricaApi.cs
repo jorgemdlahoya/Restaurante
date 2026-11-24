@@ -67,6 +67,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     /// <summary>Almacén compartido; cada petición lo ve filtrado por su contexto de restaurante.</summary>
     public AlmacenUsuarios Usuarios { get; } = new();
 
+    public AlmacenSucursales Sucursales { get; } = new();
+
     public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
 
     /// <summary>Siembra un restaurante (activo o no) en el repositorio en memoria y lo devuelve.</summary>
@@ -168,6 +170,9 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             // Scoped: cada petición filtra el almacén compartido con el contexto que fija el middleware real.
             servicios.AddScoped<IUsuarioRepository>(sp =>
                 new UsuarioRepositoryEnMemoria(Usuarios, sp.GetRequiredService<IContextoRestaurante>()));
+            servicios.RemoveAll<ISucursalRepository>();
+            servicios.AddScoped<ISucursalRepository>(sp =>
+                new SucursalRepositoryEnMemoria(Sucursales, sp.GetRequiredService<IContextoRestaurante>()));
             servicios.RemoveAll<IRestauranteRepository>();
             servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
             // Provisional hasta que la API resuelva la sucursal de la ruta (T-07): sin sucursal.

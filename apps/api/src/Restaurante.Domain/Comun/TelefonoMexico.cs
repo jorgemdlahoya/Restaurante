@@ -19,6 +19,6 @@ public static partial class TelefonoMexico
         return PatronE164().IsMatch(limpio) ? limpio : null;
     }
 
-    [GeneratedRegex(@"^\+52\d{10}\z")]
+    [GeneratedRegex(@"^\+52[0-9]{10}\z")]
     private static partial Regex PatronE164();
 }

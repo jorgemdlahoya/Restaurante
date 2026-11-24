@@ -194,8 +194,23 @@ Zona IANA en que se interpretan los horarios y cierres de la sucursal. Sólo se 
 
 ## phone_number_id
 
-Identificador numérico (`^\d{1,30}\z`) del número de WhatsApp Business de la sucursal; es opcional (puede ser
+Identificador numérico (`^[0-9]{1,30}\z`, sólo dígitos ASCII) del número de WhatsApp Business de la sucursal; es opcional (puede ser
 ausente).
+
+## DatosSucursalDto
+
+Datos editables de una sucursal tal como llegan por la API:
+`{ nombre, direccion, telefono, whatsApp, phoneNumberId?, prefijo, zonaHoraria? }`. Una `zonaHoraria` ausente
+usa `America/Mexico_City`; un `phoneNumberId` vacío se trata como ausente. `ValidadorDatosSucursal` aplica los
+formatos (nombre 1-80, dirección 1-200, teléfonos `+52` y 10 dígitos ASCII, prefijo, zona admitida) y lo
+reutilizan el alta y la edición.
+
+## SucursalDto
+
+Representación pública de una sucursal: `{ id, nombre, direccion, telefono, slug, whatsApp, phoneNumberId,
+prefijo, zonaHoraria, activa }`. Es la respuesta de `POST /api/r/{slug}/sucursales` (201,
+`Location: /api/r/{slug}/sucursales/{id}`; sólo `administrador_general`). Nombre, slug y prefijo son únicos
+dentro del restaurante; WhatsApp y `phone_number_id`, en toda la plataforma (409 si se repiten).
 
 ## IEntidadDeRestaurante / IEntidadDeSucursal
 

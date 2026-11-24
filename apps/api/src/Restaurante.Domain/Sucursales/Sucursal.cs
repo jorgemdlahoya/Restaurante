@@ -92,7 +92,7 @@ public sealed partial class Sucursal : IEntidadDeRestaurante
             ?? throw new ArgumentException("El WhatsApp debe cumplir +52 seguido de 10 dígitos.", nameof(datos));
         if (datos.PhoneNumberId is not null && !PatronPhoneNumberIdRegex().IsMatch(datos.PhoneNumberId))
         {
-            throw new ArgumentException(@"El phone_number_id debe cumplir ^\d{1,30}\z.", nameof(datos));
+            throw new ArgumentException(@"El phone_number_id debe cumplir ^[0-9]{1,30}\z.", nameof(datos));
         }
 
         if (datos.Prefijo is null || !PatronPrefijoRegex().IsMatch(datos.Prefijo))
@@ -128,7 +128,7 @@ public sealed partial class Sucursal : IEntidadDeRestaurante
     [GeneratedRegex(@"^[a-z0-9-]{3,40}\z")]
     private static partial Regex PatronSlugRegex();
 
-    [GeneratedRegex(@"^\d{1,30}\z")]
+    [GeneratedRegex(@"^[0-9]{1,30}\z")]
     private static partial Regex PatronPhoneNumberIdRegex();
 
     [GeneratedRegex(@"^[A-Z]{1,3}\z")]

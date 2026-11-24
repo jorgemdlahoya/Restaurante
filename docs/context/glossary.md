@@ -59,4 +59,8 @@
 - **Prefijo**: 1-3 letras mayúsculas de la sucursal.
 - **Zona horaria**: una de las 12 zonas mexicanas admitidas; por defecto `America/Mexico_City`.
 - **phone_number_id**: identificador numérico (1-30 dígitos) del número de WhatsApp Business; opcional.
+- **DatosSucursalDto**: `{ nombre, direccion, telefono, whatsApp, phoneNumberId?, prefijo, zonaHoraria? }`; zona
+  ausente = `America/Mexico_City`, `phoneNumberId` vacío = ausente; validado por `ValidadorDatosSucursal`.
+- **SucursalDto**: `{ id, nombre, direccion, telefono, slug, whatsApp, phoneNumberId, prefijo, zonaHoraria, activa }`;
+  respuesta de `POST /api/r/{slug}/sucursales` (201, 409 por duplicados; sólo `administrador_general`).
 - **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

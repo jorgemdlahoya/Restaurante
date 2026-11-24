@@ -1,0 +1,39 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador general. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador general en su restaurante. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Crear sucursal (003/RF-01..RF-03, RF-07). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Responde 201 con Location: /api/r/{slug}/sucursales/{id}; nace activa y con la semana cerrada.
+# telefono y whatsApp: +52 y 10 dígitos (se aceptan espacios y guiones y se guardan como +52XXXXXXXXXX).
+# slug: 3-40 caracteres [a-z0-9-]. prefijo: 1-3 letras mayúsculas. zonaHoraria y phoneNumberId son opcionales
+# (por defecto America/Mexico_City). 400 por campo si un formato es inválido; 409 si nombre, slug o prefijo se
+# repiten en el restaurante, o si whatsApp o phoneNumberId ya existen en cualquier restaurante.
+# @name crearSucursal
+POST {{baseUrl}}/api/r/{{slug}}/sucursales
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_SUCURSAL>",
+  "direccion": "<DIRECCION>",
+  "telefono": "<+52 y 10 digitos>",
+  "slug": "<slug-de-la-sucursal>",
+  "whatsApp": "<+52 y 10 digitos>",
+  "phoneNumberId": "<PHONE_NUMBER_ID_OPCIONAL>",
+  "prefijo": "<A>",
+  "zonaHoraria": "America/Mexico_City"
+}
