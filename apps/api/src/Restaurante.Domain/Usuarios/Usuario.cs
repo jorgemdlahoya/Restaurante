@@ -58,28 +58,28 @@ public sealed class Usuario
         }
 
         ValidarSinDuplicados(sucursales);
-        if (restauranteId is null && sucursales.Count > 0)
-        {
-            throw new ArgumentException(
-                "El administrador de plataforma no tiene sucursales.", nameof(sucursales));
-        }
+        ValidarSucursales(rol, sucursales.Count);
 
         var usuario = new Usuario(Guid.NewGuid(), restauranteId, nombreUsuario, hashContrasena, rol, creadoEn);
         usuario.ReemplazarSucursales(sucursales);
         return usuario;
     }
 
-    /// <summary>Cardinalidad rol ↔ sucursales (004/RF-02).</summary>
+    /// <summary>
+    /// Cardinalidad rol ↔ sucursales (004/RF-02): administradores general y de plataforma 0, administrador de
+    /// sucursal exactamente 1, cajero y cocinero al menos 1.
+    /// </summary>
+    public static bool CardinalidadValida(Rol rol, int cantidad) => rol switch
+    {
+        Rol.AdministradorGeneral or Rol.AdministradorPlataforma => cantidad == 0,
+        Rol.AdministradorSucursal => cantidad == 1,
+        _ => cantidad >= 1,
+    };
+
+    /// <summary>Lanza <see cref="ArgumentException"/> si no se cumple <see cref="CardinalidadValida"/>.</summary>
     public static void ValidarSucursales(Rol rol, int cantidad)
     {
-        var valido = rol switch
-        {
-            Rol.AdministradorGeneral or Rol.AdministradorPlataforma => cantidad == 0,
-            Rol.AdministradorSucursal => cantidad == 1,
-            _ => cantidad >= 1,
-        };
-
-        if (!valido)
+        if (!CardinalidadValida(rol, cantidad))
         {
             throw new ArgumentException(
                 $"El rol {rol} no admite {cantidad} sucursales.", nameof(cantidad));

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Restaurante.Domain.Restaurantes;
+using Restaurante.Domain.Sucursales;
 using Restaurante.Infrastructure.Persistencia;
 using Testcontainers.PostgreSql;
 using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
@@ -50,6 +51,24 @@ public sealed class PostgresFixture : IAsyncLifetime
         ctx.Restaurantes.Add(restaurante);
         await ctx.SaveChangesAsync();
         return restaurante.Id;
+    }
+
+    /// <summary>
+    /// Siembra una sucursal "centro" del restaurante y devuelve su id, para los usuarios que por la cardinalidad
+    /// de 004/RF-02 necesitan una (cajero, cocinero, administrador de sucursal).
+    /// </summary>
+    public static async Task<Guid> SembrarSucursalAsync(string cadena, Guid restauranteId, string whatsApp = "+525500009999")
+    {
+        await using var ctx = CrearContexto(cadena, restauranteId);
+        var sucursal = Sucursal.Crear(
+            restauranteId,
+            "centro",
+            new DatosSucursal("Centro", "Calle 1", "+525511111111", whatsApp, null, "C", ZonasHorarias.PorDefecto),
+            new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        var repo = new SucursalRepository(ctx);
+        repo.Agregar(sucursal, HorarioDia.SemanaCerrada(restauranteId, sucursal.Id));
+        await repo.GuardarCambiosAsync(CancellationToken.None);
+        return sucursal.Id;
     }
 }
 

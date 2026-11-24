@@ -50,16 +50,35 @@ usuario tiene restaurante, `restaurant_id`. Se validan firma
 
 ## UsuarioDto
 
-Representación pública de un usuario en la API: `{ id, nombreUsuario, rol, activo }`. Nunca incluye
+Representación pública de un usuario en la API: `{ id, nombreUsuario, rol, activo, sucursales, gestionable }`.
+`sucursales` son sus `SucursalAsignadaDto` ordenadas por nombre (activas o no); `gestionable` indica si quien
+consulta puede modificarlo (`AlcanceGestionUsuarios.PuedeGestionar`). Nunca incluye
 la contraseña ni su hash. Es la respuesta de `GET /api/r/{slug}/usuarios` (lista, sólo los del
-restaurante), `POST /api/r/{slug}/usuarios` (201, `Location: /api/r/{slug}/usuarios/{id}`),
+restaurante; el administrador de sucursal sólo ve a quien tiene su sucursal, sin administradores generales),
+`POST /api/r/{slug}/usuarios` (201, `Location: /api/r/{slug}/usuarios/{id}`),
 `PUT /api/r/{slug}/usuarios/{id}/estado` y `PUT /api/r/{slug}/usuarios/{id}/rol`. Un usuario de otro
-restaurante da 404.
+restaurante da 404. Los endpoints de usuarios admiten `administrador_general` y `administrador_sucursal`;
+cajero y cocinero reciben 403 (004/RF-11).
+
+## SucursalAsignadaDto
+
+Sucursal asignada a un usuario: `{ slug, nombre, activa }` (004/RF-01, RF-03).
+
+## ResolutorActor
+
+Servicio scoped de Application que construye el `ActorUsuarios` de la petición desde `IUsuarioActual` (datos de
+base de datos) y la sucursal propia del administrador de sucursal (con su `Activa`, de `ISucursalRepository`);
+lanza `ProhibidoException` (403 `Acceso denegado`) si el actor no puede operar. También resuelve slugs de sucursal
+dentro del restaurante (400 en `sucursales` si alguno no existe; para el administrador de sucursal, 403 ante
+cualquier slug que no sea el suyo, exista o no) y proyecta `UsuarioDto`.
 
 ## CrearUsuarioPeticion
 
-Cuerpo de `POST /api/r/{slug}/usuarios`: `{ nombreUsuario, contrasena, rol }`. El rol va en minúsculas.
-El nombre es único sólo dentro del restaurante.
+Cuerpo de `POST /api/r/{slug}/usuarios`: `{ nombreUsuario, contrasena, rol, sucursales }`. El rol va en
+minúsculas; `sucursales` son slugs (ausente = ninguna) con la cardinalidad de 004/RF-02: `administrador_general`
+ninguna, `administrador_sucursal` exactamente una, `cajero` y `cocinero` al menos una, sin repetir (error 400 en
+`sucursales`). El nombre es único sólo dentro del restaurante. Orden de errores: 400 (validador y slugs
+inexistentes; para el administrador de sucursal, 403 antes que el slug inexistente) → 403 alcance → 409 nombre.
 
 ## CambiarEstadoPeticion
 

@@ -31,7 +31,9 @@ public sealed class AislamientoTests : IDisposable
     private Usuario Sembrar(Guid restauranteId, string nombre, Rol rol)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(Contrasena), rol, [], DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(
+            restauranteId, nombre, hasher.Hashear(Contrasena), rol, _fabrica.SucursalesPara(rol, restauranteId),
+            DateTimeOffset.UtcNow);
         _fabrica.Usuarios.Agregar(usuario);
         return usuario;
     }
@@ -151,9 +153,11 @@ public sealed class AislamientoTests : IDisposable
     public async Task Crea_usuario_con_nombre_existente_en_otro_restaurante()
     {
         Sembrar(_b.Id, "maria", Rol.Cajero);
+        // Desde 004/RF-02 el cocinero lleva al menos una sucursal de su restaurante.
+        _fabrica.SembrarSucursal(_a.Id, "centro", "Centro");
 
         var alta = await AdminDe(_a).PostAsJsonAsync("/api/r/resto-a/usuarios",
-            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cocinero" });
+            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cocinero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.Created, alta.StatusCode);
         Assert.Equal(["admin", "maria"], await NombresAsync(await AdminDe(_a).GetAsync("/api/r/resto-a/usuarios")));

@@ -6,16 +6,30 @@ using Restaurante.Domain.Usuarios;
 
 namespace Restaurante.Application.Features.Usuarios.CrearUsuario;
 
+/// <summary>
+/// Alta de usuario con sucursales (004/RF-01, RF-02, RF-08). Tras el validador (400), comprueba el alcance (403:
+/// el administrador de sucursal sólo da de alta cajeros y cocineros de su sucursal), resuelve los slugs (400 si
+/// alguno no existe) y por último el nombre duplicado (409).
+/// </summary>
 public sealed class CrearUsuarioHandler(
     IUsuarioRepository usuarios,
     IHasherContrasenas hasher,
     IReloj reloj,
-    IContextoRestaurante contexto) : IRequestHandler<CrearUsuarioCommand, UsuarioDto>
+    IContextoRestaurante contexto,
+    ResolutorActor resolutor) : IRequestHandler<CrearUsuarioCommand, UsuarioDto>
 {
     public async Task<UsuarioDto> Handle(CrearUsuarioCommand request, CancellationToken cancellationToken)
     {
         var restauranteId = contexto.RestauranteId
             ?? throw new InvalidOperationException("No se puede crear un usuario fuera del ámbito de un restaurante.");
+
+        var actor = await resolutor.ObtenerAsync(cancellationToken);
+        var rol = RolExtensiones.DesdeTexto(request.Rol);
+        var sucursales = await resolutor.ResolverSlugsAsync(actor, request.Sucursales, cancellationToken);
+        if (!AlcanceGestionUsuarios.PuedeAsignar(actor, rol, sucursales))
+        {
+            throw new ProhibidoException(ResolutorActor.MensajeSinAlcance);
+        }
 
         var nombre = request.NombreUsuario.Trim();
         var existente = await usuarios.ObtenerPorNombreNormalizadoAsync(nombre.ToLowerInvariant(), cancellationToken);
@@ -24,11 +38,11 @@ public sealed class CrearUsuarioHandler(
             throw new ConflictoException("Ya existe un usuario con ese nombre");
         }
 
-        var rol = RolExtensiones.DesdeTexto(request.Rol);
-        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(request.Contrasena), rol, [], reloj.Ahora);
+        var usuario = Usuario.Crear(
+            restauranteId, nombre, hasher.Hashear(request.Contrasena), rol, sucursales, reloj.Ahora);
         usuarios.Agregar(usuario);
         await usuarios.GuardarCambiosAsync(cancellationToken);
 
-        return UsuarioDto.Desde(usuario);
+        return await resolutor.ADtoAsync(actor, usuario, cancellationToken);
     }
 }

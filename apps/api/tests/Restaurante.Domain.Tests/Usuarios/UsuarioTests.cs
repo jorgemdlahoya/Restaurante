@@ -8,8 +8,12 @@ public class UsuarioTests
 
     private static readonly Guid RestauranteId = Guid.NewGuid();
 
+    // Desde 004/RF-02 cajero, cocinero y administrador de sucursal necesitan sucursal.
+    private static IReadOnlyCollection<Guid> SucursalesPara(Rol rol) =>
+        Usuario.CardinalidadValida(rol, 0) ? [] : [Guid.NewGuid()];
+
     private static Usuario NuevoUsuario(Rol rol = Rol.Cajero) =>
-        Usuario.Crear(RestauranteId, "Ana.Mesera", "hash", rol, [], Ahora);
+        Usuario.Crear(RestauranteId, "Ana.Mesera", "hash", rol, SucursalesPara(rol), Ahora);
 
     [Fact(DisplayName = "001/RF-11: un usuario nuevo está activo y normaliza el nombre")]
     public void Crear_UsuarioNuevo_EstaActivoYNormalizaElNombre()
@@ -29,7 +33,8 @@ public class UsuarioTests
     [Fact(DisplayName = "002/RF-13: sólo el administrador de plataforma carece de restaurante")]
     public void Crear_SoloElAdministradorDePlataformaCareceDeRestaurante()
     {
-        Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", Rol.Cajero, [], Ahora));
+        Assert.Throws<ArgumentException>(() =>
+            Usuario.Crear(null, "ana", "hash", Rol.Cajero, SucursalesPara(Rol.Cajero), Ahora));
         Assert.Throws<ArgumentException>(() =>
             Usuario.Crear(Guid.NewGuid(), "root", "hash", Rol.AdministradorPlataforma, [], Ahora));
 
@@ -37,8 +42,9 @@ public class UsuarioTests
         Assert.Null(plataforma.RestauranteId);
         foreach (var rol in new[] { Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero, Rol.Cocinero })
         {
-            Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", rol, [], Ahora));
-            Assert.Equal(RestauranteId, Usuario.Crear(RestauranteId, "ana", "hash", rol, [], Ahora).RestauranteId);
+            Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", rol, SucursalesPara(rol), Ahora));
+            Assert.Equal(
+                RestauranteId, Usuario.Crear(RestauranteId, "ana", "hash", rol, SucursalesPara(rol), Ahora).RestauranteId);
         }
     }
 

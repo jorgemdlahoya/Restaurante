@@ -31,6 +31,19 @@ public class UsuarioSucursalesTests
         }
     }
 
+    [Theory(DisplayName = "004/RF-02: Crear aplica la cardinalidad de sucursales del rol")]
+    [InlineData(Rol.AdministradorGeneral, 1)]
+    [InlineData(Rol.AdministradorSucursal, 0)]
+    [InlineData(Rol.AdministradorSucursal, 2)]
+    [InlineData(Rol.Cajero, 0)]
+    [InlineData(Rol.Cocinero, 0)]
+    public void Crear_AplicaLaCardinalidad(Rol rol, int cantidad)
+    {
+        var sucursales = Enumerable.Range(0, cantidad).Select(_ => Guid.NewGuid()).ToArray();
+
+        Assert.Throws<ArgumentException>(() => Nuevo(rol, sucursales));
+    }
+
     [Fact(DisplayName = "004/RF-02: Crear rechaza sucursales duplicadas")]
     public void Crear_RechazaSucursalesDuplicadas()
     {

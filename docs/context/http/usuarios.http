@@ -16,13 +16,20 @@ Content-Type: application/json
 ### Token capturado para las peticiones siguientes
 @token = {{login.response.body.$.token}}
 
-### Listar usuarios de su restaurante (001/RF-14, 002/RF-12). Sólo administrador general.
+### Listar usuarios de su restaurante (001/RF-14, 002/RF-12, 004/RF-03, RF-07). Administrador general o de sucursal.
+# Cada usuario trae sus sucursales ({ slug, nombre, activa }, por nombre) y "gestionable". El general ve a todos;
+# el de sucursal sólo a quien tenga su sucursal asignada (sin administradores generales).
 # 401 si el restaurante del token está desactivado (002/RF-06); 404 si el slug no es el del token (002/RF-12);
-# 403 con un token de plataforma.
+# 403 con un token de plataforma, cajero o cocinero (004/RF-11) o si la sucursal del administrador de sucursal
+# está desactivada (004/RF-26).
 GET {{baseUrl}}/api/r/{{slug}}/usuarios
 Authorization: Bearer {{token}}
 
-### Crear usuario (001/RF-11..RF-13, 002/RF-13). Rol exacto: administrador_general, administrador_sucursal, cajero, cocinero.
+### Crear usuario (001/RF-11..RF-13, 002/RF-13, 004/RF-01, RF-02, RF-08). Rol exacto: administrador_general,
+# administrador_sucursal, cajero, cocinero. "sucursales" son slugs: administrador_general ninguna,
+# administrador_sucursal exactamente una, cajero y cocinero al menos una, sin repetir; si no, 400 en "sucursales".
+# Un slug que no existe en este restaurante: 400 en "sucursales". El administrador de sucursal sólo crea cajeros y
+# cocineros con su sucursal como única: con otro rol u otra sucursal (exista o no) responde 403.
 # Responde 201 con Location: /api/r/{slug}/usuarios/{id}; 409 si el nombre ya existe en este restaurante
 # (el mismo nombre puede existir en otro restaurante).
 # @name crearUsuario
@@ -33,7 +40,8 @@ Content-Type: application/json
 {
   "nombreUsuario": "<NOMBRE_USUARIO>",
   "contrasena": "<CONTRASENA>",
-  "rol": "cajero"
+  "rol": "cajero",
+  "sucursales": ["<SLUG_SUCURSAL>"]
 }
 
 ### Id del usuario creado

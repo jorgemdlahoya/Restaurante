@@ -10,8 +10,11 @@ using Restaurante.WebApi.Filtros;
 
 namespace Restaurante.WebApi.Controllers;
 
-/// <summary>Cuerpo del alta de usuario. Las propiedades son anulables para que los faltantes los valide FluentValidation.</summary>
-public sealed record CrearUsuarioPeticion(string? NombreUsuario, string? Contrasena, string? Rol);
+/// <summary>
+/// Cuerpo del alta de usuario. Las propiedades son anulables para que los faltantes los valide FluentValidation.
+/// <see cref="Sucursales"/> son slugs; ausente equivale a ninguna.
+/// </summary>
+public sealed record CrearUsuarioPeticion(string? NombreUsuario, string? Contrasena, string? Rol, string[]? Sucursales);
 
 /// <summary>Cuerpo del cambio de estado (activar/desactivar).</summary>
 public sealed record CambiarEstadoPeticion(bool? Activo);
@@ -21,7 +24,8 @@ public sealed record CambiarRolPeticion(string? Rol);
 
 [ApiController]
 [Route("api/r/{slug}/usuarios")]
-[RequiereRol(Rol.AdministradorGeneral)]
+// El alcance fino (qué usuarios ve y gestiona el administrador de sucursal) lo deciden los handlers (004/RF-07..RF-11).
+[RequiereRol(Rol.AdministradorGeneral, Rol.AdministradorSucursal)]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")] // Restaurante no disponible
@@ -41,7 +45,8 @@ public sealed class UsuariosController(IMediator mediador) : ControllerBase
         var usuario = await mediador.Send(new CrearUsuarioCommand(
             peticion.NombreUsuario ?? string.Empty,
             peticion.Contrasena ?? string.Empty,
-            peticion.Rol ?? string.Empty), ct);
+            peticion.Rol ?? string.Empty,
+            peticion.Sucursales ?? []), ct);
         return Created($"/api/r/{slug.ToLowerInvariant()}/usuarios/{usuario.Id}", usuario);
     }
 

@@ -11,6 +11,7 @@ using Microsoft.IdentityModel.Tokens;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
 using Restaurante.Domain.Restaurantes;
+using Restaurante.Domain.Sucursales;
 using Restaurante.Domain.Usuarios;
 using Restaurante.Infrastructure.Persistencia;
 using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
@@ -86,6 +87,30 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         return restaurante;
     }
 
+    private int _sucursalesSembradas;
+
+    /// <summary>Siembra una sucursal activa del restaurante en el almacén en memoria y la devuelve.</summary>
+    public Sucursal SembrarSucursal(Guid restauranteId, string slug, string nombre, string prefijo = "S")
+    {
+        var whatsApp = $"+52559{Interlocked.Increment(ref _sucursalesSembradas):D7}";
+        var sucursal = Sucursal.Crear(
+            restauranteId,
+            slug,
+            new DatosSucursal(nombre, "Calle 1", "+525500000000", whatsApp, null, prefijo, ZonasHorarias.PorDefecto),
+            DateTimeOffset.UtcNow);
+        Sucursales.Sucursales.Add(sucursal);
+        return sucursal;
+    }
+
+    /// <summary>
+    /// Sucursales mínimas que exige el rol (004/RF-02): ninguna para los administradores general y de plataforma;
+    /// para el resto, una sucursal activa nueva sembrada en el restaurante.
+    /// </summary>
+    public IReadOnlyCollection<Guid> SucursalesPara(Rol rol, Guid? restauranteId) =>
+        Usuario.CardinalidadValida(rol, 0) || restauranteId is not { } id
+            ? []
+            : [SembrarSucursal(id, $"suc-{Guid.NewGuid():N}"[..20], "Sucursal de prueba").Id];
+
     public IReadOnlyDictionary<string, string?> Entorno => _entorno;
 
     /// <summary>Ajuste opcional de servicios que cada prueba aplica sobre el host (p. ej. provocar un fallo en un middleware).</summary>
@@ -109,7 +134,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     /// <c>MiddlewareSesionUsuario</c>. Con <paramref name="usuarioId"/> usa ese usuario (debe estar sembrado);
     /// sin él siembra uno activo con el rol y el restaurante dados. El token lleva los claims indicados, no los
     /// del usuario: un rol de restaurante sin <paramref name="restauranteId"/> se siembra en un restaurante al
-    /// azar y el token sale sin <c>restaurant_id</c>.
+    /// azar y el token sale sin <c>restaurant_id</c>. Cajero, cocinero y administrador de sucursal sembrados así
+    /// llevan una sucursal inexistente (004/RF-02).
     /// </summary>
     public string EmitirToken(
         Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null,
@@ -125,8 +151,11 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     private Usuario SembrarUsuarioDeToken(Rol rol, Guid? restauranteId)
     {
         var restauranteDelUsuario = rol == Rol.AdministradorPlataforma ? (Guid?)null : restauranteId ?? Guid.NewGuid();
+        // Cardinalidad de 004/RF-02: los roles que la exigen reciben una sucursal cualquiera (no sembrada). Quien
+        // necesite una sucursal real siembra el usuario y pasa su usuarioId.
+        IReadOnlyCollection<Guid> sucursales = Usuario.CardinalidadValida(rol, 0) ? [] : [Guid.NewGuid()];
         var usuario = Usuario.Crear(
-            restauranteDelUsuario, $"token-{Guid.NewGuid():N}", "sin-hash", rol, [], DateTimeOffset.UtcNow);
+            restauranteDelUsuario, $"token-{Guid.NewGuid():N}", "sin-hash", rol, sucursales, DateTimeOffset.UtcNow);
         Usuarios.Agregar(usuario);
         return usuario;
     }

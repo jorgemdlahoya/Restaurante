@@ -28,7 +28,9 @@ public sealed class UsuariosEndpointsTests : IDisposable
     private Usuario Sembrar(string nombre, Rol rol, bool activo = true)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(_restaurante.Id, nombre, hasher.Hashear(Contrasena), rol, [], DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(
+            _restaurante.Id, nombre, hasher.Hashear(Contrasena), rol, _fabrica.SucursalesPara(rol, _restaurante.Id),
+            DateTimeOffset.UtcNow);
         if (!activo)
         {
             usuario.Desactivar();
@@ -52,10 +54,12 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-11: alta → 201 con Location y sin contraseña")]
     public async Task Alta_responde_201_con_location_y_sin_contrasena()
     {
+        // Desde 004/RF-02 el cajero lleva al menos una sucursal.
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var respuesta = await cliente.PostAsJsonAsync(Ruta,
-            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cajero" });
+            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
         var cuerpo = await respuesta.Content.ReadAsStringAsync();
@@ -75,10 +79,11 @@ public sealed class UsuariosEndpointsTests : IDisposable
     public async Task Duplicado_responde_409()
     {
         Sembrar("maria", Rol.Cajero);
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var respuesta = await cliente.PostAsJsonAsync(Ruta,
-            new { nombreUsuario = "MARIA", contrasena = Contrasena, rol = "cajero" });
+            new { nombreUsuario = "MARIA", contrasena = Contrasena, rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
     }

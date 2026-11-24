@@ -34,6 +34,14 @@
 - **Sello de sesión**: `SelloSesion` (Guid) del usuario, en el token como claim `sello`; se renueva al
   desactivar, cambiar contraseña, rol o sucursales. `MiddlewareSesionUsuario` responde 401 `Sesión no válida` /
   `Vuelve a iniciar sesión.` (`WWW-Authenticate: Bearer`) si falta, no coincide o el usuario no existe o está inactivo.
+- **Cardinalidad rol ↔ sucursales** (004/RF-02): `administrador_general`/`administrador_plataforma` 0,
+  `administrador_sucursal` exactamente 1, `cajero`/`cocinero` ≥ 1, sin repetir (`Usuario.CardinalidadValida`;
+  `Usuario.Crear` la exige). La API indica las sucursales por `slug`; error 400 en `sucursales`.
+- **UsuarioDto**: `{ id, nombreUsuario, rol, activo, sucursales: [{ slug, nombre, activa }], gestionable }`;
+  sucursales por nombre; `gestionable` según el alcance de quien consulta.
+- **ResolutorActor**: arma el `ActorUsuarios` desde `IUsuarioActual` (403 si no puede operar), resuelve slugs de
+  sucursal en el restaurante (400 si no existe; 403 para el administrador de sucursal con un slug ajeno) y proyecta
+  `UsuarioDto`.
 - **PaletaDto**: paleta de un restaurante en la API (`principal`, `acento`, `oscuro`, `fondo`, `texto`),
   cada color `#RRGGBB` o `null`.
 - **IdentidadDto**: `{ nombre, slug, paleta, logoUrl }`; respuesta anónima de

@@ -124,6 +124,6 @@ public class AlcanceGestionUsuariosTests
         var actor = new ActorUsuarios(Guid.NewGuid(), Rol.AdministradorSucursal, null, true);
 
         Assert.False(AlcanceGestionUsuarios.PuedeOperar(actor));
-        Assert.False(AlcanceGestionUsuarios.PuedeVer(actor, Crear(Rol.Cajero)));
+        Assert.False(AlcanceGestionUsuarios.PuedeVer(actor, Crear(Rol.Cajero, Guid.NewGuid())));
     }
 }

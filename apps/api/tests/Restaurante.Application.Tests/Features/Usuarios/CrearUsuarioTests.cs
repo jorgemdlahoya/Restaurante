@@ -13,15 +13,26 @@ public class CrearUsuarioTests
     private readonly UsuarioRepositoryEnMemoria _repositorio;
     private readonly HasherFalso _hasher = new();
     private readonly RelojFijo _reloj = new();
+    private readonly SucursalRepositoryEnMemoria _sucursales;
 
-    public CrearUsuarioTests() => _repositorio = new(_contexto);
+    public CrearUsuarioTests()
+    {
+        _repositorio = new(_contexto);
+        _sucursales = new(_contexto);
+        _sucursales.Sucursales.Add(SucursalesDePrueba.Crear(RestauranteId, "centro", "Centro", "C", "+525511111111"));
+    }
 
-    private CrearUsuarioHandler CrearHandler() => new(_repositorio, _hasher, _reloj, _contexto);
+    private CrearUsuarioHandler CrearHandler() => new(_repositorio, _hasher, _reloj, _contexto,
+        new ResolutorActor(new UsuarioActualFalso(Guid.NewGuid()), _sucursales));
+
+    // Desde 004/RF-02 cajero y cocinero llevan al menos una sucursal.
+    private static CrearUsuarioCommand Comando(string nombre, string contrasena, string rol) =>
+        new(nombre, contrasena, rol, rol is "cajero" or "cocinero" or "administrador_sucursal" ? ["centro"] : []);
 
     [Fact(DisplayName = "001/RF-11: crea usuario activo con hash y devuelve DTO sin contraseña")]
     public async Task CreaUsuarioActivoConHash()
     {
-        var dto = await CrearHandler().Handle(new CrearUsuarioCommand("Maria", "secreta123", "cajero"), CancellationToken.None);
+        var dto = await CrearHandler().Handle(Comando("Maria", "secreta123", "cajero"), CancellationToken.None);
 
         var guardado = Assert.Single(_repositorio.Usuarios);
         Assert.Equal("hash:secreta123", guardado.HashContrasena);
@@ -29,16 +40,17 @@ public class CrearUsuarioTests
         Assert.Equal(Rol.Cajero, guardado.Rol);
         Assert.Equal(_reloj.Ahora, guardado.CreadoEn);
         Assert.Equal(1, _repositorio.GuardadosLlamados);
-        Assert.Equal(new UsuarioDto(guardado.Id, "Maria", "cajero", true), dto);
+        Assert.Equal((guardado.Id, "Maria", "cajero", true), (dto.Id, dto.NombreUsuario, dto.Rol, dto.Activo));
+        Assert.Equal([new SucursalAsignadaDto("centro", "Centro", true)], dto.Sucursales);
     }
 
     [Fact(DisplayName = "001/RF-12: nombre duplicado sin distinguir mayúsculas lanza ConflictoException")]
     public async Task NombreDuplicadoLanzaConflicto()
     {
-        _repositorio.Agregar(Usuario.Crear(RestauranteId, "Maria", "hash:x", Rol.Cajero, [], _reloj.Ahora));
+        _repositorio.Agregar(Usuario.Crear(RestauranteId, "Maria", "hash:x", Rol.Cajero, [Guid.NewGuid()], _reloj.Ahora));
 
         await Assert.ThrowsAsync<ConflictoException>(() =>
-            CrearHandler().Handle(new CrearUsuarioCommand("MARIA", "secreta123", "cocinero"), CancellationToken.None));
+            CrearHandler().Handle(Comando("MARIA", "secreta123", "cocinero"), CancellationToken.None));
 
         Assert.Single(_repositorio.Usuarios);
         Assert.Equal(0, _repositorio.GuardadosLlamados);
@@ -52,7 +64,7 @@ public class CrearUsuarioTests
     [InlineData("maria", "secreta123", "chef")]
     public void RechazaDatosInvalidos(string nombre, string contrasena, string rol)
     {
-        var resultado = new CrearUsuarioValidator().Validate(new CrearUsuarioCommand(nombre, contrasena, rol));
+        var resultado = new CrearUsuarioValidator().Validate(Comando(nombre, contrasena, rol));
 
         Assert.False(resultado.IsValid);
     }
@@ -64,7 +76,7 @@ public class CrearUsuarioTests
     [InlineData("abc", "secreta123", "administrador_general")]
     public void AceptaDatosValidos(string nombre, string contrasena, string rol)
     {
-        var resultado = new CrearUsuarioValidator().Validate(new CrearUsuarioCommand(nombre, contrasena, rol));
+        var resultado = new CrearUsuarioValidator().Validate(Comando(nombre, contrasena, rol));
 
         Assert.True(resultado.IsValid);
     }

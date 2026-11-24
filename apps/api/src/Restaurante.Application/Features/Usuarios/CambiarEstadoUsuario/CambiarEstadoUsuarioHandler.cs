@@ -7,12 +7,18 @@ namespace Restaurante.Application.Features.Usuarios.CambiarEstadoUsuario;
 
 public sealed class CambiarEstadoUsuarioHandler(
     IUsuarioRepository usuarios,
-    IUsuarioActual usuarioActual) : IRequestHandler<CambiarEstadoUsuarioCommand, UsuarioDto>
+    IUsuarioActual usuarioActual,
+    ResolutorActor resolutor) : IRequestHandler<CambiarEstadoUsuarioCommand, UsuarioDto>
 {
     public async Task<UsuarioDto> Handle(CambiarEstadoUsuarioCommand request, CancellationToken cancellationToken)
     {
+        var actor = await resolutor.ObtenerAsync(cancellationToken);
         var usuario = await usuarios.ObtenerPorIdAsync(request.Id, cancellationToken)
             ?? throw new NoEncontradoException("Usuario no encontrado");
+        if (!AlcanceGestionUsuarios.PuedeGestionar(actor, usuario))
+        {
+            throw new ProhibidoException(ResolutorActor.MensajeSinAlcance);
+        }
 
         // El validador (pipeline) garantiza que Activo tiene valor.
         if (request.Activo is true)
@@ -37,6 +43,6 @@ public sealed class CambiarEstadoUsuarioHandler(
         }
 
         await usuarios.GuardarCambiosAsync(cancellationToken);
-        return UsuarioDto.Desde(usuario);
+        return await resolutor.ADtoAsync(actor, usuario, cancellationToken);
     }
 }
