@@ -68,7 +68,7 @@ public sealed class UsuariosSucursalesTests(PostgresFixture postgres)
         Assert.Equal(usuario.SelloSesion, porId.SelloSesion);
     }
 
-    [Fact(DisplayName = "004/RF-01: ListarAsync ordena por nombre normalizado y trae las sucursales")]
+    [Fact(DisplayName = "004/RF-03: ListarAsync ordena por nombre e incluye las sucursales")]
     public async Task Listar_ordena_por_nombre_y_trae_sucursales()
     {
         var cadena = await BaseMigradaAsync();
