@@ -9,6 +9,11 @@
       "estado": "hecha",
       "fecha": "2026-11-24T15:08:55",
       "commit": "72554602f99b42cafc4d416b5d0eace0336834fd"
+    },
+    "T-03": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T15:13:10",
+      "commit": "25cf86950705e4c898308c36e765631a91389622"
     }
   },
   "aceptadas": {}
