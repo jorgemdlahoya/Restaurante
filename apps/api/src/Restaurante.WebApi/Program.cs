@@ -51,6 +51,9 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(Restaurante.WebApi.DependencyInjection.PoliticaCors);
 app.UseAuthentication();
+// Tras la autenticación y antes del restaurante (también en /api/plataforma): el usuario del token debe existir,
+// estar activo y conservar el sello de sesión; si no, 401 "Sesión no válida" (004/RF-13, RF-14).
+app.UseMiddleware<MiddlewareSesionUsuario>();
 // Tras la autenticación: decide el restaurante de la petición (slug de la ruta o token) antes de los controllers.
 app.UseMiddleware<MiddlewareContextoRestaurante>();
 // Tras el restaurante: en /api/r/{slug}/s/{sucursal}… fija la sucursal (dentro de ese restaurante) o responde 404.

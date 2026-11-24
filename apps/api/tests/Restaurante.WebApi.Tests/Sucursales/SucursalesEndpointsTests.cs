@@ -31,7 +31,7 @@ public sealed class SucursalesEndpointsTests : IDisposable
     {
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(rol, restauranteId: restauranteId));
+            new AuthenticationHeaderValue("Bearer", _fabrica.EmitirToken(rol, restauranteId: restauranteId));
         return cliente;
     }
 

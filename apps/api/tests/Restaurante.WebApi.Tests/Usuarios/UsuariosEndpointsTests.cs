@@ -43,7 +43,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer",
-                FabricaApi.EmitirToken(rol, usuarioId: usuarioId, restauranteId: _restaurante.Id));
+                _fabrica.EmitirToken(rol, usuarioId: usuarioId, restauranteId: _restaurante.Id));
         return cliente;
     }
 
@@ -126,7 +126,9 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-14: listado → 200")]
     public async Task Listado_responde_200()
     {
-        var cliente = ClienteComo(Rol.AdministradorGeneral); // arrancar el host primero siembra al administrador inicial
+        // El token debe ser de un usuario existente (004/RF-14): "jefa" es quien consulta.
+        var jefa = Sembrar("jefa", Rol.AdministradorGeneral); // arrancar el host primero siembra al administrador inicial
+        var cliente = ClienteComo(Rol.AdministradorGeneral, jefa.Id);
         Sembrar("maria", Rol.Cajero, activo: false);
 
         var respuesta = await cliente.GetAsync(Ruta);
@@ -134,9 +136,10 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
         var lista = json.RootElement.EnumerateArray().ToList();
-        // Sólo maria: el administrador de plataforma sembrado al arrancar no pertenece al restaurante (filtro por contexto).
-        var maria = Assert.Single(lista);
-        Assert.Equal("maria", maria.GetProperty("nombreUsuario").GetString());
+        // Sólo jefa y maria: el administrador de plataforma sembrado al arrancar no pertenece al restaurante
+        // (filtro por contexto).
+        Assert.Equal(["jefa", "maria"], lista.Select(u => u.GetProperty("nombreUsuario").GetString()));
+        var maria = lista[1];
         Assert.False(maria.GetProperty("activo").GetBoolean());
     }
 
@@ -178,9 +181,12 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-17: último administrador → 409")]
     public async Task Ultimo_administrador_responde_409()
     {
-        var cliente = ClienteComo(Rol.AdministradorGeneral); // sub distinto: no es autodesactivación
-        // El administrador inicial es de plataforma: este es el único administrador general activo.
+        // El administrador inicial es de plataforma: este es el único administrador general activo. Con el
+        // sello de sesión (004/RF-14) quien llama debe ser un administrador general existente y activo, así que
+        // el único administrador sólo puede ser él mismo: el cambio de rol choca con "último administrador" y la
+        // desactivación con la autoprotección; ambos responden 409.
         var unico = Sembrar("jefe", Rol.AdministradorGeneral);
+        var cliente = ClienteComo(Rol.AdministradorGeneral, unico.Id);
 
         var cambioRol = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/rol", new { rol = "cajero" });
         var desactivar = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/estado", new { activo = false });

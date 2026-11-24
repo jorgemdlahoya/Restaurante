@@ -27,7 +27,7 @@ public sealed class LogoTests : IDisposable
     {
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(rol));
+            new AuthenticationHeaderValue("Bearer", _fabrica.EmitirToken(rol));
         return cliente;
     }
 

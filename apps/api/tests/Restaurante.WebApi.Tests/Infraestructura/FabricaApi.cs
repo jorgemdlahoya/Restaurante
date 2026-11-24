@@ -104,20 +104,53 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         ["ADMIN_PASSWORD"] = "Contrasena-de-prueba-1",
     };
 
-    public static string EmitirToken(
+    /// <summary>
+    /// Firma un token para un usuario del almacén y le pone su sello vigente (004/RF-13), para que lo acepte
+    /// <c>MiddlewareSesionUsuario</c>. Con <paramref name="usuarioId"/> usa ese usuario (debe estar sembrado);
+    /// sin él siembra uno activo con el rol y el restaurante dados. El token lleva los claims indicados, no los
+    /// del usuario: un rol de restaurante sin <paramref name="restauranteId"/> se siembra en un restaurante al
+    /// azar y el token sale sin <c>restaurant_id</c>.
+    /// </summary>
+    public string EmitirToken(
         Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null,
+        string emisor = "restaurante-api", string audiencia = "restaurante-web", Guid? restauranteId = null)
+    {
+        var usuario = usuarioId is { } id
+            ? Usuarios.Usuarios.Single(u => u.Id == id)
+            : SembrarUsuarioDeToken(rol, restauranteId);
+        return FirmarToken(rol, usuario.Id, usuario.SelloSesion.ToString("D"), clave, expiraEn, emisor, audiencia,
+            restauranteId);
+    }
+
+    private Usuario SembrarUsuarioDeToken(Rol rol, Guid? restauranteId)
+    {
+        var restauranteDelUsuario = rol == Rol.AdministradorPlataforma ? (Guid?)null : restauranteId ?? Guid.NewGuid();
+        var usuario = Usuario.Crear(
+            restauranteDelUsuario, $"token-{Guid.NewGuid():N}", "sin-hash", rol, [], DateTimeOffset.UtcNow);
+        Usuarios.Agregar(usuario);
+        return usuario;
+    }
+
+    /// <summary>Firma a mano un token con los claims dados; <paramref name="sello"/> nulo lo deja sin el claim.</summary>
+    public static string FirmarToken(
+        Rol rol, Guid usuarioId, string? sello, string clave = ClaveJwt, TimeSpan? expiraEn = null,
         string emisor = "restaurante-api", string audiencia = "restaurante-web", Guid? restauranteId = null)
     {
         var ahora = DateTime.UtcNow;
         List<Claim> claims =
         [
-            new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),
+            new Claim("sub", usuarioId.ToString()),
             new Claim("unique_name", "usuario-prueba"),
             new Claim("role", rol.ComoTexto()),
         ];
         if (restauranteId is { } id)
         {
             claims.Add(new Claim("restaurant_id", id.ToString()));
+        }
+
+        if (sello is not null)
+        {
+            claims.Add(new Claim("sello", sello));
         }
 
         var token = new JwtSecurityToken(

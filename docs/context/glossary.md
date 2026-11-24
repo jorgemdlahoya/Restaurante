@@ -31,6 +31,9 @@
 - **LoginPeticion**: cuerpo `{ nombreUsuario, contrasena }` de `POST /api/r/{slug}/auth/login` y
   `POST /api/plataforma/auth/login`.
 - **restaurant_id**: claim del JWT con el restaurante del usuario; ausente en los tokens de plataforma.
+- **Sello de sesión**: `SelloSesion` (Guid) del usuario, en el token como claim `sello`; se renueva al
+  desactivar, cambiar contraseña, rol o sucursales. `MiddlewareSesionUsuario` responde 401 `Sesión no válida` /
+  `Vuelve a iniciar sesión.` (`WWW-Authenticate: Bearer`) si falta, no coincide o el usuario no existe o está inactivo.
 - **PaletaDto**: paleta de un restaurante en la API (`principal`, `acento`, `oscuro`, `fondo`, `texto`),
   cada color `#RRGGBB` o `null`.
 - **IdentidadDto**: `{ nombre, slug, paleta, logoUrl }`; respuesta anónima de

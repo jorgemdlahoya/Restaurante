@@ -43,8 +43,22 @@ public sealed class AislamientoTests : IDisposable
         return cliente;
     }
 
-    private HttpClient AdminDe(RestauranteEntidad restaurante) =>
-        Cliente(FabricaApi.EmitirToken(Rol.AdministradorGeneral, restauranteId: restaurante.Id));
+    private readonly Dictionary<Guid, Usuario> _admins = [];
+
+    /// <summary>
+    /// Cliente del administrador "admin" del restaurante (se siembra la primera vez): el token debe ser de un
+    /// usuario existente con su sello (004/RF-14), así que "admin" aparece en los listados de ese restaurante.
+    /// </summary>
+    private HttpClient AdminDe(RestauranteEntidad restaurante)
+    {
+        if (!_admins.TryGetValue(restaurante.Id, out var admin))
+        {
+            admin = Sembrar(restaurante.Id, "admin", Rol.AdministradorGeneral);
+            _admins[restaurante.Id] = admin;
+        }
+
+        return Cliente(_fabrica.EmitirToken(Rol.AdministradorGeneral, usuarioId: admin.Id, restauranteId: restaurante.Id));
+    }
 
     private static async Task<List<string?>> NombresAsync(HttpResponseMessage respuesta)
     {
@@ -83,14 +97,14 @@ public sealed class AislamientoTests : IDisposable
         _a.Activar();
         var despues = await NombresAsync(await cliente.GetAsync("/api/r/resto-a/usuarios"));
 
-        Assert.Equal(["ana"], antes);
+        Assert.Equal(["admin", "ana"], antes);
         Assert.Equal(antes, despues);
     }
 
     [Fact(DisplayName = "002/RF-06: token con restaurant_id desconocido recibe 401")]
     public async Task Token_con_restaurante_desconocido_da_401()
     {
-        var cliente = Cliente(FabricaApi.EmitirToken(Rol.AdministradorGeneral, restauranteId: Guid.NewGuid()));
+        var cliente = Cliente(_fabrica.EmitirToken(Rol.AdministradorGeneral, restauranteId: Guid.NewGuid()));
 
         var respuesta = await cliente.GetAsync("/api/r/resto-a/usuarios");
 
@@ -115,7 +129,7 @@ public sealed class AislamientoTests : IDisposable
 
         var nombres = await NombresAsync(await AdminDe(_a).GetAsync("/api/r/Resto-A/usuarios"));
 
-        Assert.Equal(["ana"], nombres);
+        Assert.Equal(["admin", "ana"], nombres);
     }
 
     [Fact(DisplayName = "002/RF-12: A no ve ni modifica un usuario de B por id")]
@@ -142,10 +156,9 @@ public sealed class AislamientoTests : IDisposable
             new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cocinero" });
 
         Assert.Equal(HttpStatusCode.Created, alta.StatusCode);
-        Assert.Equal(["maria"], await NombresAsync(await AdminDe(_a).GetAsync("/api/r/resto-a/usuarios")));
+        Assert.Equal(["admin", "maria"], await NombresAsync(await AdminDe(_a).GetAsync("/api/r/resto-a/usuarios")));
         var deB = await NombresAsync(await AdminDe(_b).GetAsync("/api/r/resto-b/usuarios"));
-        var mariaDeB = Assert.Single(deB);
-        Assert.Equal("maria", mariaDeB);
+        Assert.Equal(["admin", "maria"], deB);
         Assert.Equal(2, _fabrica.Usuarios.Usuarios.Count(u => u.NombreUsuario == "maria"));
         Assert.Contains(_fabrica.Usuarios.Usuarios, u => u.NombreUsuario == "maria" && u.RestauranteId == _a.Id);
         Assert.Single(_fabrica.Usuarios.Usuarios, u => u.NombreUsuario == "maria" && u.RestauranteId == _b.Id
@@ -155,7 +168,7 @@ public sealed class AislamientoTests : IDisposable
     [Fact(DisplayName = "002/RF-12: un token de plataforma en /api/r/{slug}/usuarios recibe 403")]
     public async Task Token_de_plataforma_en_usuarios_da_403()
     {
-        var respuesta = await Cliente(FabricaApi.EmitirToken(Rol.AdministradorPlataforma))
+        var respuesta = await Cliente(_fabrica.EmitirToken(Rol.AdministradorPlataforma))
             .GetAsync("/api/r/resto-a/usuarios");
 
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);

@@ -45,7 +45,7 @@ public sealed class ErroresFueraDeMvcTests
         var restaurante = fabrica.SembrarRestaurante("La Esquina", "la-esquina");
         using var cliente = fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
-            FabricaApi.EmitirToken(Rol.AdministradorGeneral, restauranteId: restaurante.Id));
+            fabrica.EmitirToken(Rol.AdministradorGeneral, restauranteId: restaurante.Id));
 
         var respuesta = await cliente.PutAsync("/api/r/la-esquina/usuarios/no-es-guid/estado",
             new StringContent("{\"activo\":true}", Encoding.UTF8, "application/json"));

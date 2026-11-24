@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
 using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
@@ -45,6 +46,18 @@ public sealed class ControllerEcoContextoSucursal : ControllerBase
     [EndpointAnonimo]
     public IActionResult FueraDeSucursal([FromServices] IContextoSucursal contexto) =>
         Ok(new { sucursalId = contexto.SucursalId });
+}
+
+/// <summary>Devuelve el usuario que fijó <c>MiddlewareSesionUsuario</c> en <see cref="IUsuarioActual"/> (004/RF-13).</summary>
+[ApiController]
+[Route("prueba/sesion")]
+public sealed class ControllerEcoSesion : ControllerBase
+{
+    [HttpGet]
+    [RequiereRol(Rol.AdministradorPlataforma, Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero,
+        Rol.Cocinero)]
+    public IActionResult Eco([FromServices] IUsuarioActual usuario) =>
+        Ok(new { id = usuario.Id, rol = usuario.Rol.ComoTexto(), sucursales = usuario.Sucursales });
 }
 
 /// <summary>Incumple a propósito el Art. 9 (sin rol ni marca anónima): sirve para probar la prueba de guarda.</summary>

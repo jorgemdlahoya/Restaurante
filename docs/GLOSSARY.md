@@ -31,11 +31,20 @@ inactivo, 401 `No autenticado` / `El restaurante no está activo.` (con `WWW-Aut
 vuelve a valer al reactivarlo); en `/api/r/{slug}/…` con el `slug` de otro restaurante, 404
 `Restaurante no disponible`.
 
+## Sello de sesión
+
+`SelloSesion` (Guid) de cada usuario, que viaja en el token como claim `sello` (`EmisorTokensJwt.ClaimSello`,
+formato `D`). Se renueva al desactivar al usuario, al cambiar su contraseña y al cambiar su rol o su conjunto de
+sucursales (una edición sin cambios y la reactivación no lo renuevan). `MiddlewareSesionUsuario` lo compara en
+toda petición autenticada, incluidas las de `/api/plataforma/…`: si el token no lo trae, el usuario no existe,
+está inactivo o el sello no coincide, responde 401 `Sesión no válida` / `Vuelve a iniciar sesión.` con
+`WWW-Authenticate: Bearer`. Así se cortan al instante los tokens emitidos antes del cambio (004/RF-13, RF-14).
+
 ## JWT (emisor y audiencia)
 
 Los tokens llevan `iss = restaurante-api` y `aud = restaurante-web`, y los claims `sub` (id del
-usuario), `unique_name` (nombre de usuario), `role` (rol en minúsculas) y, si el usuario tiene
-restaurante, `restaurant_id`. Se validan firma
+usuario), `unique_name` (nombre de usuario), `role` (rol en minúsculas), `sello` (sello de sesión) y, si el
+usuario tiene restaurante, `restaurant_id`. Se validan firma
 (HS256 con `JWT_SIGNING_KEY`), emisor, audiencia y expiración, sin tolerancia de reloj
 (`ClockSkew = 0`).
 

@@ -32,7 +32,9 @@ public static class DependencyInjection
         // Errores fuera de MVC (ruta/método/contenido, excepciones de middleware): problem+json en español.
         services.AddProblemDetails(o => o.CustomizeProblemDetails = RespuestasProblema.Personalizar);
         services.AddHttpContextAccessor();
-        services.AddScoped<IUsuarioActual, UsuarioActual>();
+        // Usuario de la petición: lo fija MiddlewareSesionUsuario con los datos de base de datos (004/RF-13).
+        services.AddScoped<UsuarioActual>();
+        services.AddScoped<IUsuarioActual>(sp => sp.GetRequiredService<UsuarioActual>());
         // Contexto de restaurante por petición: lo fija MiddlewareContextoRestaurante y lo leen el filtro de EF y los handlers.
         services.AddScoped<ContextoRestaurante>();
         services.AddScoped<IContextoRestaurante>(sp => sp.GetRequiredService<ContextoRestaurante>());

@@ -37,9 +37,21 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   credenciales 401, no encontrado 404, conflicto 409, resto 500 sin detalles internos).
 - `RespuestasProblema`: construye los 400 de validación con una única forma (también para los
   fallos de enlace del modelo).
-- `UsuarioActual`: expone el usuario autenticado (id, rol) a la capa de aplicación.
+- Orden del pipeline: `UseExceptionHandler` → `UseStatusCodePages` → (Swagger en Development) → `UseCors` →
+  `UseAuthentication` → `MiddlewareSesionUsuario` → `MiddlewareContextoRestaurante` →
+  `MiddlewareContextoSucursal` → controllers.
+- `UsuarioActual` (scoped, implementa `IUsuarioActual`: `Id`, `Rol`, `Sucursales`): contenedor por petición que
+  fija `MiddlewareSesionUsuario` con `Establecer(usuario)`; lleva los datos vigentes en base de datos, no los
+  del token. Leerlo sin usuario fijado lanza `InvalidOperationException`.
+- `MiddlewareSesionUsuario` (en `Program.cs` justo después de `UseAuthentication()`, antes del de restaurante y
+  también en `/api/plataforma…`; 004/RF-13, RF-14): sólo actúa si la petición está autenticada. Carga al
+  usuario del claim `sub` con `IUsuarioRepository.ObtenerParaSesionAsync` (por clave primaria, sin filtro de
+  restaurante) y responde 401 `Sesión no válida` / `Vuelve a iniciar sesión.` (constantes
+  `TituloSesionInvalida` y `DetalleSesionInvalida`, con `WWW-Authenticate: Bearer`) si falta el claim `sello` o
+  no es un Guid, el usuario no existe, está inactivo o su `SelloSesion` es otro. Si todo cuadra,
+  `UsuarioActual.Establecer(usuario)`.
 - `ContextoRestaurante` (scoped, implementa `IContextoRestaurante`) y `MiddlewareContextoRestaurante`
-  (en `Program.cs` justo después de `UseAuthentication()`). Reglas en orden: (1) `/api/plataforma…` no fija
+  (en `Program.cs` justo después de `MiddlewareSesionUsuario`). Reglas en orden: (1) `/api/plataforma…` no fija
   contexto aunque llegue un token de restaurante; (2) token autenticado con `restaurant_id`:
   `ObtenerPorIdAsync`; inexistente o inactivo → 401 `No autenticado` / `El restaurante no está activo.` con
   `WWW-Authenticate: Bearer`; en `/api/r/{slug}…` con un `slug` (en minúsculas) distinto del suyo → 404
@@ -127,6 +139,8 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (`RestauranteRepositor
   con el `ContextoRestaurante` por petición. La fábrica de diseño (`dotnet ef`) y las pruebas de
   integración usan `ContextoRestauranteFijo`. Las pruebas de la API usan el contexto y el middleware reales
   con un `UsuarioRepositoryEnMemoria` scoped que filtra el almacén compartido `FabricaApi.Usuarios`.
+  `FabricaApi.EmitirToken` firma tokens de usuarios de ese almacén con su sello (siembra uno si no se pasa
+  `usuarioId`); `FabricaApi.FirmarToken` firma claims a mano (p. ej. sin `sello`).
 
 ## Sucursales y filtro global por convención (feature 003)
 
