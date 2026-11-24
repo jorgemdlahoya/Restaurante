@@ -65,4 +65,7 @@
   respuesta de `POST /api/r/{slug}/sucursales` (201, 409 por duplicados; sólo `administrador_general`).
 - **HorarioDiaDto**: `{ dia, cerrado, apertura?, cierre? }` (día en español, horas `HH:mm`); `GET`/`PUT
   /api/r/{slug}/s/{sucursal}/horario` (siete días lunes→domingo; cierre < apertura = turno nocturno; sólo `administrador_general`).
+- **CierreTemporalDto**: `{ id, inicio, fin, motivo? }` con fechas locales de la sucursal `yyyy-MM-ddTHH:mm` (UTC en BD);
+  `GET`/`POST /api/r/{slug}/s/{sucursal}/cierres` (vigentes y futuros / crear, `inicio` opcional = ahora) y
+  `POST …/cierres/{id}/cancelar` (404 si es de otra sucursal, ya cancelado o ya terminado; sólo `administrador_general`).
 - **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

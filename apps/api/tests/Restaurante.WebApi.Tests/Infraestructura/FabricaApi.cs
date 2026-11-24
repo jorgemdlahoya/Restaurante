@@ -69,6 +69,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     public AlmacenSucursales Sucursales { get; } = new();
 
+    public AlmacenCierres Cierres { get; } = new();
+
     public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
 
     /// <summary>Siembra un restaurante (activo o no) en el repositorio en memoria y lo devuelve.</summary>
@@ -174,6 +176,10 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             servicios.AddScoped<ISucursalRepository>(sp =>
                 new SucursalRepositoryEnMemoria(
                     Sucursales, sp.GetRequiredService<IContextoRestaurante>(), sp.GetRequiredService<IContextoSucursal>()));
+            servicios.RemoveAll<ICierreTemporalRepository>();
+            servicios.AddScoped<ICierreTemporalRepository>(sp =>
+                new CierreTemporalRepositoryEnMemoria(
+                    Cierres, sp.GetRequiredService<IContextoRestaurante>(), sp.GetRequiredService<IContextoSucursal>()));
             servicios.RemoveAll<IRestauranteRepository>();
             servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
 

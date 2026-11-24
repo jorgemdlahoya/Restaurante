@@ -98,3 +98,31 @@ Content-Type: application/json
     { "dia": "domingo", "cerrado": true, "apertura": null, "cierre": null }
   ]
 }
+
+### Listar los cierres temporales de la sucursal (003/RF-10). Sólo administrador general. Vigentes y futuros (fin posterior a ahora).
+# Inicio y fin son hora local de la sucursal (formato yyyy-MM-ddTHH:mm), según su zona horaria.
+# @name listarCierres
+GET {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres
+Authorization: Bearer {{token}}
+
+### Crear un cierre temporal (003/RF-10). Responde 201 con { id, inicio, fin, motivo }.
+# `inicio` es opcional (sin él, empieza ahora); `fin` es obligatorio. Las fechas son hora local de la sucursal sin zona:
+# con la sucursal en America/Tijuana, "2026-12-24T09:00" son las 09:00 de Tijuana. `motivo` hasta 120 caracteres.
+# 400 en `inicio`/`fin` si la fecha no tiene el formato, en `fin` si no es posterior al inicio o está en el pasado,
+# y en `motivo` si pasa de 120 caracteres.
+# @name crearCierre
+POST {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "inicio": "2026-12-24T09:00",
+  "fin": "2026-12-25T09:00",
+  "motivo": "Navidad"
+}
+
+### Cancelar un cierre temporal (003/RF-11). Responde 200 con el cierre; deja de aparecer en los vigentes.
+# 404 "Cierre no encontrado" si no existe, es de otra sucursal, ya fue cancelado o ya terminó.
+# @name cancelarCierre
+POST {{baseUrl}}/api/r/{{slug}}/s/<slug-de-la-sucursal>/cierres/<id-del-cierre>/cancelar
+Authorization: Bearer {{token}}

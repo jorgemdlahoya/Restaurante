@@ -220,6 +220,15 @@ y horas `HH:mm` de 24 h. `GET /api/r/{slug}/s/{sucursal}/horario` devuelve los s
 ignoran). Un cierre anterior a la apertura es un turno nocturno (`18:00`–`02:00`); apertura y cierre iguales se
 rechazan. Los errores salen en las claves `dias` y `dias[i].apertura` / `dias[i].cierre`. Sólo `administrador_general`.
 
+## CierreTemporalDto
+
+Cierre temporal de una sucursal: `{ id, inicio, fin, motivo? }`, con `inicio` y `fin` en la hora local de la sucursal
+sin zona (`yyyy-MM-ddTHH:mm`); en BD se guardan en UTC. `GET /api/r/{slug}/s/{sucursal}/cierres` lista los vigentes y
+futuros (`fin` posterior a ahora); `POST` crea uno (201; `inicio` opcional, vacío = ahora; `fin` posterior al inicio y
+no pasado; `motivo` hasta 120 caracteres); `POST …/cierres/{id}/cancelar` lo cancela (200). Un cierre inexistente, de
+otra sucursal, ya cancelado o ya terminado responde 404 `Cierre no encontrado`. Los errores de fecha salen en las
+claves `inicio` y `fin`. Sólo `administrador_general`.
+
 ## IEntidadDeRestaurante / IEntidadDeSucursal
 
 Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el
