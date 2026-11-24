@@ -9,13 +9,19 @@ namespace Restaurante.Infrastructure.Persistencia;
 public sealed class UsuarioRepository(RestauranteDbContext contexto) : IUsuarioRepository
 {
     public Task<Usuario?> ObtenerPorIdAsync(Guid id, CancellationToken ct) =>
-        contexto.Usuarios.FirstOrDefaultAsync(u => u.Id == id, ct);
+        contexto.Usuarios.Include("_sucursales").FirstOrDefaultAsync(u => u.Id == id, ct);
+
+    public Task<Usuario?> ObtenerParaSesionAsync(Guid id, CancellationToken ct) =>
+        contexto.Usuarios.IgnoreQueryFilters().AsNoTracking().Include("_sucursales")
+            .FirstOrDefaultAsync(u => u.Id == id, ct);
 
     public Task<Usuario?> ObtenerPorNombreNormalizadoAsync(string nombreNormalizado, CancellationToken ct) =>
-        contexto.Usuarios.FirstOrDefaultAsync(u => u.NombreUsuarioNormalizado == nombreNormalizado, ct);
+        contexto.Usuarios.Include("_sucursales")
+            .FirstOrDefaultAsync(u => u.NombreUsuarioNormalizado == nombreNormalizado, ct);
 
     public async Task<IReadOnlyList<Usuario>> ListarAsync(CancellationToken ct) =>
-        await contexto.Usuarios.AsNoTracking().OrderBy(u => u.CreadoEn).ThenBy(u => u.NombreUsuarioNormalizado).ToListAsync(ct);
+        await contexto.Usuarios.AsNoTracking().Include("_sucursales")
+            .OrderBy(u => u.NombreUsuarioNormalizado).ToListAsync(ct);
 
     public Task<int> ContarAdministradoresActivosAsync(CancellationToken ct) =>
         contexto.Usuarios.CountAsync(u => u.Rol == Rol.AdministradorGeneral && u.Activo, ct);

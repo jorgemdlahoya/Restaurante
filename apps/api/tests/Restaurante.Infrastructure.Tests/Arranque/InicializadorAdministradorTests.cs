@@ -19,6 +19,8 @@ public sealed class InicializadorAdministradorTests
         public void Agregar(Usuario usuario) => Agregados.Add(usuario);
         public Task GuardarCambiosAsync(CancellationToken ct) { Guardados++; return Task.CompletedTask; }
         public Task<Usuario?> ObtenerPorIdAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
+
+        public Task<Usuario?> ObtenerParaSesionAsync(Guid id, CancellationToken ct) => throw new NotSupportedException();
         public Task<Usuario?> ObtenerPorNombreNormalizadoAsync(string n, CancellationToken ct) => throw new NotSupportedException();
         public Task<IReadOnlyList<Usuario>> ListarAsync(CancellationToken ct) => throw new NotSupportedException();
         public Task<int> ContarAdministradoresActivosAsync(CancellationToken ct) => throw new NotSupportedException();
