@@ -61,9 +61,14 @@ public sealed class CierresEndpointsTests : IDisposable
 
     private HttpClient ClienteComo(Rol rol)
     {
+        // El rol sin alcance general tiene asignada "centro": su 403 viene del rol y no del 404 de 004/RF-15.
+        var usuario = Usuario.Crear(
+            _a.Id, $"u-{Guid.NewGuid():N}", "sin-hash", rol,
+            Usuario.CardinalidadValida(rol, 0) ? [] : [_centro.Id], DateTimeOffset.UtcNow);
+        _fabrica.Usuarios.Agregar(usuario);
         var cliente = _fabrica.CreateClient();
-        cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", _fabrica.EmitirToken(rol, restauranteId: _a.Id));
+        cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
+            "Bearer", _fabrica.EmitirToken(rol, usuarioId: usuario.Id, restauranteId: _a.Id));
         return cliente;
     }
 

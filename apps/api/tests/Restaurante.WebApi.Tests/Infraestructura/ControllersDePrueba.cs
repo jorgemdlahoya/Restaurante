@@ -60,6 +60,16 @@ public sealed class ControllerEcoSesion : ControllerBase
         Ok(new { id = usuario.Id, rol = usuario.Rol.ComoTexto(), sucursales = usuario.Sucursales });
 }
 
+/// <summary>Endpoint de sucursal abierto a todos los roles, para observar el acceso por sucursal (004/RF-15, RF-25).</summary>
+[ApiController]
+public sealed class ControllerAccesoSucursal : ControllerBase
+{
+    [HttpGet("api/r/{slug}/s/{sucursal}/eco-acceso")]
+    [RequiereRol(Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero, Rol.Cocinero)]
+    public IActionResult Acceso([FromServices] IContextoSucursal contexto) =>
+        Ok(new { sucursalId = contexto.SucursalId });
+}
+
 /// <summary>Incumple a propósito el Art. 9 (sin rol ni marca anónima): sirve para probar la prueba de guarda.</summary>
 [ApiController]
 [Route("prueba-sin-proteccion")]
