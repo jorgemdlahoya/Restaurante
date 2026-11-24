@@ -188,6 +188,152 @@ public sealed class SucursalesEndpointsTests : IDisposable
         Assert.Empty(_fabrica.Sucursales.Sucursales);
     }
 
+    private Sucursal SembrarYObtener(Guid restauranteId, string slug, string nombre, string whatsApp, string prefijo)
+    {
+        Sembrar(restauranteId, slug, nombre, whatsApp, prefijo);
+        return _fabrica.Sucursales.Sucursales[^1];
+    }
+
+    [Fact(DisplayName = "003/RF-04: GET lista nombre, dirección, slug, prefijo y estado de las sucursales del restaurante")]
+    public async Task Listar_devuelve_solo_las_del_restaurante()
+    {
+        Sembrar(_a.Id, "norte", "Norte", "+525500000002", "N");
+        Sembrar(_a.Id, "centro", "Centro", "+525500000001", "C");
+        Sembrar(_b.Id, "ajena", "Ajena", "+525500000005", "A");
+
+        var respuesta = await AdminDeA().GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        var filas = json.RootElement.EnumerateArray().ToList();
+        Assert.Equal(new[] { "Centro", "Norte" }, filas.Select(f => f.GetProperty("nombre").GetString()));
+        var primera = filas[0];
+        Assert.Equal("Calle 1", primera.GetProperty("direccion").GetString());
+        Assert.Equal("centro", primera.GetProperty("slug").GetString());
+        Assert.Equal("C", primera.GetProperty("prefijo").GetString());
+        Assert.True(primera.GetProperty("activa").GetBoolean());
+    }
+
+    [Fact(DisplayName = "003/RF-05: editar cambia los datos y no el slug")]
+    public async Task Editar_cambia_datos_y_no_el_slug()
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+        var cuerpo = Cuerpo(nombre: "Centro Nuevo", slug: "otro", prefijo: "N", zonaHoraria: "America/Tijuana");
+
+        var respuesta = await AdminDeA().PutAsJsonAsync($"{Ruta}/{existente.Id}", cuerpo);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        Assert.Equal("centro", json.RootElement.GetProperty("slug").GetString());
+        Assert.Equal("Centro Nuevo", json.RootElement.GetProperty("nombre").GetString());
+        Assert.Equal("+525512345678", json.RootElement.GetProperty("telefono").GetString());
+        Assert.Equal("centro", existente.Slug);
+        Assert.Equal("Centro Nuevo", existente.Nombre);
+        Assert.Equal("America/Tijuana", existente.ZonaHoraria);
+    }
+
+    [Fact(DisplayName = "003/RF-05: editar con datos inválidos da 400 por campo")]
+    public async Task Editar_con_datos_invalidos_da_400()
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+
+        var respuesta = await AdminDeA().PutAsJsonAsync($"{Ruta}/{existente.Id}", Cuerpo(prefijo: "a"));
+
+        await AssertValidacionAsync(respuesta, "prefijo", "El prefijo debe tener de 1 a 3 letras mayúsculas");
+        Assert.Equal("C", existente.Prefijo);
+    }
+
+    [Fact(DisplayName = "003/RF-05: editar con un prefijo de otra sucursal da 409 y con el propio no")]
+    public async Task Editar_prefijo_ajeno_da_409_y_propio_no()
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+        Sembrar(_a.Id, "norte", "Norte", "+525500000002", "N");
+        var cliente = AdminDeA();
+
+        var ajeno = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}", Cuerpo(nombre: "Centro", prefijo: "N", whatsApp: "+525500000001"));
+        var propio = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}", Cuerpo(nombre: "Centro", prefijo: "C", whatsApp: "+525500000001"));
+
+        Assert.Equal(HttpStatusCode.Conflict, ajeno.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, propio.StatusCode);
+    }
+
+    [Fact(DisplayName = "003/RF-05: editar una sucursal de otro restaurante da 404")]
+    public async Task Editar_de_otro_restaurante_da_404()
+    {
+        var ajena = SembrarYObtener(_b.Id, "ajena", "Ajena", "+525500000005", "A");
+
+        var respuesta = await AdminDeA().PutAsJsonAsync($"{Ruta}/{ajena.Id}", Cuerpo());
+        var inexistente = await AdminDeA().PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}", Cuerpo());
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, inexistente.StatusCode);
+        Assert.Equal("Ajena", ajena.Nombre);
+    }
+
+    [Fact(DisplayName = "003/RF-06: desactivar y reactivar conserva el horario (el almacén de cierres llega en T-09)")]
+    public async Task Desactivar_y_reactivar_conserva_horario()
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+        var ajena = SembrarYObtener(_b.Id, "ajena", "Ajena", "+525500000005", "A");
+        var horarioPropio = HorarioDia.Crear(_a.Id, existente.Id, DiaSemana.Lunes, new TimeOnly(9, 0), new TimeOnly(18, 0));
+        var horarioAjeno = HorarioDia.Crear(_b.Id, ajena.Id, DiaSemana.Martes, new TimeOnly(10, 0), new TimeOnly(20, 0));
+        _fabrica.Sucursales.Horarios.AddRange([horarioPropio, horarioAjeno]);
+        var cliente = AdminDeA();
+
+        var apagada = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}/estado", new { activa = false });
+        Assert.Equal(HttpStatusCode.OK, apagada.StatusCode);
+        using (var json = JsonDocument.Parse(await apagada.Content.ReadAsStringAsync()))
+        {
+            Assert.False(json.RootElement.GetProperty("activa").GetBoolean());
+        }
+
+        Assert.False(existente.Activa);
+        Assert.True(ajena.Activa);
+
+        var encendida = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}/estado", new { activa = true });
+        Assert.Equal(HttpStatusCode.OK, encendida.StatusCode);
+        Assert.True(existente.Activa);
+
+        Assert.Equal(new[] { horarioPropio, horarioAjeno }, _fabrica.Sucursales.Horarios);
+        Assert.Equal(new TimeOnly(9, 0), horarioPropio.Apertura);
+        Assert.Equal(new TimeOnly(18, 0), horarioPropio.Cierre);
+        Assert.Equal(new TimeOnly(10, 0), horarioAjeno.Apertura);
+    }
+
+    [Fact(DisplayName = "003/RF-06: cambiar estado sin activa da 400 y de otro restaurante da 404")]
+    public async Task Estado_sin_activa_da_400_y_ajena_da_404()
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+        var ajena = SembrarYObtener(_b.Id, "ajena", "Ajena", "+525500000005", "A");
+        var cliente = AdminDeA();
+
+        var sinCampo = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}/estado", new Dictionary<string, object?>());
+        var deOtro = await cliente.PutAsJsonAsync($"{Ruta}/{ajena.Id}/estado", new { activa = false });
+
+        await AssertValidacionAsync(sinCampo, "activa", "El estado es obligatorio");
+        Assert.Equal(HttpStatusCode.NotFound, deOtro.StatusCode);
+        Assert.True(ajena.Activa);
+    }
+
+    [Theory(DisplayName = "003/RF-07: listar, editar y cambiar estado exigen administrador_general")]
+    [InlineData(Rol.Cajero)]
+    [InlineData(Rol.AdministradorSucursal)]
+    public async Task Listar_editar_y_estado_exigen_administrador_general(Rol rol)
+    {
+        var existente = SembrarYObtener(_a.Id, "centro", "Centro", "+525500000001", "C");
+        var cliente = ClienteComo(rol, _a.Id);
+
+        var listar = await cliente.GetAsync(Ruta);
+        var editar = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}", Cuerpo(nombre: "Cambiado"));
+        var estado = await cliente.PutAsJsonAsync($"{Ruta}/{existente.Id}/estado", new { activa = false });
+
+        Assert.Equal(HttpStatusCode.Forbidden, listar.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, editar.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, estado.StatusCode);
+        Assert.Equal("Centro", existente.Nombre);
+        Assert.True(existente.Activa);
+    }
+
     [Fact(DisplayName = "003/RF-07: un token de plataforma recibe 403")]
     public async Task Token_de_plataforma_recibe_403()
     {

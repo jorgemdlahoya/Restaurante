@@ -37,3 +37,36 @@ Content-Type: application/json
   "prefijo": "<A>",
   "zonaHoraria": "America/Mexico_City"
 }
+
+### Listar sucursales del restaurante (003/RF-04). Sólo administrador general. Ordenadas por nombre; incluye inactivas.
+# @name listarSucursales
+GET {{baseUrl}}/api/r/{{slug}}/sucursales
+Authorization: Bearer {{token}}
+
+### Editar sucursal (003/RF-05). Mismo cuerpo que el alta salvo `slug`, que es inmutable (si se envía, se ignora).
+# 404 si el id no existe o es de otro restaurante; 409 si nombre o prefijo chocan con otra sucursal del restaurante,
+# o si whatsApp o phoneNumberId pertenecen a otra sucursal de cualquier restaurante (los valores propios no chocan).
+# @name editarSucursal
+PUT {{baseUrl}}/api/r/{{slug}}/sucursales/{{crearSucursal.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_SUCURSAL>",
+  "direccion": "<DIRECCION>",
+  "telefono": "<+52 y 10 digitos>",
+  "whatsApp": "<+52 y 10 digitos>",
+  "phoneNumberId": "<PHONE_NUMBER_ID_OPCIONAL>",
+  "prefijo": "<A>",
+  "zonaHoraria": "America/Mexico_City"
+}
+
+### Activar o desactivar sucursal (003/RF-06). Conserva horario y cierres. Sin `activa` responde 400 "El estado es obligatorio".
+# @name cambiarEstadoSucursal
+PUT {{baseUrl}}/api/r/{{slug}}/sucursales/{{crearSucursal.response.body.$.id}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activa": false
+}
