@@ -120,6 +120,176 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                     b.ToTable("restaurantes", (string)null);
                 });
 
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.CierreTemporal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset?>("CanceladoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelado_en");
+
+                    b.Property<DateTimeOffset>("CreadoEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creado_en");
+
+                    b.Property<DateTimeOffset>("Fin")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fin");
+
+                    b.Property<DateTimeOffset>("Inicio")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("inicio");
+
+                    b.Property<string>("Motivo")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("motivo");
+
+                    b.Property<Guid>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
+                    b.Property<Guid>("SucursalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sucursal_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SucursalId", "Fin")
+                        .HasDatabaseName("ix_cierres_temporales_sucursal_fin");
+
+                    b.ToTable("cierres_temporales", (string)null);
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.HorarioDia", b =>
+                {
+                    b.Property<Guid>("SucursalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sucursal_id");
+
+                    b.Property<short>("Dia")
+                        .HasColumnType("smallint")
+                        .HasColumnName("dia_semana");
+
+                    b.Property<TimeOnly?>("Apertura")
+                        .HasColumnType("time")
+                        .HasColumnName("apertura");
+
+                    b.Property<bool>("CerradoEnBase")
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("boolean")
+                        .HasColumnName("cerrado")
+                        .HasComputedColumnSql("apertura IS NULL", true);
+
+                    b.Property<TimeOnly?>("Cierre")
+                        .HasColumnType("time")
+                        .HasColumnName("cierre");
+
+                    b.Property<Guid>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
+                    b.HasKey("SucursalId", "Dia");
+
+                    b.ToTable("horarios_sucursal", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_horarios_sucursal_dia_semana", "dia_semana BETWEEN 0 AND 6");
+                        });
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.Sucursal", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("boolean")
+                        .HasColumnName("activa");
+
+                    b.Property<DateTimeOffset>("CreadaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creada_en");
+
+                    b.Property<string>("Direccion")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("direccion");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("PhoneNumberId")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("phone_number_id");
+
+                    b.Property<string>("Prefijo")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("prefijo");
+
+                    b.Property<Guid>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("slug");
+
+                    b.Property<string>("Telefono")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("telefono");
+
+                    b.Property<string>("WhatsApp")
+                        .IsRequired()
+                        .HasMaxLength(13)
+                        .HasColumnType("character varying(13)")
+                        .HasColumnName("whatsapp");
+
+                    b.Property<string>("ZonaHoraria")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("zona_horaria");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PhoneNumberId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sucursales_phone_number_id")
+                        .HasFilter("phone_number_id IS NOT NULL");
+
+                    b.HasIndex("WhatsApp")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sucursales_whatsapp");
+
+                    b.HasIndex("RestauranteId", "Nombre")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sucursales_restaurante_nombre");
+
+                    b.HasIndex("RestauranteId", "Prefijo")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sucursales_restaurante_prefijo");
+
+                    b.HasIndex("RestauranteId", "Slug")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sucursales_restaurante_slug");
+
+                    b.ToTable("sucursales", (string)null);
+                });
+
             modelBuilder.Entity("Restaurante.Domain.Usuarios.Usuario", b =>
                 {
                     b.Property<Guid>("Id")
@@ -179,6 +349,33 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .WithOne()
                         .HasForeignKey("Restaurante.Domain.Restaurantes.LogoRestaurante", "RestauranteId")
                         .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.CierreTemporal", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Sucursales.Sucursal", null)
+                        .WithMany()
+                        .HasForeignKey("SucursalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.HorarioDia", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Sucursales.Sucursal", null)
+                        .WithMany()
+                        .HasForeignKey("SucursalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Sucursales.Sucursal", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Restaurantes.Restaurante", null)
+                        .WithMany()
+                        .HasForeignKey("RestauranteId")
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
                 });
 

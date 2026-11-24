@@ -10,5 +10,6 @@ public sealed class RestauranteDbContextFactory : IDesignTimeDbContextFactory<Re
         new(new DbContextOptionsBuilder<RestauranteDbContext>()
             .UseNpgsql("Host=localhost;Database=restaurante_diseno;Username=marcador;Password=marcador")
             .Options,
-            new ContextoRestauranteFijo(null));
+            new ContextoRestauranteFijo(null),
+            new ContextoSucursalFijo(null));
 }

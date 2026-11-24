@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Restaurante.Application.Abstracciones;
 using Restaurante.Infrastructure.Arranque;
 using Restaurante.Infrastructure.Persistencia;
@@ -20,6 +21,10 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IRestauranteRepository, RestauranteRepository>();
+        services.AddScoped<ISucursalRepository, SucursalRepository>();
+        services.AddScoped<ICierreTemporalRepository, CierreTemporalRepository>();
+        // Provisional: sin sucursal no se ve ninguna entidad de sucursal. La API registra el contexto real (T-07).
+        services.TryAddScoped<IContextoSucursal>(_ => new ContextoSucursalFijo(null));
         services.AddScoped<AplicadorMigraciones>();
         services.AddScoped<InicializadorAdministrador>();
         services.AddSingleton<IReloj, Reloj>();

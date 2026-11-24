@@ -12,6 +12,7 @@ using Restaurante.Application.Abstracciones;
 using Restaurante.Application.Comun;
 using Restaurante.Domain.Restaurantes;
 using Restaurante.Domain.Usuarios;
+using Restaurante.Infrastructure.Persistencia;
 using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.WebApi.Tests.Infraestructura;
@@ -169,6 +170,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
                 new UsuarioRepositoryEnMemoria(Usuarios, sp.GetRequiredService<IContextoRestaurante>()));
             servicios.RemoveAll<IRestauranteRepository>();
             servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
+            // Provisional hasta que la API resuelva la sucursal de la ruta (T-07): sin sucursal.
+            servicios.TryAddScoped<IContextoSucursal>(_ => new ContextoSucursalFijo(null));
 
             // Sustituye el health check real de EF Core (que necesita PostgreSQL) por uno controlable.
             servicios.Configure<HealthCheckServiceOptions>(o =>
