@@ -54,3 +54,9 @@
 - **Identidad** (frontend): `{ nombre, slug, paleta, logoUrl }` cargada por `DisenoRestaurante`.
 - **VistaPreviaPaleta** (frontend): vista previa de la paleta con variables locales a su elemento.
 - **FormularioRestaurante** (frontend): alta y edición de restaurantes en plataforma.
+- **Sucursal** (003): local de un restaurante; `slug` inmutable, teléfono/WhatsApp E.164 (`TelefonoMexico`),
+  prefijo `^[A-Z]{1,3}\z`, zona horaria admitida (`ZonasHorarias`), `phone_number_id` opcional; nace activa.
+- **Prefijo**: 1-3 letras mayúsculas de la sucursal.
+- **Zona horaria**: una de las 12 zonas mexicanas admitidas; por defecto `America/Mexico_City`.
+- **phone_number_id**: identificador numérico (1-30 dígitos) del número de WhatsApp Business; opcional.
+- **IEntidadDeRestaurante / IEntidadDeSucursal**: contratos de entidades con `RestauranteId` (y `SucursalId`).

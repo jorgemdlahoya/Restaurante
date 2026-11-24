@@ -174,3 +174,30 @@ en su propio elemento (no toca el tema de la pantalla).
 
 Formulario de plataforma para dar de alta (nombre, slug, administrador inicial, paleta y logo) o editar
 (nombre, paleta y logo) un restaurante; enlaza los errores 400 del servidor a cada campo.
+
+## Sucursal (feature 003)
+
+Local físico de un restaurante (`Restaurante.Domain.Sucursales.Sucursal`, implementa `IEntidadDeRestaurante`).
+Tiene nombre (1-80, recortado), dirección (1-200), teléfono y WhatsApp en E.164 (`+52XXXXXXXXXX`; al guardar
+se quitan espacios y guiones con `TelefonoMexico.Normalizar`), `slug` inmutable (`^[a-z0-9-]{3,40}\z`),
+`phone_number_id`, prefijo, zona horaria y estado activa/inactiva; nace activa. `Editar` cambia todo menos el
+`slug`; `Activar`/`Desactivar` sólo cambian el estado. Los formatos inválidos lanzan `ArgumentException`.
+
+## Prefijo (sucursal)
+
+Una a tres letras mayúsculas (`^[A-Z]{1,3}\z`) que identifican a la sucursal (p. ej. `A`, `BC`).
+
+## Zona horaria (sucursal)
+
+Zona IANA en que se interpretan los horarios y cierres de la sucursal. Sólo se admiten las 12 de
+`ZonasHorarias.Admitidas` (México); por defecto `America/Mexico_City`.
+
+## phone_number_id
+
+Identificador numérico (`^\d{1,30}\z`) del número de WhatsApp Business de la sucursal; es opcional (puede ser
+ausente).
+
+## IEntidadDeRestaurante / IEntidadDeSucursal
+
+Contratos del dominio que marcan las entidades con `RestauranteId` y, además, `SucursalId`, para aplicar el
+aislamiento por restaurante y por sucursal.
