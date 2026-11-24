@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
+using Restaurante.Domain.Restaurantes;
 using Restaurante.Infrastructure.Persistencia;
 using Testcontainers.PostgreSql;
+using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.Infrastructure.Tests.Persistencia;
 
@@ -30,8 +32,21 @@ public sealed class PostgresFixture : IAsyncLifetime
         return new Npgsql.NpgsqlConnectionStringBuilder(CadenaConexion) { Database = nombre }.ConnectionString;
     }
 
-    public static RestauranteDbContext CrearContexto(string cadena) =>
-        new(new DbContextOptionsBuilder<RestauranteDbContext>().UseNpgsql(cadena).Options);
+    /// <summary>Contexto con el filtro global del restaurante indicado; <c>null</c> es el ámbito de plataforma.</summary>
+    public static RestauranteDbContext CrearContexto(string cadena, Guid? restauranteId = null) =>
+        new(new DbContextOptionsBuilder<RestauranteDbContext>().UseNpgsql(cadena).Options,
+            new ContextoRestauranteFijo(restauranteId));
+
+    /// <summary>Inserta un restaurante (base ya migrada) y devuelve su id.</summary>
+    public static async Task<Guid> SembrarRestauranteAsync(string cadena, string slug)
+    {
+        await using var ctx = CrearContexto(cadena);
+        var restaurante = RestauranteEntidad.Crear("Restaurante " + slug, slug, Paleta.Vacia,
+            new DateTimeOffset(2030, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        ctx.Restaurantes.Add(restaurante);
+        await ctx.SaveChangesAsync();
+        return restaurante.Id;
+    }
 }
 
 [CollectionDefinition(Nombre)]

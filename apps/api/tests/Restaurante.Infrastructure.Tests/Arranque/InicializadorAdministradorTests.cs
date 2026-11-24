@@ -40,7 +40,7 @@ public sealed class InicializadorAdministradorTests
     private static Dictionary<string, string?> Entorno(string? usuario, string? contrasena) =>
         new() { ["ADMIN_USERNAME"] = usuario, ["ADMIN_PASSWORD"] = contrasena };
 
-    [Fact(DisplayName = "001/RF-08: sin usuarios crea un administrador activo con hash")]
+    [Fact(DisplayName = "002/RF-17: el administrador inicial se crea como administrador_plataforma")]
     public async Task Sin_usuarios_crea_administrador()
     {
         var repo = new RepoDoble(false);
@@ -51,7 +51,7 @@ public sealed class InicializadorAdministradorTests
         Assert.Null(r.Error);
         var admin = Assert.Single(repo.Agregados);
         Assert.Equal("root", admin.NombreUsuario);
-        Assert.Equal(Rol.Administrador, admin.Rol);
+        Assert.Equal(Rol.AdministradorPlataforma, admin.Rol);
         Assert.True(admin.Activo);
         Assert.Equal(Ahora, admin.CreadoEn);
         Assert.Equal("hash:Secreta123", admin.HashContrasena);
@@ -189,7 +189,7 @@ public sealed class InicializadorAdministradorIntegracionTests(PostgresFixture p
         await using var ctx2 = PostgresFixture.CrearContexto(cadena);
         var admin = await new UsuarioRepository(ctx2).ObtenerPorNombreNormalizadoAsync("root", CancellationToken.None);
         Assert.NotNull(admin);
-        Assert.Equal(Rol.Administrador, admin.Rol);
+        Assert.Equal(Rol.AdministradorPlataforma, admin.Rol);
         Assert.True(admin.Activo);
         Assert.True(hasher.Verificar(admin.HashContrasena, "Secreta123"));
     }

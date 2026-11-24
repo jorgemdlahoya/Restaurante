@@ -1,0 +1,43 @@
+.vista {
+  border: 1px solid color-mix(in srgb, var(--color-oscuro) 20%, transparent);
+  border-radius: 0.75rem;
+  overflow: hidden;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+.encabezado {
+  padding: 0.625rem 0.875rem;
+  background: var(--color-oscuro);
+  color: var(--color-fondo);
+  font-weight: 700;
+}
+
+.cuerpo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem;
+}
+
+.texto {
+  flex-basis: 100%;
+  margin: 0;
+}
+
+.boton,
+.acento {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+  color: var(--color-fondo);
+}
+
+.boton {
+  background: var(--color-principal);
+}
+
+.acento {
+  background: var(--color-acento);
+}

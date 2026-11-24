@@ -8,7 +8,8 @@ namespace Restaurante.Application.Tests.Features.Auth;
 
 public class IniciarSesionTests
 {
-    private readonly UsuarioRepositoryEnMemoria _repositorio = new();
+    private static readonly Guid RestauranteId = Guid.NewGuid();
+    private readonly UsuarioRepositoryEnMemoria _repositorio = new(new ContextoRestauranteFalso(RestauranteId));
     private readonly HasherFalso _hasher = new();
     private readonly RelojFijo _reloj = new();
 
@@ -16,7 +17,7 @@ public class IniciarSesionTests
 
     private Usuario Agregar(string nombre, string contrasena, Rol rol, bool activo = true)
     {
-        var usuario = Usuario.Crear(nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
+        var usuario = Usuario.Crear(RestauranteId, nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
         if (!activo)
         {
             usuario.Desactivar();
@@ -29,20 +30,20 @@ public class IniciarSesionTests
     [Fact(DisplayName = "001/RF-01: credenciales válidas devuelven token y rol")]
     public async Task CredencialesValidasDevuelvenTokenYRol()
     {
-        Agregar("Ana", "secreta123", Rol.Administrador);
+        Agregar("Ana", "secreta123", Rol.AdministradorGeneral);
 
         var respuesta = await CrearHandler().Handle(new IniciarSesionCommand("Ana", "secreta123"), CancellationToken.None);
 
         Assert.Equal("token-de-Ana", respuesta.Token);
         Assert.Equal(EmisorTokensFalso.Expiracion, respuesta.ExpiraEn);
         Assert.Equal("Ana", respuesta.NombreUsuario);
-        Assert.Equal("administrador", respuesta.Rol);
+        Assert.Equal("administrador_general", respuesta.Rol);
     }
 
     [Fact(DisplayName = "001/RF-01: el nombre se busca sin distinguir mayúsculas")]
     public async Task NombreSeBuscaSinDistinguirMayusculas()
     {
-        Agregar("admin", "secreta123", Rol.Administrador);
+        Agregar("admin", "secreta123", Rol.AdministradorGeneral);
 
         var respuesta = await CrearHandler().Handle(new IniciarSesionCommand("ADMIN", "secreta123"), CancellationToken.None);
 
@@ -52,18 +53,18 @@ public class IniciarSesionTests
     [Fact(DisplayName = "001/RF-01: el nombre se recorta antes de buscar")]
     public async Task NombreSeRecortaAntesDeBuscar()
     {
-        Agregar("admin", "secreta123", Rol.Caja);
+        Agregar("admin", "secreta123", Rol.Cajero);
 
         var respuesta = await CrearHandler().Handle(new IniciarSesionCommand("  admin \t", "secreta123"), CancellationToken.None);
 
         Assert.Equal("admin", respuesta.NombreUsuario);
-        Assert.Equal("caja", respuesta.Rol);
+        Assert.Equal("cajero", respuesta.Rol);
     }
 
     [Fact(DisplayName = "001/RF-02: usuario inexistente y contraseña incorrecta dan la misma excepción y mensaje")]
     public async Task InexistenteEIncorrectaDanLaMismaExcepcion()
     {
-        Agregar("ana", "secreta123", Rol.Mesero);
+        Agregar("ana", "secreta123", Rol.Cajero);
 
         var inexistente = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
             CrearHandler().Handle(new IniciarSesionCommand("nadie", "secreta123"), CancellationToken.None));
@@ -77,7 +78,7 @@ public class IniciarSesionTests
     [Fact(DisplayName = "001/RF-03: usuario desactivado da CredencialesInvalidasException")]
     public async Task UsuarioDesactivadoDaCredencialesInvalidas()
     {
-        Agregar("ana", "secreta123", Rol.Cocina, activo: false);
+        Agregar("ana", "secreta123", Rol.Cocinero, activo: false);
 
         var ex = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
             CrearHandler().Handle(new IniciarSesionCommand("ana", "secreta123"), CancellationToken.None));
@@ -114,7 +115,7 @@ public class IniciarSesionTests
     public async Task DesactivadoTambienVerificaContrasena()
     {
         var espia = new HasherEspia();
-        Agregar("ana", "secreta123", Rol.Cocina, activo: false);
+        Agregar("ana", "secreta123", Rol.Cocinero, activo: false);
         var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso());
 
         var ex = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>

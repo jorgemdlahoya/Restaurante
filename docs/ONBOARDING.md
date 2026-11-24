@@ -35,7 +35,9 @@ ejecutar las pruebas. Todos los comandos se ejecutan desde la **raíz del reposi
    ```
 
    La API aplica las migraciones al arrancar (`APPLY_MIGRATIONS=true`) y crea el administrador
-   inicial. Escucha en `http://localhost:5000`.
+   inicial. Escucha en `http://localhost:5000`. El servicio `web` (nginx con la interfaz
+   compilada, `apps/web/Dockerfile`) escucha en `http://localhost:8080` y reenvía `/api/` y
+   `/health` a la API; úsalo con `docker compose up -d --build`.
 
 4. Comprueba que está viva:
 
@@ -67,18 +69,33 @@ lo indica en el log.
 ## Recuperar el acceso de administrador
 
 El sistema impide dejar el último administrador activo (RF-17) y el administrador inicial
-sólo se crea cuando no existe ningún usuario (RF-09), así que **no se vuelve a sembrar**. Si aun así
+sólo se crea cuando no existe ningún administrador de plataforma (RF-09; el filtro global por
+restaurante hace que sólo se cuenten los usuarios sin restaurante), así que **no se vuelve a sembrar**. Si aun así
 se pierde el acceso (p. ej. dos administradores que se degradan o desactivan a la vez), la
 **única vía de recuperación** es reactivar y promover un usuario existente directamente en la base
 de datos, con el sistema levantado:
 
 ```bash
 docker compose exec db psql -U <POSTGRES_USER> -d <POSTGRES_DB> -c \
-  "UPDATE usuarios SET activo = true, rol = 'administrador' WHERE nombre_usuario_normalizado = '<usuario>';"
+  "UPDATE usuarios SET activo = true, rol = 'administrador_general' WHERE nombre_usuario_normalizado = '<usuario>';"
 ```
 
 Sustituye `<POSTGRES_USER>` y `<POSTGRES_DB>` por los valores de tu `.env` y `<usuario>` por el
 nombre del usuario **en minúsculas**. Debe responder `UPDATE 1`; después inicia sesión con él.
+
+## Levantar el frontend
+
+El frontend (React + TypeScript + Vite) vive en `apps/web`. Con la API en `http://localhost:5000`:
+
+```bash
+cd apps/web
+npm install
+npm run dev      # http://localhost:5173 (proxy de /api y /health hacia http://localhost:5000)
+npm run build    # tsc --noEmit && vite build
+```
+
+`VITE_API_URL` (opcional) fija la URL base de la API; sin ella se usan rutas relativas con el proxy.
+Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de Vite en el puerto 5173.
 
 ## Ejecutar las pruebas
 
@@ -95,10 +112,33 @@ nombre del usuario **en minúsculas**. Debe responder `UPDATE 1`; después inici
   dotnet test apps/api --filter "Category=Integracion"
   ```
 
+- **Suite de punta a punta contra el sistema levantado** (`comando_e2e_stack`; requiere
+  `docker compose up -d --build` en marcha). La prueba de alta de restaurante necesita
+  `ADMIN_USERNAME` y `ADMIN_PASSWORD`, así que exporta `.env` antes:
+
+  ```bash
+  set -a; . ./.env; set +a
+  dotnet test apps/api --filter "Category=Integracion" \
+    && (cd apps/web && npx playwright test --config playwright.stack.config.ts)
+  ```
+
+  `E2E_BASE_URL` (por defecto `http://localhost:8080`) apunta a la interfaz y `E2E_API_URL`
+  (por defecto `http://localhost:5000`) a la API.
+
+## Dependencias de desarrollo con avisos
+
+`npm audit --prefix apps/web` informa de 3 avisos (2 críticos, 1 moderado), todos en `vitest` (3.x) y sus
+dependencias de desarrollo: `tinypool` (contaminación de prototipo en las opciones de los workers, RCE) y
+`@vitest/mocker` (lectura de archivos y registro de mocks sin autenticar). Sólo afectan al ejecutor de pruebas
+en la máquina de desarrollo o de CI: ninguna de estas librerías entra en `dist/` ni en la imagen publicada de
+`web`. No existe arreglo compatible: `npm audit fix --force` obliga a subir a `vitest@5` (cambio incompatible),
+así que se aplaza a una actualización planificada de Vitest. Mientras tanto, no ejecutes `vitest` con
+`--api` ni con el servidor de UI expuesto fuera de `localhost`, y no corras pruebas de código no confiable.
+
 ## Documentación de apoyo
 
 - Peticiones de ejemplo (`.http`): [`context/http/`](context/http/)
-  (`health.http`, `auth.http`, `usuarios.http`).
+  (`health.http`, `auth.http`, `usuarios.http`, `restaurantes.http`).
 - Mapa de arquitectura: [`context/architecture-map.md`](context/architecture-map.md).
 - Glosario de dominio: [`context/glossary.md`](context/glossary.md) y de código
   [`GLOSSARY.md`](GLOSSARY.md).

@@ -1,9 +1,13 @@
 @baseUrl = http://localhost:5000
+@slug = la-esquina
 
-### Iniciar sesión (RF-01..RF-04, RF-07). No requiere token.
+### Iniciar sesión en un restaurante (001/RF-01..RF-04, RF-07; 002/RF-08..RF-10). No requiere token.
+# El slug no distingue mayúsculas. Slug inexistente o restaurante inactivo: 404 "Restaurante no disponible".
+# Un usuario de otro restaurante recibe 401 con el mismo mensaje que una contraseña incorrecta.
+# El token lleva sub, unique_name, role y restaurant_id.
 # Sustituir los marcadores por credenciales reales sólo en local; no commitearlas.
 # @name login
-POST {{baseUrl}}/api/auth/login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
 Content-Type: application/json
 
 {
@@ -11,5 +15,20 @@ Content-Type: application/json
   "contrasena": "<CONTRASENA>"
 }
 
-### Token capturado para los demás archivos .http
+### Token de restaurante capturado para los demás archivos .http
 @token = {{login.response.body.$.token}}
+
+### Iniciar sesión como administrador de plataforma (002/RF-11). No requiere token.
+# Sólo existen los usuarios sin restaurante (administrador_plataforma); el token no lleva restaurant_id.
+# Un usuario de restaurante recibe 401, aunque envíe su token de restaurante (se ignora en /api/plataforma).
+# @name loginPlataforma
+POST {{baseUrl}}/api/plataforma/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_PLATAFORMA>",
+  "contrasena": "<CONTRASENA_PLATAFORMA>"
+}
+
+### Token de plataforma
+@tokenPlataforma = {{loginPlataforma.response.body.$.token}}

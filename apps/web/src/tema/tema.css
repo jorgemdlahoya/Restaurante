@@ -1,0 +1,20 @@
+:root {
+  --color-principal: #f97316;
+  --color-acento: #ff6600;
+  --color-oscuro: #111111;
+  --color-fondo: #f8f9fa;
+  --color-texto: #1f2937;
+  font-family: 'Nunito', system-ui, sans-serif;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}

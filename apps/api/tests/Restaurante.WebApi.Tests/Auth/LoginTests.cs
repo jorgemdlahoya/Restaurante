@@ -16,15 +16,19 @@ public sealed class LoginTests : IDisposable
 {
     private const string Contrasena = "Clave-de-prueba-123";
     private const string MensajeCredenciales = "Usuario o contraseña incorrectos";
+    private const string Ruta = "/api/r/la-esquina/auth/login";
 
     private readonly FabricaApi _fabrica = new();
+    private readonly Guid _restauranteId;
+
+    public LoginTests() => _restauranteId = _fabrica.SembrarRestaurante("La Esquina", "la-esquina").Id;
 
     public void Dispose() => _fabrica.Dispose();
 
     private Usuario Sembrar(string nombre, Rol rol, bool activo = true)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(_restauranteId, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
         if (!activo)
         {
             usuario.Desactivar();
@@ -35,16 +39,16 @@ public sealed class LoginTests : IDisposable
     }
 
     private static Task<HttpResponseMessage> LoginAsync(HttpClient cliente, string cuerpoJson) =>
-        cliente.PostAsync("/api/auth/login",
+        cliente.PostAsync(Ruta,
             new StringContent(cuerpoJson, Encoding.UTF8, "application/json"));
 
     [Fact(DisplayName = "001/RF-01: login correcto devuelve token utilizable en un endpoint protegido")]
     public async Task Login_correcto_devuelve_token_utilizable()
     {
-        Sembrar("cajero", Rol.Caja);
+        Sembrar("cajero", Rol.Cajero);
         var cliente = _fabrica.CreateClient();
 
-        var respuesta = await cliente.PostAsJsonAsync("/api/auth/login",
+        var respuesta = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "cajero", contrasena = Contrasena });
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
@@ -53,7 +57,7 @@ public sealed class LoginTests : IDisposable
         var token = raiz.GetProperty("token").GetString();
         Assert.False(string.IsNullOrWhiteSpace(token));
         Assert.Equal("cajero", raiz.GetProperty("nombreUsuario").GetString());
-        Assert.Equal("caja", raiz.GetProperty("rol").GetString());
+        Assert.Equal("cajero", raiz.GetProperty("rol").GetString());
         Assert.True(raiz.TryGetProperty("expiraEn", out _));
 
         cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
@@ -64,12 +68,12 @@ public sealed class LoginTests : IDisposable
     [Fact(DisplayName = "001/RF-02: credenciales incorrectas → 401 con \"Usuario o contraseña incorrectos\"")]
     public async Task Credenciales_incorrectas_responden_401()
     {
-        Sembrar("cajero", Rol.Caja);
+        Sembrar("cajero", Rol.Cajero);
         var cliente = _fabrica.CreateClient();
 
-        var malaContrasena = await cliente.PostAsJsonAsync("/api/auth/login",
+        var malaContrasena = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "cajero", contrasena = "otra-cosa" });
-        var usuarioInexistente = await cliente.PostAsJsonAsync("/api/auth/login",
+        var usuarioInexistente = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "nadie", contrasena = Contrasena });
 
         foreach (var respuesta in new[] { malaContrasena, usuarioInexistente })
@@ -83,10 +87,10 @@ public sealed class LoginTests : IDisposable
     [Fact(DisplayName = "001/RF-03: usuario desactivado → 401 con el mismo mensaje")]
     public async Task Usuario_desactivado_responde_401()
     {
-        Sembrar("baja", Rol.Mesero, activo: false);
+        Sembrar("baja", Rol.Cajero, activo: false);
         var cliente = _fabrica.CreateClient();
 
-        var respuesta = await cliente.PostAsJsonAsync("/api/auth/login",
+        var respuesta = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "baja", contrasena = Contrasena });
 
         Assert.Equal(HttpStatusCode.Unauthorized, respuesta.StatusCode);
@@ -134,7 +138,7 @@ public sealed class LoginTests : IDisposable
     {
         var cliente = _fabrica.CreateClient();
 
-        var respuesta = await cliente.PostAsJsonAsync("/api/auth/login",
+        var respuesta = await cliente.PostAsJsonAsync(Ruta,
             new { nombreUsuario = "nadie", contrasena = "x" });
 
         // El 401 proviene de las credenciales (detail del handler), no de la falta de token.

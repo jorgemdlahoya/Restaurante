@@ -70,6 +70,17 @@ public static class RespuestasProblema
     public static ObjectResult Resultado(ProblemDetails detalles) =>
         new(detalles) { StatusCode = detalles.Status, ContentTypes = { "application/problem+json" } };
 
+    /// <summary>Escribe un problem+json directamente en la respuesta, para middlewares que cortan la petición fuera de MVC.</summary>
+    public static Task EscribirAsync(HttpContext contexto, int estado, string titulo, string detalle)
+    {
+        contexto.Response.StatusCode = estado;
+        return contexto.Response.WriteAsJsonAsync(
+            new ProblemDetails { Status = estado, Title = titulo, Detail = detalle },
+            options: null,
+            contentType: "application/problem+json",
+            cancellationToken: contexto.RequestAborted);
+    }
+
     private static string ACamelCase(string clave)
     {
         // Claves anidadas ("a.B") y vacías (cuerpo completo) se conservan salvo la inicial de cada segmento.

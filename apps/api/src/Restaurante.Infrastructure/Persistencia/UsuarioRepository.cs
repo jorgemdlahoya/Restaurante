@@ -18,7 +18,7 @@ public sealed class UsuarioRepository(RestauranteDbContext contexto) : IUsuarioR
         await contexto.Usuarios.AsNoTracking().OrderBy(u => u.CreadoEn).ThenBy(u => u.NombreUsuarioNormalizado).ToListAsync(ct);
 
     public Task<int> ContarAdministradoresActivosAsync(CancellationToken ct) =>
-        contexto.Usuarios.CountAsync(u => u.Rol == Rol.Administrador && u.Activo, ct);
+        contexto.Usuarios.CountAsync(u => u.Rol == Rol.AdministradorGeneral && u.Activo, ct);
 
     public Task<bool> ExisteAlgunoAsync(CancellationToken ct) => contexto.Usuarios.AnyAsync(ct);
 

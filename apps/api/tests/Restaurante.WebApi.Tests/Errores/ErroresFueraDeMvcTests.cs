@@ -42,11 +42,12 @@ public sealed class ErroresFueraDeMvcTests
     public async Task Id_que_no_es_guid_responde_404_problem_json()
     {
         using var fabrica = new FabricaApi();
+        var restaurante = fabrica.SembrarRestaurante("La Esquina", "la-esquina");
         using var cliente = fabrica.CreateClient();
-        cliente.DefaultRequestHeaders.Authorization =
-            new AuthenticationHeaderValue("Bearer", FabricaApi.EmitirToken(Rol.Administrador));
+        cliente.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
+            FabricaApi.EmitirToken(Rol.AdministradorGeneral, restauranteId: restaurante.Id));
 
-        var respuesta = await cliente.PutAsync("/api/usuarios/no-es-guid/estado",
+        var respuesta = await cliente.PutAsync("/api/r/la-esquina/usuarios/no-es-guid/estado",
             new StringContent("{\"activo\":true}", Encoding.UTF8, "application/json"));
 
         await LeerProblemaAsync(respuesta, HttpStatusCode.NotFound, "Recurso no encontrado");
@@ -58,7 +59,7 @@ public sealed class ErroresFueraDeMvcTests
         using var fabrica = new FabricaApi();
         using var cliente = fabrica.CreateClient();
 
-        var respuesta = await cliente.GetAsync("/api/auth/login");
+        var respuesta = await cliente.GetAsync("/api/plataforma/auth/login");
 
         await LeerProblemaAsync(respuesta, HttpStatusCode.MethodNotAllowed, "Método no permitido");
     }
@@ -69,7 +70,7 @@ public sealed class ErroresFueraDeMvcTests
         using var fabrica = new FabricaApi();
         using var cliente = fabrica.CreateClient();
 
-        var respuesta = await cliente.PostAsync("/api/auth/login",
+        var respuesta = await cliente.PostAsync("/api/plataforma/auth/login",
             new StringContent("usuario=admin", Encoding.UTF8, "text/plain"));
 
         await LeerProblemaAsync(respuesta, HttpStatusCode.UnsupportedMediaType, "Tipo de contenido no admitido");

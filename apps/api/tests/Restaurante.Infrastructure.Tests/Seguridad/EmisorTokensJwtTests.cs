@@ -19,18 +19,35 @@ public sealed class EmisorTokensJwtTests
     {
         var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
-        var usuario = Usuario.Crear("Ana", "hash", Rol.Caja, ahora);
+        var usuario = Usuario.Crear(Guid.NewGuid(), "Ana", "hash", Rol.Cajero, ahora);
 
         var emitido = emisor.Emitir(usuario);
 
         var jwt = new JwtSecurityTokenHandler { MapInboundClaims = false }.ReadJwtToken(emitido.Token);
         Assert.Equal(usuario.Id.ToString(), jwt.Claims.Single(c => c.Type == "sub").Value);
         Assert.Equal("Ana", jwt.Claims.Single(c => c.Type == "unique_name").Value);
-        Assert.Equal("caja", jwt.Claims.Single(c => c.Type == "role").Value);
+        Assert.Equal("cajero", jwt.Claims.Single(c => c.Type == "role").Value);
         Assert.Equal("restaurante-api", jwt.Issuer);
         Assert.Contains("restaurante-web", jwt.Audiences);
         Assert.Equal("HS256", jwt.Header.Alg);
         Assert.Equal(ahora.AddHours(8), emitido.ExpiraEn);
         Assert.Equal(ahora.AddHours(8).UtcDateTime, jwt.ValidTo);
+    }
+
+    [Fact(DisplayName = "002/RF-08: el emisor incluye restaurant_id sólo si el usuario tiene restaurante")]
+    public void Incluye_restaurant_id_solo_si_el_usuario_tiene_restaurante()
+    {
+        var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
+        var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
+        var restauranteId = Guid.NewGuid();
+        var deRestaurante = Usuario.Crear(restauranteId, "Ana", "hash", Rol.Cajero, ahora);
+        var dePlataforma = Usuario.Crear(null, "Raiz", "hash", Rol.AdministradorPlataforma, ahora);
+        var lector = new JwtSecurityTokenHandler { MapInboundClaims = false };
+
+        var conRestaurante = lector.ReadJwtToken(emisor.Emitir(deRestaurante).Token);
+        var sinRestaurante = lector.ReadJwtToken(emisor.Emitir(dePlataforma).Token);
+
+        Assert.Equal(restauranteId.ToString(), conRestaurante.Claims.Single(c => c.Type == "restaurant_id").Value);
+        Assert.DoesNotContain(sinRestaurante.Claims, c => c.Type == "restaurant_id");
     }
 }

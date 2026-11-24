@@ -8,13 +8,14 @@ namespace Restaurante.Application.Tests.Features.Usuarios;
 
 public class CambiarEstadoUsuarioTests
 {
-    private readonly UsuarioRepositoryEnMemoria _repositorio = new();
+    private static readonly Guid RestauranteId = Guid.NewGuid();
+    private readonly UsuarioRepositoryEnMemoria _repositorio = new(new ContextoRestauranteFalso(RestauranteId));
     private readonly RelojFijo _reloj = new();
     private Guid _actual = Guid.NewGuid();
 
     private Usuario Agregar(string nombre, Rol rol)
     {
-        var u = Usuario.Crear(nombre, "hash:x", rol, _reloj.Ahora);
+        var u = Usuario.Crear(RestauranteId, nombre, "hash:x", rol, _reloj.Ahora);
         _repositorio.Agregar(u);
         return u;
     }
@@ -26,7 +27,7 @@ public class CambiarEstadoUsuarioTests
     [Fact(DisplayName = "001/RF-15: desactiva y reactiva")]
     public async Task DesactivaYReactiva()
     {
-        var mesero = Agregar("pepe", Rol.Mesero);
+        var mesero = Agregar("pepe", Rol.Cajero);
 
         var dto = await Ejecutar(mesero.Id, false);
         Assert.False(dto.Activo);
@@ -41,8 +42,8 @@ public class CambiarEstadoUsuarioTests
     [Fact(DisplayName = "001/RF-17: no desactiva al último administrador activo")]
     public async Task NoDesactivaUltimoAdministrador()
     {
-        Agregar("admin", Rol.Administrador).Desactivar();
-        var unico = Agregar("jefe", Rol.Administrador);
+        Agregar("admin", Rol.AdministradorGeneral).Desactivar();
+        var unico = Agregar("jefe", Rol.AdministradorGeneral);
 
         await Assert.ThrowsAsync<ConflictoException>(() => Ejecutar(unico.Id, false));
 
@@ -53,8 +54,8 @@ public class CambiarEstadoUsuarioTests
     [Fact(DisplayName = "001/RF-17: sí desactiva a un administrador si queda otro activo")]
     public async Task DesactivaAdministradorSiQuedaOtro()
     {
-        Agregar("admin", Rol.Administrador);
-        var otro = Agregar("jefe", Rol.Administrador);
+        Agregar("admin", Rol.AdministradorGeneral);
+        var otro = Agregar("jefe", Rol.AdministradorGeneral);
 
         var dto = await Ejecutar(otro.Id, false);
 
@@ -64,7 +65,7 @@ public class CambiarEstadoUsuarioTests
     [Fact(DisplayName = "001/RF-17: reactivar no activa la regla del último administrador")]
     public async Task ReactivarNoActivaRegla()
     {
-        var inactivo = Agregar("admin", Rol.Administrador);
+        var inactivo = Agregar("admin", Rol.AdministradorGeneral);
         inactivo.Desactivar();
 
         var dto = await Ejecutar(inactivo.Id, true);
@@ -75,8 +76,8 @@ public class CambiarEstadoUsuarioTests
     [Fact(DisplayName = "001/RF-18: un administrador no puede desactivarse a sí mismo")]
     public async Task NoSeDesactivaASiMismo()
     {
-        Agregar("admin", Rol.Administrador);
-        var yo = Agregar("jefe", Rol.Administrador);
+        Agregar("admin", Rol.AdministradorGeneral);
+        var yo = Agregar("jefe", Rol.AdministradorGeneral);
         _actual = yo.Id;
 
         await Assert.ThrowsAsync<ConflictoException>(() => Ejecutar(yo.Id, false));

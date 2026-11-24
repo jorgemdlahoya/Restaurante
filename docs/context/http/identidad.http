@@ -1,0 +1,18 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+
+### Identidad pública del restaurante (002/RF-14, RF-10). No requiere token.
+# Devuelve { nombre, slug, paleta, logoUrl }; logoUrl es null si el restaurante no tiene logo.
+# El slug no distingue mayúsculas. Slug inexistente o restaurante inactivo: 404 "Restaurante no disponible".
+GET {{baseUrl}}/api/r/{{slug}}/identidad
+
+### Logo del restaurante (002/RF-15). No requiere token.
+# Responde 200 con la imagen (Content-Type image/png, image/jpeg o image/webp), cabecera ETag entre comillas
+# y Cache-Control: public, no-cache. Con If-None-Match igual al ETag responde 304 sin cuerpo.
+# Sin logo: 404 "El restaurante no tiene logo". Slug inexistente o inactivo: 404 "Restaurante no disponible".
+# @name logoRestaurante
+GET {{baseUrl}}/api/r/{{slug}}/logo
+
+### Revalidación del logo con If-None-Match (304 si el ETag coincide)
+GET {{baseUrl}}/api/r/{{slug}}/logo
+If-None-Match: {{logoRestaurante.response.headers.ETag}}

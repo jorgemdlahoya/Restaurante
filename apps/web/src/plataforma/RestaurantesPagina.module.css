@@ -1,0 +1,102 @@
+.pagina {
+  min-height: 100vh;
+}
+
+.encabezado {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: var(--color-oscuro);
+  color: var(--color-fondo);
+}
+
+.marca {
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+.contenido {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-oscuro);
+}
+
+.tablaContenedor {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla th,
+.tabla td {
+  padding: 0.625rem 0.5rem;
+  text-align: left;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-oscuro) 15%, transparent);
+  white-space: nowrap;
+}
+
+.acciones {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.activo,
+.inactivo {
+  display: inline-block;
+  padding: 0.125rem 0.5rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.875rem;
+}
+
+.activo {
+  background: color-mix(in srgb, var(--color-principal) 20%, transparent);
+  color: var(--color-oscuro);
+}
+
+.inactivo {
+  background: color-mix(in srgb, var(--color-oscuro) 12%, transparent);
+  color: var(--color-texto);
+}
+
+.principal,
+.secundario {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.principal {
+  border: none;
+  background: var(--color-principal);
+  color: var(--color-fondo);
+}
+
+.secundario {
+  border: 1px solid currentColor;
+  background: transparent;
+  color: inherit;
+}

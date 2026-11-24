@@ -1,0 +1,52 @@
+.fondo {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: color-mix(in srgb, var(--color-oscuro) 55%, transparent);
+  z-index: 10;
+}
+
+.dialogo {
+  width: 100%;
+  max-width: 26rem;
+  padding: 1.5rem;
+  border-radius: 0.75rem;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+}
+
+.titulo {
+  margin: 0 0 0.5rem;
+  color: var(--color-oscuro);
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+}
+
+.secundario,
+.peligro {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.secundario {
+  border: 1px solid var(--color-oscuro);
+  background: transparent;
+  color: var(--color-texto);
+}
+
+.peligro {
+  border: none;
+  background: var(--color-acento);
+  color: var(--color-fondo);
+}

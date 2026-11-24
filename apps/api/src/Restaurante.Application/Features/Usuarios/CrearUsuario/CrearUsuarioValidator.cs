@@ -4,7 +4,7 @@ namespace Restaurante.Application.Features.Usuarios.CrearUsuario;
 
 public sealed class CrearUsuarioValidator : AbstractValidator<CrearUsuarioCommand>
 {
-    internal static readonly string[] RolesValidos = ["mesero", "cocina", "caja", "administrador"];
+    internal static readonly string[] RolesValidos = ["administrador_general", "administrador_sucursal", "cajero", "cocinero"];
 
     /// <summary>Formato del nombre de usuario (RF-13); compartido con el administrador inicial (RF-10).</summary>
     public const string PatronNombreUsuario = "^[A-Za-z0-9._-]{3,50}$";
@@ -25,6 +25,6 @@ public sealed class CrearUsuarioValidator : AbstractValidator<CrearUsuarioComman
 
         RuleFor(x => x.Rol)
             .Must(rol => rol is not null && RolesValidos.Contains(rol, StringComparer.Ordinal))
-            .WithMessage("El rol debe ser mesero, cocina, caja o administrador");
+            .WithMessage("El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
     }
 }

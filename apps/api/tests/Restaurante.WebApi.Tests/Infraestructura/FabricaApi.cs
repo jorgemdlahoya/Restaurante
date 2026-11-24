@@ -9,7 +9,10 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun;
+using Restaurante.Domain.Restaurantes;
 using Restaurante.Domain.Usuarios;
+using RestauranteEntidad = Restaurante.Domain.Restaurantes.Restaurante;
 
 namespace Restaurante.WebApi.Tests.Infraestructura;
 
@@ -60,7 +63,23 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     /// <summary>Resultado que devuelve el health check de base de datos de prueba.</summary>
     public bool BaseAccesible { get; set; } = true;
 
-    public UsuarioRepositoryEnMemoria Usuarios { get; } = new();
+    /// <summary>Almacén compartido; cada petición lo ve filtrado por su contexto de restaurante.</summary>
+    public AlmacenUsuarios Usuarios { get; } = new();
+
+    public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
+
+    /// <summary>Siembra un restaurante (activo o no) en el repositorio en memoria y lo devuelve.</summary>
+    public RestauranteEntidad SembrarRestaurante(string nombre, string slug, bool activo = true)
+    {
+        var restaurante = RestauranteEntidad.Crear(nombre, slug, Paleta.Vacia, DateTimeOffset.UtcNow);
+        if (!activo)
+        {
+            restaurante.Desactivar();
+        }
+
+        Restaurantes.Agregar(restaurante);
+        return restaurante;
+    }
 
     public IReadOnlyDictionary<string, string?> Entorno => _entorno;
 
@@ -82,18 +101,24 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     public static string EmitirToken(
         Rol rol, string clave = ClaveJwt, TimeSpan? expiraEn = null, Guid? usuarioId = null,
-        string emisor = "restaurante-api", string audiencia = "restaurante-web")
+        string emisor = "restaurante-api", string audiencia = "restaurante-web", Guid? restauranteId = null)
     {
         var ahora = DateTime.UtcNow;
+        List<Claim> claims =
+        [
+            new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),
+            new Claim("unique_name", "usuario-prueba"),
+            new Claim("role", rol.ComoTexto()),
+        ];
+        if (restauranteId is { } id)
+        {
+            claims.Add(new Claim("restaurant_id", id.ToString()));
+        }
+
         var token = new JwtSecurityToken(
             issuer: emisor,
             audience: audiencia,
-            claims:
-            [
-                new Claim("sub", (usuarioId ?? Guid.NewGuid()).ToString()),
-                new Claim("unique_name", "usuario-prueba"),
-                new Claim("role", rol.ToString().ToLowerInvariant()),
-            ],
+            claims: claims,
             notBefore: ahora.AddHours(-3),
             expires: ahora.Add(expiraEn ?? TimeSpan.FromHours(1)),
             signingCredentials: new SigningCredentials(
@@ -139,7 +164,11 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         {
             AjustarServicios?.Invoke(servicios);
             servicios.RemoveAll<IUsuarioRepository>();
-            servicios.AddSingleton<IUsuarioRepository>(Usuarios);
+            // Scoped: cada petición filtra el almacén compartido con el contexto que fija el middleware real.
+            servicios.AddScoped<IUsuarioRepository>(sp =>
+                new UsuarioRepositoryEnMemoria(Usuarios, sp.GetRequiredService<IContextoRestaurante>()));
+            servicios.RemoveAll<IRestauranteRepository>();
+            servicios.AddSingleton<IRestauranteRepository>(Restaurantes);
 
             // Sustituye el health check real de EF Core (que necesita PostgreSQL) por uno controlable.
             servicios.Configure<HealthCheckServiceOptions>(o =>

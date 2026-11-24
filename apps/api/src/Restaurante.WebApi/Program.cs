@@ -4,6 +4,7 @@ using Restaurante.Infrastructure;
 using Restaurante.WebApi;
 using Restaurante.WebApi.Arranque;
 using Restaurante.WebApi.Configuracion;
+using Restaurante.WebApi.Seguridad;
 
 // 1. Configuración desde el entorno; si es inválida no se construye la API.
 var entorno = Environment.GetEnvironmentVariables()
@@ -50,6 +51,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors(Restaurante.WebApi.DependencyInjection.PoliticaCors);
 app.UseAuthentication();
+// Tras la autenticación: decide el restaurante de la petición (slug de la ruta o token) antes de los controllers.
+app.UseMiddleware<MiddlewareContextoRestaurante>();
 app.MapControllers();
 app.MapHealthChecks("/health"); // anónimo (RF-07): no es una acción de controller.
 

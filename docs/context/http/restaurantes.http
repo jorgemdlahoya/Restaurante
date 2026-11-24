@@ -1,0 +1,86 @@
+@baseUrl = http://localhost:5000
+# Autocontenido: la petición "login" produce @token. Usa las credenciales del administrador de plataforma
+# (las de ADMIN_USERNAME / ADMIN_PASSWORD). Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador de plataforma. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/plataforma/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_PLATAFORMA>",
+  "contrasena": "<CONTRASENA_PLATAFORMA>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Alta de restaurante con su primer administrador general (RF-01, RF-02, RF-07).
+# Sólo administrador_plataforma (otro rol: 403; sin token: 401). La paleta es opcional.
+# Responde 201 con Location: /api/plataforma/restaurantes/{id}; 400 por campo (slug, nombre,
+# paleta.principal, administrador.contrasena...); 409 si el nombre o el slug ya existen.
+# @name crearRestaurante
+POST {{baseUrl}}/api/plataforma/restaurantes
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_RESTAURANTE>",
+  "slug": "<slug-del-restaurante>",
+  "paleta": {
+    "principal": "#F97316",
+    "acento": "#FF6600"
+  },
+  "administrador": {
+    "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+    "contrasena": "<CONTRASENA_ADMIN>"
+  }
+}
+
+### Listar restaurantes (RF-03, RF-07). Sólo administrador_plataforma.
+# Responde 200 con un arreglo { id, nombre, slug, activo, paleta } ordenado por nombre.
+# @name listarRestaurantes
+GET {{baseUrl}}/api/plataforma/restaurantes
+Authorization: Bearer {{token}}
+
+### Editar nombre y paleta de un restaurante (RF-04, RF-07). El slug no cambia aunque se envíe.
+# Paleta ausente = paleta por defecto. 400 por campo; 404 si el id no existe; 409 si el nombre es de otro restaurante.
+# @name editarRestaurante
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_RESTAURANTE>",
+  "paleta": {
+    "principal": "#F97316",
+    "acento": "#FF6600"
+  }
+}
+
+### Desactivar o reactivar un restaurante (RF-06, RF-07). No borra datos.
+# Sin "activo": 400 "El estado es obligatorio". 404 si el id no existe.
+# @name cambiarEstadoRestaurante
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activo": false
+}
+
+### Subir o reemplazar el logo (RF-05). Multipart con el campo "logo"; sólo administrador_plataforma.
+# PNG, JPG o WebP (detectados por firma), máximo 1 MB. Responde 204.
+# 400 en "logo": "El logo es obligatorio", "El logo no puede superar 1 MB" (un archivo de 3 MB también da 400, no 413)
+# o "El logo debe ser PNG, JPG o WebP" (SVG rechazado). 404 si el id no existe.
+# @name subirLogo
+PUT {{baseUrl}}/api/plataforma/restaurantes/{{crearRestaurante.response.body.$.id}}/logo
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=BoundaryLogo
+
+--BoundaryLogo
+Content-Disposition: form-data; name="logo"; filename="<ARCHIVO_LOGO>.png"
+Content-Type: image/png
+
+< <RUTA_AL_ARCHIVO_LOGO>
+--BoundaryLogo--
