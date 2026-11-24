@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Application.Comun.Excepciones;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -23,6 +24,12 @@ public sealed class ControllerDePrueba : ControllerBase
     [HttpGet("explota")]
     [EndpointAnonimo]
     public IActionResult Explota() => throw new InvalidOperationException(MensajeInterno);
+
+    public const string MensajeProhibido = "No puedes gestionar a este usuario.";
+
+    [HttpGet("prohibido")]
+    [EndpointAnonimo]
+    public IActionResult Prohibido() => throw new ProhibidoException(MensajeProhibido);
 }
 
 /// <summary>Devuelve el contexto de sucursal que fijó el middleware (003/RF-14, RF-15).</summary>
