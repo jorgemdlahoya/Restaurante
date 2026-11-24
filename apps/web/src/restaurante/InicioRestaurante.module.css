@@ -18,3 +18,9 @@
   font-weight: 700;
   text-decoration: none;
 }
+
+.aviso {
+  margin: 0 0 1rem;
+  font-weight: 700;
+  color: var(--color-oscuro);
+}

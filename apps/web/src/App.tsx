@@ -7,6 +7,7 @@ import { InicioRestaurante } from './restaurante/InicioRestaurante';
 import { LoginRestaurante } from './restaurante/LoginRestaurante';
 import { RutaProtegida } from './rutas/RutaProtegida';
 import { DetalleSucursalPagina } from './sucursales/DetalleSucursalPagina';
+import { ElegirSucursalPagina } from './sucursales/ElegirSucursalPagina';
 import { SucursalesPagina } from './sucursales/SucursalesPagina';
 import { UsuariosPagina } from './usuarios/UsuariosPagina';
 
@@ -28,6 +29,7 @@ export const rutas: RouteObject[] = [
       { index: true, element: <Navigate replace to="login" /> },
       { path: 'login', element: <LoginRestaurante /> },
       { path: 'inicio', element: <InicioRestaurante /> },
+      { path: 'elegir-sucursal', element: <ElegirSucursalPagina /> },
       { path: 'sucursales', element: <SucursalesPagina /> },
       { path: 'sucursales/:sucursal', element: <DetalleSucursalPagina /> },
       { path: 'usuarios', element: <UsuariosPagina /> },

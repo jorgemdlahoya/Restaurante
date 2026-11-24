@@ -39,7 +39,9 @@ describe('LoginRestaurante', () => {
             nombreUsuario: 'ana',
             rol: 'cajero',
           })
-        : respuestaJson(200, identidad),
+        : url.endsWith('/mi-sesion')
+          ? respuestaJson(200, { nombreUsuario: 'ana', rol: 'cajero', sucursales: [{ slug: 'centro', nombre: 'Centro' }] })
+          : respuestaJson(200, identidad),
     );
 
     montarRestaurante('/r/la-esquina/login');
@@ -48,7 +50,10 @@ describe('LoginRestaurante', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Iniciar sesión' }));
 
     expect(await screen.findByText('Hola, ana')).toBeInTheDocument();
-    for (const [, init] of espia.mock.calls) {
+    // Tras iniciar sesión, `mi-sesion` (feature 004) sí va autenticada; la identidad y el login, nunca.
+    const publicas = espia.mock.calls.filter(([url]) => !String(url).endsWith('/mi-sesion'));
+    expect(publicas.length).toBeGreaterThan(0);
+    for (const [, init] of publicas) {
       expect(new Headers(init?.headers).has('Authorization')).toBe(false);
     }
   });

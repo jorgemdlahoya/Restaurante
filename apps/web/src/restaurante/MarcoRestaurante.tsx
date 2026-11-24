@@ -22,7 +22,7 @@ export function MarcoRestaurante({ identidad, children }: { identidad: Identidad
         identidad={identidad}
         nombreUsuario={sesion?.nombreUsuario ?? ''}
         onCerrarSesion={cerrarSesion}
-        extra={sesion?.rol === 'administrador_general' ? <SelectorSucursal slugRestaurante={identidad.slug} /> : null}
+        extra={sesion ? <SelectorSucursal slugRestaurante={identidad.slug} /> : null}
       />
       <main className={estilos.contenido}>{children}</main>
     </>
