@@ -58,12 +58,12 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         var restaurante = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
 
         var repo = new UsuarioRepository(ctx);
-        repo.Agregar(Usuario.Crear(restaurante, "Ana", "h", Rol.Cajero, Ahora));
+        repo.Agregar(Usuario.Crear(restaurante, "Ana", "h", Rol.Cajero, [], Ahora));
         await repo.GuardarCambiosAsync(CancellationToken.None);
 
         await using var ctx2 = PostgresFixture.CrearContexto(cadena, restaurante);
         var repo2 = new UsuarioRepository(ctx2);
-        repo2.Agregar(Usuario.Crear(restaurante, "ANA", "h", Rol.Cajero, Ahora));
+        repo2.Agregar(Usuario.Crear(restaurante, "ANA", "h", Rol.Cajero, [], Ahora));
         await Assert.ThrowsAsync<ConflictoException>(() => repo2.GuardarCambiosAsync(CancellationToken.None));
 
         await using var ctx3 = PostgresFixture.CrearContexto(cadena, restaurante);
@@ -86,7 +86,7 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         {
             await using var ctx = PostgresFixture.CrearContexto(cadena, restaurante);
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear(restaurante, "Luis", "h", Rol.Cocinero, Ahora));
+            repo.Agregar(Usuario.Crear(restaurante, "Luis", "h", Rol.Cocinero, [], Ahora));
             try
             {
                 await repo.GuardarCambiosAsync(CancellationToken.None);

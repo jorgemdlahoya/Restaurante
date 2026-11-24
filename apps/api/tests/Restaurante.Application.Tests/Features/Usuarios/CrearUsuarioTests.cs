@@ -35,7 +35,7 @@ public class CrearUsuarioTests
     [Fact(DisplayName = "001/RF-12: nombre duplicado sin distinguir mayúsculas lanza ConflictoException")]
     public async Task NombreDuplicadoLanzaConflicto()
     {
-        _repositorio.Agregar(Usuario.Crear(RestauranteId, "Maria", "hash:x", Rol.Cajero, _reloj.Ahora));
+        _repositorio.Agregar(Usuario.Crear(RestauranteId, "Maria", "hash:x", Rol.Cajero, [], _reloj.Ahora));
 
         await Assert.ThrowsAsync<ConflictoException>(() =>
             CrearHandler().Handle(new CrearUsuarioCommand("MARIA", "secreta123", "cocinero"), CancellationToken.None));

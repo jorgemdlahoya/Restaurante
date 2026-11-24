@@ -17,7 +17,7 @@ public class IniciarSesionTests
 
     private Usuario Agregar(string nombre, string contrasena, Rol rol, bool activo = true)
     {
-        var usuario = Usuario.Crear(RestauranteId, nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
+        var usuario = Usuario.Crear(RestauranteId, nombre, _hasher.Hashear(contrasena), rol, [], _reloj.Ahora);
         if (!activo)
         {
             usuario.Desactivar();

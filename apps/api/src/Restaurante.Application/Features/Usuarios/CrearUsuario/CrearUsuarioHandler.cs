@@ -25,7 +25,7 @@ public sealed class CrearUsuarioHandler(
         }
 
         var rol = RolExtensiones.DesdeTexto(request.Rol);
-        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(request.Contrasena), rol, reloj.Ahora);
+        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(request.Contrasena), rol, [], reloj.Ahora);
         usuarios.Agregar(usuario);
         await usuarios.GuardarCambiosAsync(cancellationToken);
 

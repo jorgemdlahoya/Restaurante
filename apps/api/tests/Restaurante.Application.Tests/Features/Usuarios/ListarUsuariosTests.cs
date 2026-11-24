@@ -13,9 +13,9 @@ public class ListarUsuariosTests
         var restaurante = Guid.NewGuid();
         var repositorio = new UsuarioRepositoryEnMemoria(new ContextoRestauranteFalso(restaurante));
         var ahora = new RelojFijo().Ahora;
-        repositorio.Agregar(Usuario.Crear(restaurante, "Zoe", "hash:z", Rol.Cajero, ahora));
-        repositorio.Agregar(Usuario.Crear(restaurante, "ana", "hash:a", Rol.AdministradorGeneral, ahora));
-        var desactivado = Usuario.Crear(restaurante, "Beto", "hash:b", Rol.Cocinero, ahora);
+        repositorio.Agregar(Usuario.Crear(restaurante, "Zoe", "hash:z", Rol.Cajero, [], ahora));
+        repositorio.Agregar(Usuario.Crear(restaurante, "ana", "hash:a", Rol.AdministradorGeneral, [], ahora));
+        var desactivado = Usuario.Crear(restaurante, "Beto", "hash:b", Rol.Cocinero, [], ahora);
         desactivado.Desactivar();
         repositorio.Agregar(desactivado);
 

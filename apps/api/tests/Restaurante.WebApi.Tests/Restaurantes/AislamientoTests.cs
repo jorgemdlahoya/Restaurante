@@ -31,7 +31,7 @@ public sealed class AislamientoTests : IDisposable
     private Usuario Sembrar(Guid restauranteId, string nombre, Rol rol)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(restauranteId, nombre, hasher.Hashear(Contrasena), rol, [], DateTimeOffset.UtcNow);
         _fabrica.Usuarios.Agregar(usuario);
         return usuario;
     }

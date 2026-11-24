@@ -2,6 +2,16 @@ namespace Restaurante.Domain.Usuarios;
 
 public sealed class Usuario
 {
+    private readonly List<UsuarioSucursal> _sucursales = [];
+
+    // Constructor para EF.
+    private Usuario()
+    {
+        NombreUsuario = string.Empty;
+        NombreUsuarioNormalizado = string.Empty;
+        HashContrasena = string.Empty;
+    }
+
     private Usuario(
         Guid id, Guid? restauranteId, string nombreUsuario, string hashContrasena, Rol rol, DateTimeOffset creadoEn)
     {
@@ -13,6 +23,7 @@ public sealed class Usuario
         Rol = rol;
         Activo = true;
         CreadoEn = creadoEn;
+        SelloSesion = Guid.NewGuid();
     }
 
     public Guid Id { get; private set; }
@@ -27,8 +38,18 @@ public sealed class Usuario
     public bool Activo { get; private set; }
     public DateTimeOffset CreadoEn { get; private set; }
 
+    /// <summary>Se renueva al cortar sesiones: desactivar, cambiar contraseña, rol o sucursales (004/RF-13).</summary>
+    public Guid SelloSesion { get; private set; }
+
+    public IReadOnlyCollection<Guid> Sucursales => _sucursales.Select(s => s.SucursalId).ToList();
+
     public static Usuario Crear(
-        Guid? restauranteId, string nombreUsuario, string hashContrasena, Rol rol, DateTimeOffset creadoEn)
+        Guid? restauranteId,
+        string nombreUsuario,
+        string hashContrasena,
+        Rol rol,
+        IReadOnlyCollection<Guid> sucursales,
+        DateTimeOffset creadoEn)
     {
         if ((rol == Rol.AdministradorPlataforma) != (restauranteId is null))
         {
@@ -36,12 +57,95 @@ public sealed class Usuario
                 "Sólo el administrador de plataforma carece de restaurante.", nameof(restauranteId));
         }
 
-        return new(Guid.NewGuid(), restauranteId, nombreUsuario, hashContrasena, rol, creadoEn);
+        ValidarSinDuplicados(sucursales);
+        if (restauranteId is null && sucursales.Count > 0)
+        {
+            throw new ArgumentException(
+                "El administrador de plataforma no tiene sucursales.", nameof(sucursales));
+        }
+
+        var usuario = new Usuario(Guid.NewGuid(), restauranteId, nombreUsuario, hashContrasena, rol, creadoEn);
+        usuario.ReemplazarSucursales(sucursales);
+        return usuario;
     }
 
-    public void Desactivar() => Activo = false;
+    /// <summary>Cardinalidad rol ↔ sucursales (004/RF-02).</summary>
+    public static void ValidarSucursales(Rol rol, int cantidad)
+    {
+        var valido = rol switch
+        {
+            Rol.AdministradorGeneral or Rol.AdministradorPlataforma => cantidad == 0,
+            Rol.AdministradorSucursal => cantidad == 1,
+            _ => cantidad >= 1,
+        };
+
+        if (!valido)
+        {
+            throw new ArgumentException(
+                $"El rol {rol} no admite {cantidad} sucursales.", nameof(cantidad));
+        }
+    }
+
+    /// <summary>Asigna rol y sucursales; devuelve si cambió algo. Sólo entonces renueva el sello.</summary>
+    public bool AsignarRolYSucursales(Rol rol, IReadOnlyCollection<Guid> sucursales)
+    {
+        ValidarSinDuplicados(sucursales);
+        ValidarSucursales(rol, sucursales.Count);
+
+        var mismoConjunto = sucursales.ToHashSet().SetEquals(_sucursales.Select(s => s.SucursalId));
+        if (rol == Rol && mismoConjunto)
+        {
+            return false;
+        }
+
+        Rol = rol;
+        ReemplazarSucursales(sucursales);
+        RenovarSello();
+        return true;
+    }
+
+    public void CambiarContrasena(string hash)
+    {
+        HashContrasena = hash;
+        RenovarSello();
+    }
+
+    public void Desactivar()
+    {
+        Activo = false;
+        RenovarSello();
+    }
 
     public void Reactivar() => Activo = true;
 
-    public void CambiarRol(Rol nuevo) => Rol = nuevo;
+    // Se elimina junto con CambiarRolUsuarioHandler en T-06.
+    public void CambiarRol(Rol nuevo)
+    {
+        if (nuevo == Rol)
+        {
+            return;
+        }
+
+        Rol = nuevo;
+        RenovarSello();
+    }
+
+    private void RenovarSello() => SelloSesion = Guid.NewGuid();
+
+    private void ReemplazarSucursales(IReadOnlyCollection<Guid> sucursales)
+    {
+        _sucursales.Clear();
+        if (RestauranteId is { } restauranteId)
+        {
+            _sucursales.AddRange(sucursales.Select(s => new UsuarioSucursal(Id, s, restauranteId)));
+        }
+    }
+
+    private static void ValidarSinDuplicados(IReadOnlyCollection<Guid> sucursales)
+    {
+        if (sucursales.Distinct().Count() != sucursales.Count)
+        {
+            throw new ArgumentException("Las sucursales no pueden repetirse.", nameof(sucursales));
+        }
+    }
 }

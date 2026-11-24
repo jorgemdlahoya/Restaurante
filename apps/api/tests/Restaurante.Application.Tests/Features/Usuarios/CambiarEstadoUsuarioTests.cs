@@ -15,7 +15,7 @@ public class CambiarEstadoUsuarioTests
 
     private Usuario Agregar(string nombre, Rol rol)
     {
-        var u = Usuario.Crear(RestauranteId, nombre, "hash:x", rol, _reloj.Ahora);
+        var u = Usuario.Crear(RestauranteId, nombre, "hash:x", rol, [], _reloj.Ahora);
         _repositorio.Agregar(u);
         return u;
     }

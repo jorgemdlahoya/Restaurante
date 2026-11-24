@@ -19,7 +19,7 @@ public sealed class EmisorTokensJwtTests
     {
         var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
-        var usuario = Usuario.Crear(Guid.NewGuid(), "Ana", "hash", Rol.Cajero, ahora);
+        var usuario = Usuario.Crear(Guid.NewGuid(), "Ana", "hash", Rol.Cajero, [], ahora);
 
         var emitido = emisor.Emitir(usuario);
 
@@ -40,8 +40,8 @@ public sealed class EmisorTokensJwtTests
         var ahora = new DateTimeOffset(2030, 1, 1, 10, 0, 0, TimeSpan.Zero);
         var emisor = new EmisorTokensJwt(Clave, new RelojFijo(ahora));
         var restauranteId = Guid.NewGuid();
-        var deRestaurante = Usuario.Crear(restauranteId, "Ana", "hash", Rol.Cajero, ahora);
-        var dePlataforma = Usuario.Crear(null, "Raiz", "hash", Rol.AdministradorPlataforma, ahora);
+        var deRestaurante = Usuario.Crear(restauranteId, "Ana", "hash", Rol.Cajero, [], ahora);
+        var dePlataforma = Usuario.Crear(null, "Raiz", "hash", Rol.AdministradorPlataforma, [], ahora);
         var lector = new JwtSecurityTokenHandler { MapInboundClaims = false };
 
         var conRestaurante = lector.ReadJwtToken(emisor.Emitir(deRestaurante).Token);

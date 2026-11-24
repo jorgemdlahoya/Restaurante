@@ -19,7 +19,7 @@ public class UsuariosPorRestauranteTests
     public async Task MismoNombreEnOtroRestaurante()
     {
         var repositorio = new UsuarioRepositoryEnMemoria(new ContextoRestauranteFalso(A));
-        repositorio.Agregar(Usuario.Crear(B, "maria", "hash:x", Rol.Cajero, _reloj.Ahora));
+        repositorio.Agregar(Usuario.Crear(B, "maria", "hash:x", Rol.Cajero, [], _reloj.Ahora));
 
         var dto = await HandlerCrear(repositorio, A)
             .Handle(new CrearUsuarioCommand("maria", "secreta123", "cajero"), CancellationToken.None);
@@ -33,7 +33,7 @@ public class UsuariosPorRestauranteTests
     public async Task NombreRepetidoEnElRestaurante()
     {
         var repositorio = new UsuarioRepositoryEnMemoria(new ContextoRestauranteFalso(A));
-        repositorio.Agregar(Usuario.Crear(A, "maria", "hash:x", Rol.Cajero, _reloj.Ahora));
+        repositorio.Agregar(Usuario.Crear(A, "maria", "hash:x", Rol.Cajero, [], _reloj.Ahora));
 
         await Assert.ThrowsAsync<ConflictoException>(() => HandlerCrear(repositorio, A)
             .Handle(new CrearUsuarioCommand("MARIA", "secreta123", "cocinero"), CancellationToken.None));
@@ -56,9 +56,9 @@ public class UsuariosPorRestauranteTests
     public async Task UltimoAdministradorPorRestaurante()
     {
         var repositorio = new UsuarioRepositoryEnMemoria(new ContextoRestauranteFalso(A));
-        var adminA = Usuario.Crear(A, "jefe", "hash:x", Rol.AdministradorGeneral, _reloj.Ahora);
+        var adminA = Usuario.Crear(A, "jefe", "hash:x", Rol.AdministradorGeneral, [], _reloj.Ahora);
         repositorio.Agregar(adminA);
-        repositorio.Agregar(Usuario.Crear(B, "jefe", "hash:x", Rol.AdministradorGeneral, _reloj.Ahora));
+        repositorio.Agregar(Usuario.Crear(B, "jefe", "hash:x", Rol.AdministradorGeneral, [], _reloj.Ahora));
 
         await Assert.ThrowsAsync<ConflictoException>(() =>
             new CambiarEstadoUsuarioHandler(repositorio, new UsuarioActualFalso(Guid.NewGuid()))
