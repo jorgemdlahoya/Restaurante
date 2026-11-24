@@ -15,7 +15,6 @@ public sealed class ResolutorActor(IUsuarioActual usuarioActual, ISucursalReposi
 {
     public const string MensajeSinAlcance = "No tiene permisos para esta operación.";
 
-    private Sucursal? _sucursalPropia;
     private IReadOnlyList<Sucursal>? _delRestaurante;
 
     /// <summary>
@@ -25,13 +24,14 @@ public sealed class ResolutorActor(IUsuarioActual usuarioActual, ISucursalReposi
     public async Task<ActorUsuarios> ObtenerAsync(CancellationToken ct)
     {
         Guid? propia = null;
+        Sucursal? sucursalPropia = null;
         if (usuarioActual.Rol == Rol.AdministradorSucursal && usuarioActual.Sucursales.Count == 1)
         {
             propia = usuarioActual.Sucursales.Single();
-            _sucursalPropia = await sucursales.ObtenerPorIdAsync(propia.Value, ct);
+            sucursalPropia = await sucursales.ObtenerPorIdAsync(propia.Value, ct);
         }
 
-        var actor = new ActorUsuarios(usuarioActual.Id, usuarioActual.Rol, propia, _sucursalPropia?.Activa ?? false);
+        var actor = new ActorUsuarios(usuarioActual.Id, usuarioActual.Rol, propia, sucursalPropia?.Activa ?? false);
         if (!AlcanceGestionUsuarios.PuedeOperar(actor))
         {
             throw new ProhibidoException(MensajeSinAlcance);
@@ -50,12 +50,16 @@ public sealed class ResolutorActor(IUsuarioActual usuarioActual, ISucursalReposi
         ActorUsuarios actor, IReadOnlyCollection<string> slugs, CancellationToken ct)
     {
         var normalizados = slugs.Select(s => s.Trim().ToLowerInvariant()).ToList();
-        if (actor.Rol == Rol.AdministradorSucursal && normalizados.Any(s => s != _sucursalPropia?.Slug))
+        var delRestaurante = await DelRestauranteAsync(ct);
+        if (actor.Rol == Rol.AdministradorSucursal)
         {
-            throw new ProhibidoException(MensajeSinAlcance);
+            var slugPropio = delRestaurante.FirstOrDefault(s => s.Id == actor.SucursalPropia)?.Slug;
+            if (normalizados.Any(s => s != slugPropio))
+            {
+                throw new ProhibidoException(MensajeSinAlcance);
+            }
         }
 
-        var delRestaurante = await DelRestauranteAsync(ct);
         var ids = new List<Guid>(normalizados.Count);
         var fallos = new List<ValidationFailure>();
         foreach (var slug in normalizados)

@@ -20,7 +20,7 @@ public static class DependencyInjection
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
         services.AddValidatorsFromAssembly(ensamblado);
-        // Por petición: guarda la sucursal propia del actor y las sucursales del restaurante ya leídas.
+        // Por petición: guarda las sucursales del restaurante ya leídas.
         services.AddScoped<ResolutorActor>();
 
         return services;

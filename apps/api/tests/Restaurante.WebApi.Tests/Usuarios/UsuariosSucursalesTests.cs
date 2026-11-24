@@ -271,6 +271,73 @@ public sealed class UsuariosSucursalesTests : IDisposable
         await AssertValidacionAsync(respuesta, "sucursales", "El cajero y el cocinero deben tener al menos una sucursal");
     }
 
+    [Fact(DisplayName = "004/RF-10: el administrador de sucursal no desactiva al personal compartido")]
+    public async Task Administrador_de_sucursal_no_desactiva_compartido()
+    {
+        var compartido = Sembrar("compartido", Rol.Cajero, _centro, _norte);
+        var sello = compartido.SelloSesion;
+        var cliente = ClienteDe(Sembrar("admin-centro", Rol.AdministradorSucursal, _centro));
+
+        await AssertAccesoDenegadoAsync(
+            await cliente.PutAsJsonAsync($"{Ruta}/{compartido.Id}/estado", new { activo = false }));
+
+        Assert.True(compartido.Activo);
+        Assert.Equal(sello, compartido.SelloSesion);
+    }
+
+    [Fact(DisplayName = "004/RF-10: el administrador de sucursal no desactiva al administrador general")]
+    public async Task Administrador_de_sucursal_no_desactiva_al_general()
+    {
+        var jefa = Sembrar("jefa", Rol.AdministradorGeneral);
+        Sembrar("otra-jefa", Rol.AdministradorGeneral);
+        var cliente = ClienteDe(Sembrar("admin-centro", Rol.AdministradorSucursal, _centro));
+
+        await AssertAccesoDenegadoAsync(await cliente.PutAsJsonAsync($"{Ruta}/{jefa.Id}/estado", new { activo = false }));
+
+        Assert.True(jefa.Activo);
+    }
+
+    [Fact(DisplayName = "004/RF-10: el administrador de sucursal no cambia su propio estado")]
+    public async Task Administrador_de_sucursal_no_se_gestiona_a_si_mismo()
+    {
+        var admin = Sembrar("admin-centro", Rol.AdministradorSucursal, _centro);
+        var cliente = ClienteDe(admin);
+
+        await AssertAccesoDenegadoAsync(await cliente.PutAsJsonAsync($"{Ruta}/{admin.Id}/estado", new { activo = false }));
+
+        Assert.True(admin.Activo);
+    }
+
+    [Fact(DisplayName = "004/RF-10: el administrador de sucursal no asciende a su cajero a administrador general")]
+    public async Task Administrador_de_sucursal_no_asigna_rol_administrador()
+    {
+        var cajero = Sembrar("ana", Rol.Cajero, _centro);
+        var sello = cajero.SelloSesion;
+        var cliente = ClienteDe(Sembrar("admin-centro", Rol.AdministradorSucursal, _centro));
+
+        await AssertAccesoDenegadoAsync(
+            await cliente.PutAsJsonAsync($"{Ruta}/{cajero.Id}/rol", new { rol = "administrador_general" }));
+
+        Assert.Equal(Rol.Cajero, cajero.Rol);
+        Assert.Equal([_centro.Id], cajero.Sucursales);
+        Assert.Equal(sello, cajero.SelloSesion);
+    }
+
+    [Fact(DisplayName = "004/RF-09: el administrador de sucursal desactiva a su cajero exclusivo")]
+    public async Task Administrador_de_sucursal_desactiva_su_cajero()
+    {
+        var cajero = Sembrar("ana", Rol.Cajero, _centro);
+        var cliente = ClienteDe(Sembrar("admin-centro", Rol.AdministradorSucursal, _centro));
+
+        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{cajero.Id}/estado", new { activo = false });
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var cuerpo = await CuerpoAsync(respuesta);
+        Assert.False(cuerpo.GetProperty("activo").GetBoolean());
+        Assert.True(cuerpo.GetProperty("gestionable").GetBoolean());
+        Assert.False(cajero.Activo);
+    }
+
     [Theory(DisplayName = "004/RF-11: cajero y cocinero reciben 403 en /usuarios")]
     [InlineData(Rol.Cajero)]
     [InlineData(Rol.Cocinero)]
