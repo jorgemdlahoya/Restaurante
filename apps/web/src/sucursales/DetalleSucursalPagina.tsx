@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router';
 import { ErrorApi } from '../api/cliente';
 import type { Identidad } from '../restaurante/api';
@@ -19,14 +19,14 @@ export function DetalleSucursalPagina() {
   return (
     <RutaProtegida roles={['administrador_general']} slug={identidad.slug} redirigirSinRol={`/r/${identidad.slug}/inicio`}>
       <MarcoRestaurante identidad={identidad}>
-        <Detalle slugRestaurante={identidad.slug} slugSucursal={sucursal} />
+        <Detalle key={sucursal} slugRestaurante={identidad.slug} slugSucursal={sucursal} />
       </MarcoRestaurante>
     </RutaProtegida>
   );
 }
 
 function Detalle({ slugRestaurante, slugSucursal }: { slugRestaurante: string; slugSucursal: string }) {
-  const { sesion } = useSesion();
+  const { sesion, elegirSucursal } = useSesion();
   const token = sesion?.token ?? '';
   const consultas = useQueryClient();
   const [erroresHorario, setErroresHorario] = useState<Record<string, string[]>>({});
@@ -41,13 +41,22 @@ function Detalle({ slugRestaurante, slugSucursal }: { slugRestaurante: string; s
     queryFn: () => obtenerHorario(token, slugRestaurante, slugSucursal),
   });
 
-  const nombre = sucursales.data?.find((s) => s.slug === slugSucursal)?.nombre ?? slugSucursal;
+  const actual = sucursales.data?.find((s) => s.slug === slugSucursal);
+  const nombre = actual?.nombre ?? slugSucursal;
+  const esActiva = actual?.activa === true;
+  const sucursalActiva = sesion?.sucursalActiva ?? null;
+
+  // La sucursal abierta, si está activa, pasa a ser la activa para que el selector del encabezado la refleje.
+  useEffect(() => {
+    if (esActiva && sucursalActiva !== slugSucursal) elegirSucursal(slugSucursal);
+  }, [esActiva, sucursalActiva, slugSucursal, elegirSucursal]);
 
   async function guardar(dias: HorarioDia[]) {
     setErroresHorario({});
     setMensajeHorario(null);
     try {
-      await guardarHorario(token, slugRestaurante, slugSucursal, dias);
+      const guardado = await guardarHorario(token, slugRestaurante, slugSucursal, dias);
+      consultas.setQueryData(['horario', slugRestaurante, slugSucursal], guardado);
       setMensajeHorario('Horario guardado.');
       consultas.invalidateQueries({ queryKey: claveEstado(slugRestaurante, slugSucursal) });
     } catch (e) {

@@ -82,7 +82,9 @@ configuración nombran la variable y el motivo, nunca el valor.
 
 `docker-compose.yml` define `db` (PostgreSQL 16, volumen `datos-db`, healthcheck) y `api`
 (`apps/api/Dockerfile`, puerto 5000 -> 8080, `APPLY_MIGRATIONS=true`). La configuración llega por
-`.env` (plantilla `.env.example`, sin secretos). Ver `docs/ONBOARDING.md`.
+`.env` (plantilla `.env.example`, sin secretos). Ver `docs/ONBOARDING.md`. La imagen de la API instala
+`tzdata` (la imagen base no lo trae): las zonas horarias de las sucursales (`America/Mexico_City`, etc.)
+dependen de ella para resolver el horario y el estado de atención.
 
 El servicio `web` (`apps/web/Dockerfile`: etapa `node:22-alpine` con `npm ci && npm run build`, etapa
 `nginx:alpine` con `dist/`; puerto 8080 -> 80, `depends_on: api`) sirve la SPA con

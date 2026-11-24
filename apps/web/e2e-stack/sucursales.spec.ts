@@ -76,5 +76,6 @@ test('003/RF-01: el administrador general da de alta una sucursal y su estado p�
   expect(respuesta.status()).toBe(200);
   const cuerpo = await respuesta.json();
   expect(typeof cuerpo.abierta).toBe('boolean');
-  expect(cuerpo.abierta).toBe(true);
+  // 00:00–23:59 todos los días: abierta salvo el minuto 23:59→00:00 local, que da el mensaje de cerrada.
+  expect(cuerpo.abierta === true || String(cuerpo.mensaje).startsWith('Estamos cerrados, abrimos')).toBe(true);
 });
