@@ -125,4 +125,6 @@
   (defecto 1 y 20; pagina ≥ 1, tamano 1–100; 400 con `errors.pagina`/`errors.tamano`; 005/RF-04).
 - **Nombre corto / título en WhatsApp**: `TituloWhatsApp.Calcular` (005/RF-11): nombre corto, o el nombre si ≤ 24, o
   23 caracteres + `…` sin partir pares sustitutos; `SeRecorta` dispara el aviso de recorte.
-- **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07).
+- **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07). Endpoint
+  `DELETE /api/r/{slug}/categorias/{id}`: 204 sin cuerpo, sólo `administrador_general` (403 otro rol); libera nombre y
+  nombre corto; 404 `Categoría no encontrada` si es de otro restaurante, inexistente o ya eliminada (005/RF-08, RF-09).

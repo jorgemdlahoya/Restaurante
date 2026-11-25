@@ -395,4 +395,7 @@ es un sustituto alto se corta en 22). `SeRecorta` indica cuándo se avisa "Este 
 ## Borrado lógico (IEliminable)
 
 Contrato `IEliminable { DateTimeOffset? EliminadaEn }`: eliminar (`Categoria.Eliminar`, 005/RF-07) sólo marca la fecha
-y conserva los datos; las consultas excluyen las entidades eliminadas.
+y conserva los datos; las consultas excluyen las entidades eliminadas. Se expone como
+`DELETE /api/r/{slug}/categorias/{id}` (`EliminarCategoriaCommand`): 204 sin cuerpo, sólo `administrador_general`
+(403 para otro rol); la categoría sale de la lista y libera su nombre y nombre corto. Otro restaurante, inexistente o
+ya eliminada (un segundo DELETE): 404 `Categoría no encontrada` (005/RF-07, RF-08, RF-09).
