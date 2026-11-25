@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Restaurante.Application.Abstracciones;
+using Restaurante.Domain.Menu;
 using Restaurante.Domain.Restaurantes;
 using Restaurante.Domain.Sucursales;
 using Restaurante.Domain.Usuarios;
@@ -19,6 +20,7 @@ public sealed class RestauranteDbContext(
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<HorarioDia> Horarios => Set<HorarioDia>();
     public DbSet<CierreTemporal> CierresTemporales => Set<CierreTemporal>();
+    public DbSet<Categoria> Categorias => Set<Categoria>();
 
     /// <summary>
     /// Propiedad de instancia: EF la parametriza en cada consulta con el valor de este contexto,

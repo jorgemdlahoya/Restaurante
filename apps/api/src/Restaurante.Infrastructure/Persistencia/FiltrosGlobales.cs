@@ -7,7 +7,8 @@ namespace Restaurante.Infrastructure.Persistencia;
 
 /// <summary>
 /// Filtros globales por convención (003/RF-15, RF-16): toda entidad <see cref="IEntidadDeRestaurante"/>
-/// se filtra por el restaurante del contexto y toda <see cref="IEntidadDeSucursal"/> además por su sucursal.
+/// se filtra por el restaurante del contexto y toda <see cref="IEntidadDeSucursal"/> además por su sucursal;
+/// toda <see cref="IEliminable"/> oculta además las filas con borrado lógico (005/RF-07).
 /// </summary>
 /// <remarks>
 /// La expresión referencia las propiedades de instancia del <see cref="RestauranteDbContext"/> mediante
@@ -34,20 +35,36 @@ internal static class FiltrosGlobales
         foreach (var tipo in modelBuilder.Model.GetEntityTypes().Where(t => !t.IsOwned()).ToList())
         {
             var clr = tipo.ClrType;
-            if (!typeof(IEntidadDeRestaurante).IsAssignableFrom(clr))
+            var deRestaurante = typeof(IEntidadDeRestaurante).IsAssignableFrom(clr);
+            var eliminable = typeof(IEliminable).IsAssignableFrom(clr);
+            if (!deRestaurante && !eliminable)
             {
                 continue;
             }
 
+            // Cada tipo recibe un único HasQueryFilter: las condiciones se combinan con AND.
             var entidad = Expression.Parameter(clr, "e");
-            Expression cuerpo = Igual(entidad, nameof(IEntidadDeRestaurante.RestauranteId), instancia, RestauranteActual);
-            if (typeof(IEntidadDeSucursal).IsAssignableFrom(clr))
+            Expression? cuerpo = null;
+            if (deRestaurante)
             {
-                cuerpo = Expression.AndAlso(
-                    cuerpo, Igual(entidad, nameof(IEntidadDeSucursal.SucursalId), instancia, SucursalActual));
+                cuerpo = Igual(entidad, nameof(IEntidadDeRestaurante.RestauranteId), instancia, RestauranteActual);
+                if (typeof(IEntidadDeSucursal).IsAssignableFrom(clr))
+                {
+                    cuerpo = Expression.AndAlso(
+                        cuerpo, Igual(entidad, nameof(IEntidadDeSucursal.SucursalId), instancia, SucursalActual));
+                }
             }
 
-            modelBuilder.Entity(clr).HasQueryFilter(Expression.Lambda(cuerpo, entidad));
+            if (eliminable)
+            {
+                // Borrado lógico (005/RF-07): e.EliminadaEn == null.
+                var noEliminada = Expression.Equal(
+                    Expression.Property(entidad, nameof(IEliminable.EliminadaEn)),
+                    Expression.Constant(null, typeof(DateTimeOffset?)));
+                cuerpo = cuerpo is null ? noEliminada : Expression.AndAlso(cuerpo, noEliminada);
+            }
+
+            modelBuilder.Entity(clr).HasQueryFilter(Expression.Lambda(cuerpo!, entidad));
         }
     }
 

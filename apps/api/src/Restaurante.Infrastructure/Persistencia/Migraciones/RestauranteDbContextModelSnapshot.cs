@@ -23,6 +23,75 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Restaurante.Domain.Menu.Categoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Activa")
+                        .HasColumnType("boolean")
+                        .HasColumnName("activa");
+
+                    b.Property<DateTimeOffset>("CreadaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("creada_en");
+
+                    b.Property<DateTimeOffset?>("EliminadaEn")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("eliminada_en");
+
+                    b.Property<string>("Nombre")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("nombre");
+
+                    b.Property<string>("NombreCorto")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("nombre_corto");
+
+                    b.Property<string>("NombreCortoNormalizado")
+                        .HasMaxLength(24)
+                        .HasColumnType("character varying(24)")
+                        .HasColumnName("nombre_corto_normalizado");
+
+                    b.Property<string>("NombreNormalizado")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("character varying(60)")
+                        .HasColumnName("nombre_normalizado");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer")
+                        .HasColumnName("orden");
+
+                    b.Property<Guid>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RestauranteId", "NombreCortoNormalizado")
+                        .IsUnique()
+                        .HasDatabaseName("ix_categorias_restaurante_nombre_corto")
+                        .HasFilter("eliminada_en IS NULL AND nombre_corto IS NOT NULL");
+
+                    b.HasIndex("RestauranteId", "NombreNormalizado")
+                        .IsUnique()
+                        .HasDatabaseName("ix_categorias_restaurante_nombre")
+                        .HasFilter("eliminada_en IS NULL");
+
+                    b.HasIndex("RestauranteId", "Orden", "Nombre")
+                        .HasDatabaseName("ix_categorias_restaurante_orden_nombre");
+
+                    b.ToTable("categorias", null, t =>
+                        {
+                            t.HasCheckConstraint("ck_categorias_orden", "orden >= 1");
+                        });
+                });
+
             modelBuilder.Entity("Restaurante.Domain.Restaurantes.LogoRestaurante", b =>
                 {
                     b.Property<Guid>("RestauranteId")
@@ -367,6 +436,15 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .HasDatabaseName("ix_usuarios_sucursales_sucursal");
 
                     b.ToTable("usuarios_sucursales", (string)null);
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Menu.Categoria", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Restaurantes.Restaurante", null)
+                        .WithMany()
+                        .HasForeignKey("RestauranteId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Restaurante.Domain.Restaurantes.LogoRestaurante", b =>

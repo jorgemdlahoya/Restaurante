@@ -215,6 +215,26 @@ Application (`Features/Usuarios`):
 - `IniciarSesionHandler` lanza `SinSucursalesActivasException` (403 `Sin sucursales activas`) si un usuario que no es
   general no tiene ninguna sucursal activa (004/RF-17); el token lleva el claim `sello`.
 
+## Categorías del menú y borrado lógico en el filtro global (feature 005)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Categorias`, aditiva):
+
+- `categorias`: `id`, `restaurante_id` (FK a `restaurantes`, `Restrict`), `nombre` varchar(60),
+  `nombre_normalizado` varchar(60), `nombre_corto` varchar(24) nulo, `nombre_corto_normalizado` nulo, `orden`
+  int con check `ck_categorias_orden` (`orden >= 1`), `activa`, `creada_en`, `eliminada_en` nulo (borrado lógico).
+- Índices únicos parciales (`eliminada_en IS NULL`): `ix_categorias_restaurante_nombre`
+  (`restaurante_id`, `nombre_normalizado`) e `ix_categorias_restaurante_nombre_corto`
+  (`restaurante_id`, `nombre_corto_normalizado`, además `nombre_corto IS NOT NULL`): eliminar una categoría
+  libera su nombre y su nombre corto. Índice no único `ix_categorias_restaurante_orden_nombre`.
+- `FiltrosGlobales.Aplicar` también reconoce `IEliminable` (`Restaurante.Domain.Comun`): a toda entidad que lo
+  implemente le añade `e.EliminadaEn == null`, combinado con `AND` al filtro de restaurante/sucursal en la misma
+  expresión (cada tipo tiene un único `HasQueryFilter`). `Sucursal`, `HorarioDia` y `CierreTemporal` no cambian.
+- `CategoriaRepository` (puerto `ICategoriaRepository` en Application): obtener, listar paginado (`Skip/Take`
+  ordenado por `Orden`, `Nombre`), existencia de nombre y de nombre corto normalizados (con `excluirId`), agregar
+  y guardar. `GuardarCambiosAsync` traduce `UniqueViolation` por `ConstraintName` a `ConflictoCamposException`
+  (`Application/Comun/Excepciones`, con `Errores` por campo: `nombreCorto` para el índice del nombre corto, cualquier
+  otro `nombre`); los textos están en `MensajesCategoria`. Application no referencia Npgsql ni EF.
+
 ## Frontend (`apps/web`)
 
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en

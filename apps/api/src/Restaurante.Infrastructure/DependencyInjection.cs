@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<IRestauranteRepository, RestauranteRepository>();
         services.AddScoped<ISucursalRepository, SucursalRepository>();
         services.AddScoped<ICierreTemporalRepository, CierreTemporalRepository>();
+        services.AddScoped<ICategoriaRepository, CategoriaRepository>();
         services.AddScoped<AplicadorMigraciones>();
         services.AddScoped<InicializadorAdministrador>();
         services.AddSingleton<IReloj, Reloj>();
