@@ -278,6 +278,200 @@ public sealed class CategoriasEndpointsTests : IDisposable
         Assert.Equal(1, raiz.GetProperty("total").GetInt32());
     }
 
+    private static Task<HttpResponseMessage> PutJsonAsync(HttpClient cliente, string ruta, string json) =>
+        cliente.PutAsync(ruta, new StringContent(json, Encoding.UTF8, "application/json"));
+
+    private Categoria Existente(Guid restauranteId, string nombre, string? corto = null, int orden = 1)
+    {
+        Sembrar(restauranteId, nombre, corto, orden);
+        return _fabrica.Categorias.Categorias[^1];
+    }
+
+    [Fact(DisplayName = "005/RF-05: editar cambia nombre, nombre corto y orden")]
+    public async Task Editar_cambia_los_datos()
+    {
+        var c = Existente(_a.Id, "Bebidas", "Beb");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", """{"nombre":" Refrescos ","nombreCorto":"Ref","orden":4}""");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal(c.Id, raiz.GetProperty("id").GetGuid());
+        Assert.Equal("Refrescos", raiz.GetProperty("nombre").GetString());
+        Assert.Equal("Ref", raiz.GetProperty("nombreCorto").GetString());
+        Assert.Equal(4, raiz.GetProperty("orden").GetInt32());
+        Assert.Equal("Refrescos", c.Nombre);
+    }
+
+    [Fact(DisplayName = "005/RF-05: renombrar cambiando sólo mayúsculas no choca consigo misma")]
+    public async Task Editar_solo_mayusculas_da_200()
+    {
+        var c = Existente(_a.Id, "bebidas", "beb");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", """{"nombre":"Bebidas","nombreCorto":"Beb","orden":1}""");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("Bebidas", c.Nombre);
+    }
+
+    [Fact(DisplayName = "005/RF-05: editar con el nombre de otra categoría da 409 en nombre")]
+    public async Task Editar_con_nombre_ajeno_da_409()
+    {
+        Existente(_a.Id, "Bebidas");
+        var c = Existente(_a.Id, "Postres", orden: 2);
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", """{"nombre":" bebidas ","orden":2}""");
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("Conflicto", raiz.GetProperty("title").GetString());
+        Assert.Equal("Ya existe una categoría con ese nombre", raiz.GetProperty("detail").GetString());
+        Assert.Equal(
+            ["Ya existe una categoría con ese nombre"],
+            raiz.GetProperty("errors").GetProperty("nombre").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("Postres", c.Nombre);
+    }
+
+    [Fact(DisplayName = "005/RF-05: editar con el nombre corto de otra categoría da 409 en nombreCorto")]
+    public async Task Editar_con_nombre_corto_ajeno_da_409()
+    {
+        Existente(_a.Id, "Bebidas", "Beb");
+        var c = Existente(_a.Id, "Postres", orden: 2);
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", """{"nombre":"Postres","nombreCorto":"BEB","orden":2}""");
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        var errores = (await LeerAsync(respuesta)).GetProperty("errors");
+        Assert.Equal(["nombreCorto"], errores.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Theory(DisplayName = "005/RF-05: editar con datos inválidos da 400 por campo")]
+    [InlineData("""{"nombre":"","orden":1}""", "nombre", "El nombre es obligatorio")]
+    [InlineData("""{"nombre":"Largo61","orden":1}""", "nombre", "El nombre no puede superar 60 caracteres")]
+    [InlineData("""{"nombre":"Ok","nombreCorto":"Largo25","orden":1}""", "nombreCorto", "El nombre corto no puede superar 24 caracteres")]
+    [InlineData("""{"nombre":"Ok"}""", "orden", "El orden es obligatorio")]
+    [InlineData("""{"nombre":"Ok","orden":0}""", "orden", "El orden debe ser un entero mayor o igual que 1")]
+    [InlineData("""{"nombre":"Ok","orden":"3"}""", "orden", "El cuerpo de la petición no es válido.")]
+    [InlineData("""{"nombre":"Ok","orden":1.5}""", "orden", "El cuerpo de la petición no es válido.")]
+    public async Task Editar_con_datos_invalidos_da_400(string cuerpo, string campo, string mensaje)
+    {
+        var c = Existente(_a.Id, "Bebidas");
+        var json = cuerpo.Replace("Largo61", Largo61).Replace("Largo25", Largo25);
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", json);
+
+        await AssertValidacionAsync(respuesta, campo, mensaje);
+        Assert.Equal("Bebidas", c.Nombre);
+    }
+
+    [Fact(DisplayName = "005/RF-05: editar con nombre corto en blanco lo quita")]
+    public async Task Editar_con_nombre_corto_en_blanco_lo_quita()
+    {
+        var c = Existente(_a.Id, "Bebidas", "Beb");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}", """{"nombre":"Bebidas","nombreCorto":"   ","orden":1}""");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal(JsonValueKind.Null, (await LeerAsync(respuesta)).GetProperty("nombreCorto").ValueKind);
+        Assert.Null(c.NombreCorto);
+    }
+
+    [Fact(DisplayName = "005/RF-06: desactivar mantiene la categoría en la lista y su nombre reservado")]
+    public async Task Desactivar_mantiene_lista_y_nombre_reservado()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+        var cliente = AdminDeA();
+
+        var apagar = await PutJsonAsync(cliente, $"{Ruta}/{c.Id}/estado", """{"activa":false}""");
+        Assert.Equal(HttpStatusCode.OK, apagar.StatusCode);
+        Assert.False((await LeerAsync(apagar)).GetProperty("activa").GetBoolean());
+
+        var lista = await LeerAsync(await cliente.GetAsync(Ruta));
+        var elemento = Assert.Single(lista.GetProperty("elementos").EnumerateArray());
+        Assert.False(elemento.GetProperty("activa").GetBoolean());
+
+        var alta = await PostJsonAsync(cliente, """{"nombre":"Bebidas","orden":2}""");
+        Assert.Equal(HttpStatusCode.Conflict, alta.StatusCode);
+
+        var encender = await PutJsonAsync(cliente, $"{Ruta}/{c.Id}/estado", """{"activa":true}""");
+        Assert.Equal(HttpStatusCode.OK, encender.StatusCode);
+        Assert.True((await LeerAsync(encender)).GetProperty("activa").GetBoolean());
+    }
+
+    [Theory(DisplayName = "005/RF-06: estado sin activa o no booleano da 400 en activa")]
+    [InlineData("{}", "El estado es obligatorio")]
+    [InlineData("""{"activa":null}""", "El estado es obligatorio")]
+    [InlineData("""{"activa":"si"}""", "El cuerpo de la petición no es válido.")]
+    [InlineData("""{"activa":"true"}""", "El cuerpo de la petición no es válido.")]
+    public async Task Estado_invalido_da_400_en_activa(string cuerpo, string mensaje)
+    {
+        var c = Existente(_a.Id, "Bebidas");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{c.Id}/estado", cuerpo);
+
+        await AssertValidacionAsync(respuesta, "activa", mensaje);
+        Assert.True(c.Activa);
+    }
+
+    [Theory(DisplayName = "005/RF-08: editar o cambiar estado de una categoría de otro restaurante, inexistente o eliminada da 404")]
+    [InlineData("ajena", false)]
+    [InlineData("inexistente", false)]
+    [InlineData("eliminada", false)]
+    [InlineData("ajena", true)]
+    [InlineData("inexistente", true)]
+    [InlineData("eliminada", true)]
+    public async Task Categoria_no_visible_da_404(string caso, bool estado)
+    {
+        var id = caso switch
+        {
+            "ajena" => Existente(_b.Id, "Ajena").Id,
+            "eliminada" => EliminadaDeA().Id,
+            _ => Guid.NewGuid()
+        };
+        var (ruta, cuerpo) = estado
+            ? ($"{Ruta}/{id}/estado", """{"activa":false}""")
+            : ($"{Ruta}/{id}", """{"nombre":"Nueva","orden":1}""");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), ruta, cuerpo);
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+        Assert.Equal("Categoría no encontrada", raiz.GetProperty("detail").GetString());
+    }
+
+    private Categoria EliminadaDeA()
+    {
+        var c = Existente(_a.Id, "Borrada");
+        c.Eliminar(DateTimeOffset.UtcNow);
+        return c;
+    }
+
+    [Fact(DisplayName = "005/RF-08: el 404 precede al 409 al editar")]
+    public async Task Editar_inexistente_con_nombre_repetido_da_404()
+    {
+        Existente(_a.Id, "Bebidas");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{Ruta}/{Guid.NewGuid()}", """{"nombre":"Bebidas","orden":1}""");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+    }
+
+    [Fact(DisplayName = "005/RF-09: editar y cambiar estado exigen administrador_general")]
+    public async Task Editar_con_cajero_da_403()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+        var cajero = ClienteComo(Rol.Cajero, _a.Id);
+
+        var editar = await PutJsonAsync(cajero, $"{Ruta}/{c.Id}", """{"nombre":"Otra","orden":1}""");
+        var estado = await PutJsonAsync(cajero, $"{Ruta}/{c.Id}/estado", """{"activa":false}""");
+
+        Assert.Equal(HttpStatusCode.Forbidden, editar.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, estado.StatusCode);
+        Assert.Equal("Bebidas", c.Nombre);
+        Assert.True(c.Activa);
+    }
+
     [Fact(DisplayName = "005/RF-09: listar exige administrador_general")]
     public async Task Listar_con_cajero_da_403()
     {

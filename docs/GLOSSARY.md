@@ -372,7 +372,11 @@ Representación pública de una categoría: `{ id, nombre, nombreCorto, orden, a
 `POST /api/r/{slug}/categorias` (201, `Location: /api/r/{slug}/categorias/{id}`; sólo `administrador_general`, 403 para
 otro rol). El nombre y el nombre corto son únicos en el restaurante sin distinguir mayúsculas ni espacios
 (`ComprobadorUnicidadCategoria`): si se repiten, 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto`
-(`ConflictoCamposException`).
+(`ConflictoCamposException`). También es la respuesta de `PUT /api/r/{slug}/categorias/{id}` (editar, 005/RF-05; el
+conflicto excluye a la propia categoría, así que cambiar sólo mayúsculas da 200) y de
+`PUT /api/r/{slug}/categorias/{id}/estado` con `{ activa }` (005/RF-06; sin `activa` o no booleano, 400 en `activa`).
+Una categoría desactivada sigue en la lista y conserva su nombre reservado. Otro restaurante, inexistente o eliminada:
+404 `Categoría no encontrada` (005/RF-08).
 
 ## PaginaCategoriasDto
 

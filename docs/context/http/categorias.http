@@ -41,3 +41,30 @@ Content-Type: application/json
 # @name listarCategorias
 GET {{baseUrl}}/api/r/{{slug}}/categorias?pagina=1&tamano=20
 Authorization: Bearer {{token}}
+
+### Editar categoría (005/RF-05, RF-08, RF-09). Sólo administrador general.
+# Mismo cuerpo y validaciones que el alta; nombreCorto en blanco lo quita. Orden de errores: 400 (formato) -> 404 -> 409.
+# 409 compara contra las demás categorías (no contra sí misma: cambiar sólo mayúsculas da 200).
+# 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente o eliminada.
+# @name editarCategoria
+PUT {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_CATEGORIA>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "orden": 1
+}
+
+### Activar o desactivar categoría (005/RF-06, RF-08, RF-09). Sólo administrador general.
+# activa es obligatorio y booleano: sin él o con "si"/"true" entre comillas da 400 en "activa".
+# Desactivada sigue en la lista (activa: false) y su nombre sigue reservado (un alta con ese nombre da 409).
+# @name cambiarEstadoCategoria
+PUT {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activa": false
+}

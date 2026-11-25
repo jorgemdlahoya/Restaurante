@@ -118,7 +118,9 @@
 - **DatosCategoriaDto**: `{ nombre?, nombreCorto?, orden? }` validado por `ValidadorDatosCategoria` (claves `nombre`,
   `nombreCorto`, `orden` sin prefijo; 005/RF-02).
 - **CategoriaDto**: `{ id, nombre, nombreCorto, orden, activa }`; respuesta de `POST /api/r/{slug}/categorias` (201,
-  400 por campo, 409 con `errors` por nombre/nombre corto repetidos vía `ConflictoCamposException`; sólo `administrador_general`).
+  400 por campo, 409 con `errors` por nombre/nombre corto repetidos vía `ConflictoCamposException`; sólo `administrador_general`). También responde `PUT .../categorias/{id}` (editar; excluye su propio id en la unicidad,
+  005/RF-05) y `PUT .../categorias/{id}/estado` con `{ activa }` (400 en `activa` si falta o no es booleano, 005/RF-06);
+  404 `Categoría no encontrada` si es de otro restaurante, inexistente o eliminada (005/RF-08).
 - **PaginaCategoriasDto**: `{ elementos, total, pagina, tamano }`; respuesta de `GET /api/r/{slug}/categorias?pagina=&tamano=`
   (defecto 1 y 20; pagina ≥ 1, tamano 1–100; 400 con `errors.pagina`/`errors.tamano`; 005/RF-04).
 - **Nombre corto / título en WhatsApp**: `TituloWhatsApp.Calcular` (005/RF-11): nombre corto, o el nombre si ≤ 24, o
