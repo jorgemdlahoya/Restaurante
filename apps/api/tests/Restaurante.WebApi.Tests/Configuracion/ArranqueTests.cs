@@ -53,9 +53,11 @@ public sealed class ArranqueTests
         var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
 
         Assert.Contains("server has not been started", error.Message);
-        Assert.Contains("No se pudo inicializar el administrador", fabrica.SalidaDeArranque);
-        Assert.Contains("Falta la variable de entorno ADMIN_PASSWORD", fabrica.SalidaDeArranque);
-        Assert.DoesNotContain(FabricaApi.EntornoValido()["ADMIN_PASSWORD"]!, fabrica.SalidaDeArranque);
+        // El log de la secuencia de arranque se escribe en segundo plano: se espera a que llegue.
+        var salida = fabrica.EsperarSalidaDeArranque("Falta la variable de entorno ADMIN_PASSWORD");
+        Assert.Contains("No se pudo inicializar el administrador", salida);
+        Assert.Contains("Falta la variable de entorno ADMIN_PASSWORD", salida);
+        Assert.DoesNotContain(FabricaApi.EntornoValido()["ADMIN_PASSWORD"]!, salida);
         Assert.Empty(fabrica.Usuarios.Usuarios);
     }
 
@@ -67,7 +69,9 @@ public sealed class ArranqueTests
         var error = Assert.Throws<InvalidOperationException>(() => fabrica.CreateClient());
 
         Assert.Contains("server has not been started", error.Message);
-        Assert.Contains("Falta la variable de entorno ADMIN_USERNAME", fabrica.SalidaDeArranque);
+        Assert.Contains(
+            "Falta la variable de entorno ADMIN_USERNAME",
+            fabrica.EsperarSalidaDeArranque("Falta la variable de entorno ADMIN_USERNAME"));
         Assert.Empty(fabrica.Usuarios.Usuarios);
     }
 }

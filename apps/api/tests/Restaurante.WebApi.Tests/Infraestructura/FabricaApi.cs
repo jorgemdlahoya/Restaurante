@@ -116,8 +116,44 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
     /// <summary>Ajuste opcional de servicios que cada prueba aplica sobre el host (p. ej. provocar un fallo en un middleware).</summary>
     public Action<IServiceCollection>? AjustarServicios { get; init; }
 
-    /// <summary>Salida de consola (logs de arranque) emitida mientras se construía el host.</summary>
-    public string SalidaDeArranque { get; private set; } = string.Empty;
+    // El registro en consola guarda el escritor que había al crearse (esta captura) pero escribe en segundo
+    // plano: un mensaje del arranque puede llegar después de que CreateHost termine. Por eso la captura se lee
+    // al consultarla y, para esperar un mensaje concreto, se usa EsperarSalidaDeArranque.
+    private StringWriter? _textoCapturado;
+    private TextWriter? _captura;
+
+    /// <summary>Salida de consola (logs de arranque) emitida mientras se construía el host, leída en este momento.</summary>
+    public string SalidaDeArranque
+    {
+        get
+        {
+            if (_captura is null || _textoCapturado is null)
+            {
+                return string.Empty;
+            }
+
+            // TextWriter.Synchronized bloquea sobre el propio escritor: se lee con el mismo cerrojo.
+            lock (_captura)
+            {
+                return _textoCapturado.ToString();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Espera (hasta 5 s) a que la salida de arranque contenga <paramref name="texto"/> y la devuelve; si no llega,
+    /// devuelve la salida que haya para que la aserción de la prueba muestre lo que se registró.
+    /// </summary>
+    public string EsperarSalidaDeArranque(string texto)
+    {
+        var limite = DateTime.UtcNow.AddSeconds(5);
+        while (!SalidaDeArranque.Contains(texto, StringComparison.Ordinal) && DateTime.UtcNow < limite)
+        {
+            Thread.Sleep(20);
+        }
+
+        return SalidaDeArranque;
+    }
 
     public static Dictionary<string, string?> EntornoValido() => new()
     {
@@ -198,7 +234,10 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         // Program lee el entorno del proceso; se sustituye sólo mientras se construye el host.
         var anteriores = _entorno.ToDictionary(p => p.Key, p => Environment.GetEnvironmentVariable(p.Key));
         var consolaOriginal = Console.Out;
-        var captura = new StringWriter();
+        // Sincronizado: el hilo del registro en consola puede escribir mientras la prueba lee.
+        _textoCapturado = new StringWriter();
+        var captura = TextWriter.Synchronized(_textoCapturado);
+        _captura = captura;
         Console.SetOut(captura);
         try
         {
@@ -212,7 +251,6 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
         finally
         {
             Console.SetOut(consolaOriginal);
-            SalidaDeArranque = captura.ToString();
             foreach (var (clave, valor) in anteriores)
             {
                 Environment.SetEnvironmentVariable(clave, valor);
