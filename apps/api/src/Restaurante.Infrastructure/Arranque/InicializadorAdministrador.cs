@@ -60,7 +60,7 @@ public sealed class InicializadorAdministrador(
                 $"{CrearUsuarioValidator.LongitudMinimaContrasena} caracteres.");
         }
 
-        usuarios.Agregar(Usuario.Crear(null, nombre, hasher.Hashear(contrasena), Rol.AdministradorPlataforma, reloj.Ahora));
+        usuarios.Agregar(Usuario.Crear(null, nombre, hasher.Hashear(contrasena), Rol.AdministradorPlataforma, [], reloj.Ahora));
         await usuarios.GuardarCambiosAsync(ct);
         return ResultadoInicializacion.Exito;
     }

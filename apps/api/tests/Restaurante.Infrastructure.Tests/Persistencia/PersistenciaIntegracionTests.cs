@@ -57,13 +57,14 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         await new AplicadorMigraciones(ctx).AplicarAsync(true, CancellationToken.None);
         var restaurante = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
 
+        var sucursal = await PostgresFixture.SembrarSucursalAsync(cadena, restaurante);
         var repo = new UsuarioRepository(ctx);
-        repo.Agregar(Usuario.Crear(restaurante, "Ana", "h", Rol.Cajero, Ahora));
+        repo.Agregar(Usuario.Crear(restaurante, "Ana", "h", Rol.Cajero, [sucursal], Ahora));
         await repo.GuardarCambiosAsync(CancellationToken.None);
 
         await using var ctx2 = PostgresFixture.CrearContexto(cadena, restaurante);
         var repo2 = new UsuarioRepository(ctx2);
-        repo2.Agregar(Usuario.Crear(restaurante, "ANA", "h", Rol.Cajero, Ahora));
+        repo2.Agregar(Usuario.Crear(restaurante, "ANA", "h", Rol.Cajero, [sucursal], Ahora));
         await Assert.ThrowsAsync<ConflictoException>(() => repo2.GuardarCambiosAsync(CancellationToken.None));
 
         await using var ctx3 = PostgresFixture.CrearContexto(cadena, restaurante);
@@ -81,12 +82,13 @@ public sealed class PersistenciaIntegracionTests(PostgresFixture postgres)
         }
 
         var restaurante = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
+        var sucursal = await PostgresFixture.SembrarSucursalAsync(cadena, restaurante);
 
         async Task<Exception?> AltaAsync()
         {
             await using var ctx = PostgresFixture.CrearContexto(cadena, restaurante);
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear(restaurante, "Luis", "h", Rol.Cocinero, Ahora));
+            repo.Agregar(Usuario.Crear(restaurante, "Luis", "h", Rol.Cocinero, [sucursal], Ahora));
             try
             {
                 await repo.GuardarCambiosAsync(CancellationToken.None);

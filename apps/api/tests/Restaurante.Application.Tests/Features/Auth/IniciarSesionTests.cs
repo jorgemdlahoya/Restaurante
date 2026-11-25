@@ -12,12 +12,28 @@ public class IniciarSesionTests
     private readonly UsuarioRepositoryEnMemoria _repositorio = new(new ContextoRestauranteFalso(RestauranteId));
     private readonly HasherFalso _hasher = new();
     private readonly RelojFijo _reloj = new();
+    private readonly SucursalRepositoryEnMemoria _sucursales = new(new ContextoRestauranteFalso(RestauranteId));
 
-    private IniciarSesionHandler CrearHandler() => new(_repositorio, _hasher, new EmisorTokensFalso());
+    private IniciarSesionHandler CrearHandler() => new(_repositorio, _hasher, new EmisorTokensFalso(), _sucursales);
+
+    // Los roles que exigen sucursal reciben una sucursal activa sembrada (004/RF-17).
+    private IReadOnlyCollection<Guid> SucursalesActivasPara(Rol rol)
+    {
+        if (Usuario.CardinalidadValida(rol, 0))
+        {
+            return [];
+        }
+
+        var n = _sucursales.Sucursales.Count + 1;
+        var sucursal = SucursalesDePrueba.Crear(RestauranteId, $"suc-{n}", $"Sucursal {n}", "S", $"+5255000{n:D5}");
+        _sucursales.Sucursales.Add(sucursal);
+        return [sucursal.Id];
+    }
 
     private Usuario Agregar(string nombre, string contrasena, Rol rol, bool activo = true)
     {
-        var usuario = Usuario.Crear(RestauranteId, nombre, _hasher.Hashear(contrasena), rol, _reloj.Ahora);
+        var usuario = Usuario.Crear(
+            RestauranteId, nombre, _hasher.Hashear(contrasena), rol, SucursalesActivasPara(rol), _reloj.Ahora);
         if (!activo)
         {
             usuario.Desactivar();
@@ -103,7 +119,7 @@ public class IniciarSesionTests
     public async Task InexistenteTambienVerificaContrasena()
     {
         var espia = new HasherEspia();
-        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso());
+        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso(), _sucursales);
 
         await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
             handler.Handle(new IniciarSesionCommand("nadie", "secreta123"), CancellationToken.None));
@@ -116,7 +132,7 @@ public class IniciarSesionTests
     {
         var espia = new HasherEspia();
         Agregar("ana", "secreta123", Rol.Cocinero, activo: false);
-        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso());
+        var handler = new IniciarSesionHandler(_repositorio, espia, new EmisorTokensFalso(), _sucursales);
 
         var ex = await Assert.ThrowsAsync<CredencialesInvalidasException>(() =>
             handler.Handle(new IniciarSesionCommand("ana", "secreta123"), CancellationToken.None));

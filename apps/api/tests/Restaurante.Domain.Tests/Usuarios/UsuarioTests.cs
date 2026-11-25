@@ -8,8 +8,12 @@ public class UsuarioTests
 
     private static readonly Guid RestauranteId = Guid.NewGuid();
 
+    // Desde 004/RF-02 cajero, cocinero y administrador de sucursal necesitan sucursal.
+    private static IReadOnlyCollection<Guid> SucursalesPara(Rol rol) =>
+        Usuario.CardinalidadValida(rol, 0) ? [] : [Guid.NewGuid()];
+
     private static Usuario NuevoUsuario(Rol rol = Rol.Cajero) =>
-        Usuario.Crear(RestauranteId, "Ana.Mesera", "hash", rol, Ahora);
+        Usuario.Crear(RestauranteId, "Ana.Mesera", "hash", rol, SucursalesPara(rol), Ahora);
 
     [Fact(DisplayName = "001/RF-11: un usuario nuevo está activo y normaliza el nombre")]
     public void Crear_UsuarioNuevo_EstaActivoYNormalizaElNombre()
@@ -29,16 +33,18 @@ public class UsuarioTests
     [Fact(DisplayName = "002/RF-13: sólo el administrador de plataforma carece de restaurante")]
     public void Crear_SoloElAdministradorDePlataformaCareceDeRestaurante()
     {
-        Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", Rol.Cajero, Ahora));
         Assert.Throws<ArgumentException>(() =>
-            Usuario.Crear(Guid.NewGuid(), "root", "hash", Rol.AdministradorPlataforma, Ahora));
+            Usuario.Crear(null, "ana", "hash", Rol.Cajero, SucursalesPara(Rol.Cajero), Ahora));
+        Assert.Throws<ArgumentException>(() =>
+            Usuario.Crear(Guid.NewGuid(), "root", "hash", Rol.AdministradorPlataforma, [], Ahora));
 
-        var plataforma = Usuario.Crear(null, "root", "hash", Rol.AdministradorPlataforma, Ahora);
+        var plataforma = Usuario.Crear(null, "root", "hash", Rol.AdministradorPlataforma, [], Ahora);
         Assert.Null(plataforma.RestauranteId);
         foreach (var rol in new[] { Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero, Rol.Cocinero })
         {
-            Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", rol, Ahora));
-            Assert.Equal(RestauranteId, Usuario.Crear(RestauranteId, "ana", "hash", rol, Ahora).RestauranteId);
+            Assert.Throws<ArgumentException>(() => Usuario.Crear(null, "ana", "hash", rol, SucursalesPara(rol), Ahora));
+            Assert.Equal(
+                RestauranteId, Usuario.Crear(RestauranteId, "ana", "hash", rol, SucursalesPara(rol), Ahora).RestauranteId);
         }
     }
 
@@ -55,12 +61,33 @@ public class UsuarioTests
     }
 
     [Fact(DisplayName = "001/RF-16: cambiar rol")]
-    public void CambiarRol_AsignaElNuevoRol()
+    public void AsignarRolYSucursales_AsignaElNuevoRol()
     {
         var usuario = NuevoUsuario();
 
-        usuario.CambiarRol(Rol.Cajero);
+        // Desde 004/RF-04 el rol cambia junto con las sucursales (AsignarRolYSucursales sustituye a CambiarRol).
+        Assert.True(usuario.AsignarRolYSucursales(Rol.Cocinero, usuario.Sucursales));
 
-        Assert.Equal(Rol.Cajero, usuario.Rol);
+        Assert.Equal(Rol.Cocinero, usuario.Rol);
+    }
+
+    [Fact(DisplayName = "004/RF-04: AsignarRolYSucursales respeta que sólo el administrador de plataforma carece de restaurante")]
+    public void AsignarRolYSucursales_RespetaElRestauranteDelRol()
+    {
+        var general = NuevoUsuario(Rol.AdministradorGeneral);
+        var plataforma = Usuario.Crear(null, "root", "hash", Rol.AdministradorPlataforma, [], Ahora);
+        var selloGeneral = general.SelloSesion;
+        var selloPlataforma = plataforma.SelloSesion;
+
+        Assert.Throws<ArgumentException>(() => general.AsignarRolYSucursales(Rol.AdministradorPlataforma, []));
+        foreach (var rol in new[] { Rol.AdministradorGeneral, Rol.AdministradorSucursal, Rol.Cajero, Rol.Cocinero })
+        {
+            Assert.Throws<ArgumentException>(() => plataforma.AsignarRolYSucursales(rol, SucursalesPara(rol)));
+        }
+
+        Assert.Equal(Rol.AdministradorGeneral, general.Rol);
+        Assert.Equal(selloGeneral, general.SelloSesion);
+        Assert.Equal(Rol.AdministradorPlataforma, plataforma.Rol);
+        Assert.Equal(selloPlataforma, plataforma.SelloSesion);
     }
 }

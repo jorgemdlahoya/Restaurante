@@ -2,6 +2,7 @@ using FluentValidation;
 using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurante.Application.Comun.Behaviors;
+using Restaurante.Application.Features.Usuarios;
 
 namespace Restaurante.Application;
 
@@ -19,6 +20,8 @@ public static class DependencyInjection
             cfg.AddOpenBehavior(typeof(LoggingBehavior<,>));
         });
         services.AddValidatorsFromAssembly(ensamblado);
+        // Por petición: guarda las sucursales del restaurante ya leídas.
+        services.AddScoped<ResolutorActor>();
 
         return services;
     }

@@ -5,6 +5,9 @@
 # El slug no distingue mayúsculas. Slug inexistente o restaurante inactivo: 404 "Restaurante no disponible".
 # Un usuario de otro restaurante recibe 401 con el mismo mensaje que una contraseña incorrecta.
 # El token lleva sub, unique_name, role y restaurant_id.
+# 403 "Sin sucursales activas" (004/RF-17): credenciales válidas y usuario activo, pero todas sus sucursales están
+# desactivadas (administrador_sucursal, cajero, cocinero). No se emite token. El administrador general queda fuera.
+# Una contraseña incorrecta sigue dando 401 (el 403 no adelanta información).
 # Sustituir los marcadores por credenciales reales sólo en local; no commitearlas.
 # @name login
 POST {{baseUrl}}/api/r/{{slug}}/auth/login
@@ -17,6 +20,12 @@ Content-Type: application/json
 
 ### Token de restaurante capturado para los demás archivos .http
 @token = {{login.response.body.$.token}}
+
+### Mi sesión (004/RF-16). Cualquier rol de restaurante; 401 sin sesión válida.
+# Devuelve { nombreUsuario, rol, sucursales: [{ slug, nombre }] } con datos vigentes de base de datos. El
+# administrador general ve todas las sucursales activas; el resto, las asignadas y activas, ordenadas por nombre.
+GET {{baseUrl}}/api/r/{{slug}}/mi-sesion
+Authorization: Bearer {{token}}
 
 ### Iniciar sesión como administrador de plataforma (002/RF-11). No requiere token.
 # Sólo existen los usuarios sin restaurante (administrador_plataforma); el token no lleva restaurant_id.

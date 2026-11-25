@@ -28,7 +28,9 @@ public sealed class LoginTests : IDisposable
     private Usuario Sembrar(string nombre, Rol rol, bool activo = true)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(_restauranteId, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(
+            _restauranteId, nombre, hasher.Hashear(Contrasena), rol, _fabrica.SucursalesPara(rol, _restauranteId),
+            DateTimeOffset.UtcNow);
         if (!activo)
         {
             usuario.Desactivar();

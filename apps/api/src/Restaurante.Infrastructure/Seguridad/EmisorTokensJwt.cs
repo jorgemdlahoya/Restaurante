@@ -17,6 +17,9 @@ public sealed class EmisorTokensJwt(string claveJwt, IReloj reloj) : IEmisorToke
     /// <summary>Claim con el id del restaurante del usuario; ausente en los usuarios de plataforma.</summary>
     public const string ClaimRestaurante = "restaurant_id";
 
+    /// <summary>Claim con el sello de sesión del usuario (Guid "D"); lo compara MiddlewareSesionUsuario (004/RF-13).</summary>
+    public const string ClaimSello = "sello";
+
     private readonly SigningCredentials _credenciales =
         new(new SymmetricSecurityKey(Encoding.UTF8.GetBytes(claveJwt)), SecurityAlgorithms.HmacSha256);
 
@@ -29,6 +32,7 @@ public sealed class EmisorTokensJwt(string claveJwt, IReloj reloj) : IEmisorToke
             new Claim("sub", usuario.Id.ToString()),
             new Claim("unique_name", usuario.NombreUsuario),
             new Claim("role", usuario.Rol.ComoTexto()),
+            new Claim(ClaimSello, usuario.SelloSesion.ToString("D")),
         ];
         if (usuario.RestauranteId is { } restauranteId)
         {

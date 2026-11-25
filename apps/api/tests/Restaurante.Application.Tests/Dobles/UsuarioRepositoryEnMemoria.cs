@@ -21,11 +21,14 @@ public sealed class UsuarioRepositoryEnMemoria(IContextoRestaurante? contexto = 
     public Task<Usuario?> ObtenerPorIdAsync(Guid id, CancellationToken ct) =>
         Task.FromResult(Visibles.FirstOrDefault(u => u.Id == id));
 
+    public Task<Usuario?> ObtenerParaSesionAsync(Guid id, CancellationToken ct) =>
+        Task.FromResult(Usuarios.FirstOrDefault(u => u.Id == id));
+
     public Task<Usuario?> ObtenerPorNombreNormalizadoAsync(string nombreNormalizado, CancellationToken ct) =>
         Task.FromResult(Visibles.FirstOrDefault(u => u.NombreUsuarioNormalizado == nombreNormalizado));
 
     public Task<IReadOnlyList<Usuario>> ListarAsync(CancellationToken ct) =>
-        Task.FromResult<IReadOnlyList<Usuario>>(Visibles.ToList());
+        Task.FromResult<IReadOnlyList<Usuario>>(Visibles.OrderBy(u => u.NombreUsuarioNormalizado).ToList());
 
     public Task<int> ContarAdministradoresActivosAsync(CancellationToken ct) =>
         Task.FromResult(Visibles.Count(u => u.Activo && u.Rol == Rol.AdministradorGeneral));

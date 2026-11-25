@@ -11,15 +11,21 @@ public class ListarUsuariosTests
     public async Task ListaOrdenadosSinDatosSensibles()
     {
         var restaurante = Guid.NewGuid();
-        var repositorio = new UsuarioRepositoryEnMemoria(new ContextoRestauranteFalso(restaurante));
+        var contexto = new ContextoRestauranteFalso(restaurante);
+        var repositorio = new UsuarioRepositoryEnMemoria(contexto);
         var ahora = new RelojFijo().Ahora;
-        repositorio.Agregar(Usuario.Crear(restaurante, "Zoe", "hash:z", Rol.Cajero, ahora));
-        repositorio.Agregar(Usuario.Crear(restaurante, "ana", "hash:a", Rol.AdministradorGeneral, ahora));
-        var desactivado = Usuario.Crear(restaurante, "Beto", "hash:b", Rol.Cocinero, ahora);
+        repositorio.Agregar(Usuario.Crear(restaurante, "Zoe", "hash:z", Rol.Cajero, [Guid.NewGuid()], ahora));
+        var ana = Usuario.Crear(restaurante, "ana", "hash:a", Rol.AdministradorGeneral, [], ahora);
+        repositorio.Agregar(ana);
+        var desactivado = Usuario.Crear(restaurante, "Beto", "hash:b", Rol.Cocinero, [Guid.NewGuid()], ahora);
         desactivado.Desactivar();
         repositorio.Agregar(desactivado);
+        // Desde 004/RF-03 consulta un administrador general del restaurante (ana).
+        var resolutor = new ResolutorActor(
+            new UsuarioActualFalso(ana.Id), new SucursalRepositoryEnMemoria(contexto));
 
-        var lista = await new ListarUsuariosHandler(repositorio).Handle(new ListarUsuariosQuery(), CancellationToken.None);
+        var lista = await new ListarUsuariosHandler(repositorio, resolutor)
+            .Handle(new ListarUsuariosQuery(), CancellationToken.None);
 
         Assert.Equal(new[] { "ana", "Beto", "Zoe" }, lista.Select(u => u.NombreUsuario));
         Assert.Equal(new[] { "administrador_general", "cocinero", "cajero" }, lista.Select(u => u.Rol));

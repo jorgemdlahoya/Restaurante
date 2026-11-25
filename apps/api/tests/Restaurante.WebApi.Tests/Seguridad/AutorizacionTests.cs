@@ -54,7 +54,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-06: el 403 no incluye WWW-Authenticate")]
     public async Task El_403_no_incluye_WWW_Authenticate()
     {
-        var respuesta = await GetAsync("/prueba/caja", FabricaApi.EmitirToken(Rol.Cocinero));
+        var respuesta = await GetAsync("/prueba/caja", _fabrica.EmitirToken(Rol.Cocinero));
 
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
         Assert.Empty(respuesta.Headers.WwwAuthenticate);
@@ -63,7 +63,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-05: token con otra clave responde 401")]
     public async Task Token_con_otra_clave_responde_401()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero, clave: FabricaApi.ClaveAjena);
+        var token = _fabrica.EmitirToken(Rol.Cajero, clave: FabricaApi.ClaveAjena);
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -73,7 +73,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-05: token expirado responde 401")]
     public async Task Token_expirado_responde_401()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero, expiraEn: TimeSpan.FromHours(-1));
+        var token = _fabrica.EmitirToken(Rol.Cajero, expiraEn: TimeSpan.FromHours(-1));
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -83,7 +83,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-05: token expirado hace 30 s responde 401 (sin tolerancia de reloj)")]
     public async Task Token_expirado_hace_30_segundos_responde_401()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero, expiraEn: TimeSpan.FromSeconds(-30));
+        var token = _fabrica.EmitirToken(Rol.Cajero, expiraEn: TimeSpan.FromSeconds(-30));
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -93,7 +93,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-05: token con la clave correcta y otro emisor responde 401")]
     public async Task Token_con_otro_emisor_responde_401()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero, emisor: "otro-emisor");
+        var token = _fabrica.EmitirToken(Rol.Cajero, emisor: "otro-emisor");
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -103,7 +103,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-05: token con la clave correcta y otra audiencia responde 401")]
     public async Task Token_con_otra_audiencia_responde_401()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero, audiencia: "otra-audiencia");
+        var token = _fabrica.EmitirToken(Rol.Cajero, audiencia: "otra-audiencia");
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -121,7 +121,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-06: rol no autorizado responde 403 ProblemDetails")]
     public async Task Rol_no_autorizado_responde_403_ProblemDetails()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cocinero);
+        var token = _fabrica.EmitirToken(Rol.Cocinero);
 
         var respuesta = await GetAsync("/prueba/caja", token);
 
@@ -131,7 +131,7 @@ public sealed class AutorizacionTests : IDisposable
     [Fact(DisplayName = "001/RF-06: rol autorizado accede al endpoint")]
     public async Task Rol_autorizado_accede_al_endpoint()
     {
-        var token = FabricaApi.EmitirToken(Rol.Cajero);
+        var token = _fabrica.EmitirToken(Rol.Cajero);
 
         var respuesta = await GetAsync("/prueba/caja", token);
 

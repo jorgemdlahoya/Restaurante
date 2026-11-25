@@ -27,9 +27,11 @@ public sealed class AislamientoIntegracionTests(PostgresFixture postgres)
     public async Task Filtro_global_aisla_por_restaurante()
     {
         var (cadena, a, b) = await BaseConDosRestaurantesAsync();
-        var plataforma = Usuario.Crear(null, "root", "h", Rol.AdministradorPlataforma, Ahora);
-        var deA = Usuario.Crear(a, "ana", "h", Rol.Cajero, Ahora);
-        var deB = Usuario.Crear(b, "beto", "h", Rol.Cocinero, Ahora);
+        var sucursalA = await PostgresFixture.SembrarSucursalAsync(cadena, a, "+525500000001");
+        var sucursalB = await PostgresFixture.SembrarSucursalAsync(cadena, b, "+525500000002");
+        var plataforma = Usuario.Crear(null, "root", "h", Rol.AdministradorPlataforma, [], Ahora);
+        var deA = Usuario.Crear(a, "ana", "h", Rol.Cajero, [sucursalA], Ahora);
+        var deB = Usuario.Crear(b, "beto", "h", Rol.Cocinero, [sucursalB], Ahora);
         await using (var ctx = PostgresFixture.CrearContexto(cadena))
         {
             ctx.Usuarios.AddRange(plataforma, deA, deB);
@@ -59,26 +61,28 @@ public sealed class AislamientoIntegracionTests(PostgresFixture postgres)
     public async Task Indice_unico_por_restaurante()
     {
         var (cadena, a, b) = await BaseConDosRestaurantesAsync();
+        var sucursalA = await PostgresFixture.SembrarSucursalAsync(cadena, a, "+525500000001");
+        var sucursalB = await PostgresFixture.SembrarSucursalAsync(cadena, b, "+525500000002");
         await using (var ctx = PostgresFixture.CrearContexto(cadena))
         {
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear(a, "Maria", "h", Rol.Cajero, Ahora));
-            repo.Agregar(Usuario.Crear(b, "maria", "h", Rol.Cajero, Ahora));
-            repo.Agregar(Usuario.Crear(null, "root", "h", Rol.AdministradorPlataforma, Ahora));
+            repo.Agregar(Usuario.Crear(a, "Maria", "h", Rol.Cajero, [sucursalA], Ahora));
+            repo.Agregar(Usuario.Crear(b, "maria", "h", Rol.Cajero, [sucursalB], Ahora));
+            repo.Agregar(Usuario.Crear(null, "root", "h", Rol.AdministradorPlataforma, [], Ahora));
             await repo.GuardarCambiosAsync(CancellationToken.None);
         }
 
         await using (var ctx = PostgresFixture.CrearContexto(cadena, a))
         {
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear(a, "MARIA", "h", Rol.Cocinero, Ahora));
+            repo.Agregar(Usuario.Crear(a, "MARIA", "h", Rol.Cocinero, [sucursalA], Ahora));
             await Assert.ThrowsAsync<ConflictoException>(() => repo.GuardarCambiosAsync(CancellationToken.None));
         }
 
         await using (var ctx = PostgresFixture.CrearContexto(cadena))
         {
             var repo = new UsuarioRepository(ctx);
-            repo.Agregar(Usuario.Crear(null, "ROOT", "h", Rol.AdministradorPlataforma, Ahora));
+            repo.Agregar(Usuario.Crear(null, "ROOT", "h", Rol.AdministradorPlataforma, [], Ahora));
             await Assert.ThrowsAsync<ConflictoException>(() => repo.GuardarCambiosAsync(CancellationToken.None));
         }
     }

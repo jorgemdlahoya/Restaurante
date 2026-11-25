@@ -57,7 +57,8 @@ public sealed class SwaggerTests
     [Fact(DisplayName = "001/RF-25: Swagger documenta las respuestas de login y de usuarios")]
     public async Task Swagger_documenta_las_respuestas()
     {
-        Assert.Equal(["200", "400", "401", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/auth/login", "post")));
+        // 403 en el login del restaurante: sin sucursales activas (004/RF-17).
+        Assert.Equal(["200", "400", "401", "403", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/auth/login", "post")));
         Assert.Equal(["200", "400", "401"], Codigos(await LeerOperacionAsync("/api/plataforma/auth/login", "post")));
         // 404 en todas: restaurante no disponible (o token de otro restaurante) en /api/r/{slug}.
         Assert.Equal(["200", "401", "403", "404"], Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios", "get")));
@@ -65,8 +66,12 @@ public sealed class SwaggerTests
             Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios", "post")));
         Assert.Equal(["200", "400", "401", "403", "404", "409"],
             Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}/estado", "put")));
+        // PUT /{id} (rol y sucursales, 004/RF-04) sustituye a PUT /{id}/rol, que ya no existe.
         Assert.Equal(["200", "400", "401", "403", "404", "409"],
-            Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}/rol", "put")));
+            Codigos(await LeerOperacionAsync("/api/r/{slug}/usuarios/{id}", "put")));
+        using var fabrica = new FabricaApi(entornoHospedaje: "Development");
+        using var documento = JsonDocument.Parse(await fabrica.CreateClient().GetStringAsync(RutaDocumento));
+        Assert.False(documento.RootElement.GetProperty("paths").TryGetProperty("/api/r/{slug}/usuarios/{id}/rol", out _));
     }
 
     [Fact(DisplayName = "001/RF-25: Swagger no disponible en Production")]

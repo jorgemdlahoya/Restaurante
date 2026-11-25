@@ -23,6 +23,22 @@ export function urlApi(ruta: string): string {
 
 type OpcionesApi = RequestInit & { token?: string };
 
+/** Título del 401 con que la API rechaza un token cuyo usuario cambió de acceso (feature 004, RF-13/RF-14). */
+export const TITULO_SESION_INVALIDA = 'Sesión no válida';
+
+const manejadoresSesionInvalida = new Set<() => void>();
+
+/**
+ * Suscribe un manejador que se llama cuando una petición **con token** recibe 401 "Sesión no válida".
+ * Devuelve la función para cancelar la suscripción.
+ */
+export function alSesionInvalida(manejador: () => void): () => void {
+  manejadoresSesionInvalida.add(manejador);
+  return () => {
+    manejadoresSesionInvalida.delete(manejador);
+  };
+}
+
 // El token se añade sólo si se pasa explícitamente: un token de restaurante enviado a otro
 // restaurante devuelve 404, así que nunca se toma de la sesión de forma automática.
 export async function pedirApi<T>(ruta: string, opciones: OpcionesApi = {}): Promise<T> {
@@ -40,6 +56,9 @@ export async function pedirApi<T>(ruta: string, opciones: OpcionesApi = {}): Pro
       problema = await respuesta.json();
     } catch {
       // Cuerpo vacío o no JSON: se usa el estado HTTP.
+    }
+    if (respuesta.status === 401 && token && problema.title === TITULO_SESION_INVALIDA) {
+      manejadoresSesionInvalida.forEach((m) => m());
     }
     throw new ErrorApi(
       respuesta.status,

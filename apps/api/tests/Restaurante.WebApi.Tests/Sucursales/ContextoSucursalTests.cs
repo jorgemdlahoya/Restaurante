@@ -108,7 +108,7 @@ public sealed class ContextoSucursalTests : IDisposable
         Sembrar(_a.Id, "centro", "+525511111111", "C");
         var admin = _fabrica.CreateClient();
         admin.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue(
-            "Bearer", FabricaApi.EmitirToken(Rol.AdministradorGeneral, restauranteId: _a.Id));
+            "Bearer", _fabrica.EmitirToken(Rol.AdministradorGeneral, restauranteId: _a.Id));
 
         var listado = await admin.GetAsync("/api/r/resto-a/sucursales");
         var eco = await SucursalDelEcoAsync(await _fabrica.CreateClient().GetAsync("/api/r/resto-a/eco-contexto"));

@@ -332,6 +332,10 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .HasColumnType("character varying(30)")
                         .HasColumnName("rol");
 
+                    b.Property<Guid>("SelloSesion")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sello_sesion");
+
                     b.HasKey("Id");
 
                     b.HasIndex("RestauranteId", "NombreUsuarioNormalizado")
@@ -341,6 +345,28 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                     NpgsqlIndexBuilderExtensions.AreNullsDistinct(b.HasIndex("RestauranteId", "NombreUsuarioNormalizado"), false);
 
                     b.ToTable("usuarios", (string)null);
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Usuarios.UsuarioSucursal", b =>
+                {
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.Property<Guid>("SucursalId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("sucursal_id");
+
+                    b.Property<Guid>("RestauranteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("restaurante_id");
+
+                    b.HasKey("UsuarioId", "SucursalId");
+
+                    b.HasIndex("SucursalId")
+                        .HasDatabaseName("ix_usuarios_sucursales_sucursal");
+
+                    b.ToTable("usuarios_sucursales", (string)null);
                 });
 
             modelBuilder.Entity("Restaurante.Domain.Restaurantes.LogoRestaurante", b =>
@@ -385,6 +411,26 @@ namespace Restaurante.Infrastructure.Persistencia.Migraciones
                         .WithMany()
                         .HasForeignKey("RestauranteId")
                         .OnDelete(DeleteBehavior.Restrict);
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Usuarios.UsuarioSucursal", b =>
+                {
+                    b.HasOne("Restaurante.Domain.Sucursales.Sucursal", null)
+                        .WithMany()
+                        .HasForeignKey("SucursalId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Restaurante.Domain.Usuarios.Usuario", null)
+                        .WithMany("_sucursales")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("Restaurante.Domain.Usuarios.Usuario", b =>
+                {
+                    b.Navigation("_sucursales");
                 });
 #pragma warning restore 612, 618
         }

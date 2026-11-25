@@ -1,0 +1,86 @@
+{
+  "tareas": {
+    "T-01": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T15:01:50",
+      "commit": "45f7b434a7b35a3c15603347cbe90257cd404dc0"
+    },
+    "T-02": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T15:08:55",
+      "commit": "72554602f99b42cafc4d416b5d0eace0336834fd"
+    },
+    "T-03": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T15:13:10",
+      "commit": "25cf86950705e4c898308c36e765631a91389622"
+    },
+    "T-04": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T15:30:31",
+      "commit": "9800f9464ac2a4b4ce6c96aa52164e8ad53593b4"
+    },
+    "T-05": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T17:22:46",
+      "commit": "42dcc86eb447354b1b298acaedd0d38eb527dc12"
+    },
+    "T-06": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T17:36:24",
+      "commit": "e7f7b2a53f138a879783feebbac6338c26b68563"
+    },
+    "T-07": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T17:41:45",
+      "commit": "f513498f158a3f00acabfe89498cdb35b65d5266"
+    },
+    "T-08": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T17:47:38",
+      "commit": "5d3ad185856139194778f8cf8bbea725f7c58652"
+    },
+    "T-09": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T17:54:37",
+      "commit": "2d389d5aa2c896d79af2732c0ed782e597806647"
+    },
+    "T-10": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T18:04:23",
+      "commit": "462a5c0484b0617c49a6f569ad347f3732f65038"
+    },
+    "T-11": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T22:29:09",
+      "commit": "ce47a283250aea91b389111920c02d81018ae407"
+    },
+    "T-12": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T22:46:53",
+      "commit": "f596b9e4a29f72d33b40eb0a5636ffc071e482e6"
+    },
+    "T-13": {
+      "estado": "hecha",
+      "fecha": "2026-11-24T23:00:38",
+      "commit": "057281b654d7346aea418c0e64bd4163d99333cf"
+    }
+  },
+  "aceptadas": {
+    "HU-01": {
+      "fecha": "2026-11-25T03:24:49"
+    },
+    "HU-02": {
+      "fecha": "2026-11-25T03:24:58"
+    },
+    "HU-03": {
+      "fecha": "2026-11-25T03:25:08"
+    },
+    "HU-04": {
+      "fecha": "2026-11-25T03:25:17"
+    },
+    "HU-05": {
+      "fecha": "2026-11-25T03:40:34"
+    }
+  }
+}

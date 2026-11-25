@@ -21,6 +21,8 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
                 Seguridad.MiddlewareContextoSucursal.TituloNoDisponible,
                 Seguridad.MiddlewareContextoSucursal.DetalleNoDisponible),
             NoEncontradoException e => Problema(StatusCodes.Status404NotFound, "No encontrado", e.Message),
+            ProhibidoException e => Problema(StatusCodes.Status403Forbidden, "Acceso denegado", e.Message),
+            SinSucursalesActivasException e => Problema(StatusCodes.Status403Forbidden, "Sin sucursales activas", e.Message),
             ConflictoException e => Problema(StatusCodes.Status409Conflict, "Conflicto", e.Message),
             _ => ErrorInterno(context),
         };

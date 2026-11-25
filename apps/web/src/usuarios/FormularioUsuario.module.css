@@ -1,0 +1,86 @@
+.formulario {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  border-radius: 0.75rem;
+  background: var(--color-fondo);
+  box-shadow: 0 0.25rem 1.5rem color-mix(in srgb, var(--color-oscuro) 15%, transparent);
+}
+
+.titulo {
+  margin: 0;
+  color: var(--color-oscuro);
+}
+
+.alerta {
+  margin: 0;
+  color: var(--color-acento);
+  font-weight: 700;
+}
+
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: 0.75rem;
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+}
+
+.principal,
+.secundario {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.principal {
+  border: none;
+  background: var(--color-principal);
+  color: var(--color-fondo);
+}
+
+.principal:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.secundario {
+  border: 1px solid var(--color-oscuro);
+  background: transparent;
+  color: var(--color-texto);
+}
+
+.sucursales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
+  margin: 0;
+  padding: 0.75rem;
+  border: 1px solid color-mix(in srgb, var(--color-oscuro) 20%, transparent);
+  border-radius: 0.5rem;
+}
+
+.sucursales legend {
+  padding: 0 0.25rem;
+  font-weight: 700;
+}
+
+.casilla {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+}
+
+.error {
+  flex-basis: 100%;
+  color: var(--color-acento);
+  font-size: 0.875rem;
+}

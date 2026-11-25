@@ -34,6 +34,7 @@ public sealed class CrearRestauranteHandler(
             request.Administrador.NombreUsuario.Trim(),
             hasher.Hashear(request.Administrador.Contrasena),
             Rol.AdministradorGeneral,
+            [],
             ahora);
 
         restaurantes.Agregar(restaurante);

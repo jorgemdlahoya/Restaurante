@@ -15,6 +15,7 @@ public sealed class RestauranteDbContext(
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<RestauranteEntidad> Restaurantes => Set<RestauranteEntidad>();
     public DbSet<LogoRestaurante> Logos => Set<LogoRestaurante>();
+    public DbSet<UsuarioSucursal> UsuariosSucursales => Set<UsuarioSucursal>();
     public DbSet<Sucursal> Sucursales => Set<Sucursal>();
     public DbSet<HorarioDia> Horarios => Set<HorarioDia>();
     public DbSet<CierreTemporal> CierresTemporales => Set<CierreTemporal>();

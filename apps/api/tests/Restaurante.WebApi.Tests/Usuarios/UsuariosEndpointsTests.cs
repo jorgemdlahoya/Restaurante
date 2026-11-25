@@ -28,7 +28,9 @@ public sealed class UsuariosEndpointsTests : IDisposable
     private Usuario Sembrar(string nombre, Rol rol, bool activo = true)
     {
         var hasher = _fabrica.Services.GetRequiredService<IHasherContrasenas>();
-        var usuario = Usuario.Crear(_restaurante.Id, nombre, hasher.Hashear(Contrasena), rol, DateTimeOffset.UtcNow);
+        var usuario = Usuario.Crear(
+            _restaurante.Id, nombre, hasher.Hashear(Contrasena), rol, _fabrica.SucursalesPara(rol, _restaurante.Id),
+            DateTimeOffset.UtcNow);
         if (!activo)
         {
             usuario.Desactivar();
@@ -43,7 +45,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = _fabrica.CreateClient();
         cliente.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer",
-                FabricaApi.EmitirToken(rol, usuarioId: usuarioId, restauranteId: _restaurante.Id));
+                _fabrica.EmitirToken(rol, usuarioId: usuarioId, restauranteId: _restaurante.Id));
         return cliente;
     }
 
@@ -52,10 +54,12 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-11: alta → 201 con Location y sin contraseña")]
     public async Task Alta_responde_201_con_location_y_sin_contrasena()
     {
+        // Desde 004/RF-02 el cajero lleva al menos una sucursal.
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var respuesta = await cliente.PostAsJsonAsync(Ruta,
-            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cajero" });
+            new { nombreUsuario = "maria", contrasena = Contrasena, rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.Created, respuesta.StatusCode);
         var cuerpo = await respuesta.Content.ReadAsStringAsync();
@@ -75,10 +79,11 @@ public sealed class UsuariosEndpointsTests : IDisposable
     public async Task Duplicado_responde_409()
     {
         Sembrar("maria", Rol.Cajero);
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var respuesta = await cliente.PostAsJsonAsync(Ruta,
-            new { nombreUsuario = "MARIA", contrasena = Contrasena, rol = "cajero" });
+            new { nombreUsuario = "MARIA", contrasena = Contrasena, rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
     }
@@ -119,14 +124,16 @@ public sealed class UsuariosEndpointsTests : IDisposable
 
         var usuario = Sembrar("pepe", Rol.Cajero);
         await AssertValidacionAsync(
-            await cliente.PutAsync($"{Ruta}/{usuario.Id}/rol", Json("{\"rol\":\"Cajero\"}")),
+            await cliente.PutAsync($"{Ruta}/{usuario.Id}", Json("{\"rol\":\"Cajero\",\"sucursales\":[]}")),
             "rol", "El rol debe ser administrador_general, administrador_sucursal, cajero o cocinero");
     }
 
     [Fact(DisplayName = "001/RF-14: listado → 200")]
     public async Task Listado_responde_200()
     {
-        var cliente = ClienteComo(Rol.AdministradorGeneral); // arrancar el host primero siembra al administrador inicial
+        // El token debe ser de un usuario existente (004/RF-14): "jefa" es quien consulta.
+        var jefa = Sembrar("jefa", Rol.AdministradorGeneral); // arrancar el host primero siembra al administrador inicial
+        var cliente = ClienteComo(Rol.AdministradorGeneral, jefa.Id);
         Sembrar("maria", Rol.Cajero, activo: false);
 
         var respuesta = await cliente.GetAsync(Ruta);
@@ -134,9 +141,10 @@ public sealed class UsuariosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
         var lista = json.RootElement.EnumerateArray().ToList();
-        // Sólo maria: el administrador de plataforma sembrado al arrancar no pertenece al restaurante (filtro por contexto).
-        var maria = Assert.Single(lista);
-        Assert.Equal("maria", maria.GetProperty("nombreUsuario").GetString());
+        // Sólo jefa y maria: el administrador de plataforma sembrado al arrancar no pertenece al restaurante
+        // (filtro por contexto).
+        Assert.Equal(["jefa", "maria"], lista.Select(u => u.GetProperty("nombreUsuario").GetString()));
+        var maria = lista[1];
         Assert.False(maria.GetProperty("activo").GetBoolean());
     }
 
@@ -165,10 +173,13 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-16: cambiar rol → 200")]
     public async Task Cambiar_rol_responde_200()
     {
+        // Desde 004/RF-04 el rol se edita junto con las sucursales en PUT /{id} (sustituye a PUT /{id}/rol).
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
         var objetivo = Sembrar("maria", Rol.Cajero);
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
-        var respuesta = await cliente.PutAsJsonAsync($"{Ruta}/{objetivo.Id}/rol", new { rol = "cocinero" });
+        var respuesta = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{objetivo.Id}", new { rol = "cocinero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
         using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
@@ -178,11 +189,16 @@ public sealed class UsuariosEndpointsTests : IDisposable
     [Fact(DisplayName = "001/RF-17: último administrador → 409")]
     public async Task Ultimo_administrador_responde_409()
     {
-        var cliente = ClienteComo(Rol.AdministradorGeneral); // sub distinto: no es autodesactivación
-        // El administrador inicial es de plataforma: este es el único administrador general activo.
+        // El administrador inicial es de plataforma: este es el único administrador general activo. Con el
+        // sello de sesión (004/RF-14) quien llama debe ser un administrador general existente y activo, así que
+        // el único administrador sólo puede ser él mismo: el cambio de rol y la desactivación chocan con la
+        // autoprotección (004/RF-05), que se comprueba antes que la regla del último administrador; ambos 409.
         var unico = Sembrar("jefe", Rol.AdministradorGeneral);
+        var cliente = ClienteComo(Rol.AdministradorGeneral, unico.Id);
 
-        var cambioRol = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/rol", new { rol = "cajero" });
+        _fabrica.SembrarSucursal(_restaurante.Id, "centro", "Centro");
+        var cambioRol = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{unico.Id}", new { rol = "cajero", sucursales = new[] { "centro" } });
         var desactivar = await cliente.PutAsJsonAsync($"{Ruta}/{unico.Id}/estado", new { activo = false });
 
         Assert.Equal(HttpStatusCode.Conflict, cambioRol.StatusCode);
@@ -210,7 +226,8 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var estado = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync($"{Ruta}/{Guid.NewGuid()}/rol", new { rol = "cajero" });
+        var rol = await cliente.PutAsJsonAsync(
+            $"{Ruta}/{Guid.NewGuid()}", new { rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);
@@ -222,7 +239,7 @@ public sealed class UsuariosEndpointsTests : IDisposable
         var cliente = ClienteComo(Rol.AdministradorGeneral);
 
         var estado = await cliente.PutAsJsonAsync($"{Ruta}/abc/estado", new { activo = true });
-        var rol = await cliente.PutAsJsonAsync($"{Ruta}/123/rol", new { rol = "cajero" });
+        var rol = await cliente.PutAsJsonAsync($"{Ruta}/123", new { rol = "cajero", sucursales = new[] { "centro" } });
 
         Assert.Equal(HttpStatusCode.NotFound, estado.StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, rol.StatusCode);

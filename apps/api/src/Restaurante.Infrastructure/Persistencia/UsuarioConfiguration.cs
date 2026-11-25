@@ -28,6 +28,12 @@ public sealed class UsuarioConfiguration : IEntityTypeConfiguration<Usuario>
         builder.Property(u => u.Rol).HasColumnName("rol").HasMaxLength(30).HasConversion(rolComoTexto).IsRequired();
         builder.Property(u => u.Activo).HasColumnName("activo").IsRequired();
         builder.Property(u => u.CreadoEn).HasColumnName("creado_en").IsRequired();
+        builder.Property(u => u.SelloSesion).HasColumnName("sello_sesion").IsRequired();
+        // Las sucursales se persisten por el campo privado; la propiedad pública es una proyección.
+        builder.Ignore(u => u.Sucursales);
+        builder.HasMany<UsuarioSucursal>("_sucursales").WithOne().HasForeignKey(s => s.UsuarioId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Navigation("_sucursales").UsePropertyAccessMode(PropertyAccessMode.Field);
         // Único por restaurante; NULLS NOT DISTINCT lo hace único también entre administradores de plataforma.
         builder.HasIndex(u => new { u.RestauranteId, u.NombreUsuarioNormalizado }).IsUnique()
             .AreNullsDistinct(false).HasDatabaseName("ix_usuarios_restaurante_nombre");

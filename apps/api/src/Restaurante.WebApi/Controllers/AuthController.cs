@@ -21,6 +21,7 @@ public sealed class AuthController(IMediator mediador) : ControllerBase
     [ProducesResponseType<LoginRespuestaDto>(StatusCodes.Status200OK)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status401Unauthorized, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status403Forbidden, "application/problem+json")]
     [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")]
     public async Task<ActionResult<LoginRespuestaDto>> Login(LoginPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new IniciarSesionCommand(peticion.NombreUsuario ?? string.Empty, peticion.Contrasena ?? string.Empty), ct));
