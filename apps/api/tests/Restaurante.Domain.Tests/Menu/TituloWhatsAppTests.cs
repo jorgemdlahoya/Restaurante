@@ -14,6 +14,7 @@ public class TituloWhatsAppTests
         { "Pozoles tradicionales de la casa", null, "Pozoles tradicionales d…", true },
         { Rep("🌮", 12), null, Rep("🌮", 12), false },
         { Rep("🌮", 13), null, Rep("🌮", 11) + "…", true },
+        { Rep("a", 21) + "🌮" + "bbb", null, Rep("a", 21) + "🌮" + "…", true },
     };
 
     [Theory(DisplayName = "005/RF-11: calcula el título en WhatsApp")]
