@@ -360,6 +360,20 @@ Agrupación del menú de un restaurante (`Restaurante.Domain.Menu.Categoria`, 00
 (empieza en `true`). `NombreNormalizado` y `NombreCortoNormalizado` (`Trim().ToLowerInvariant()`, "Café" ≠ "Cafe")
 sirven para la unicidad. Implementa `IEntidadDeRestaurante` e `IEliminable`.
 
+## DatosCategoriaDto
+
+Datos editables de una categoría tal como llegan por la API: `{ nombre?, nombreCorto?, orden? }` (todo anulable para
+que los faltantes los valide `ValidadorDatosCategoria`, 005/RF-02: nombre 1–60 y nombre corto ≤ 24 tras `Trim()`, orden
+entero ≥ 1; claves de error `nombre`, `nombreCorto`, `orden`, sin prefijo). Lo reutilizan el alta y la edición.
+
+## CategoriaDto
+
+Representación pública de una categoría: `{ id, nombre, nombreCorto, orden, activa }`. Es la respuesta de
+`POST /api/r/{slug}/categorias` (201, `Location: /api/r/{slug}/categorias/{id}`; sólo `administrador_general`, 403 para
+otro rol). El nombre y el nombre corto son únicos en el restaurante sin distinguir mayúsculas ni espacios
+(`ComprobadorUnicidadCategoria`): si se repiten, 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto`
+(`ConflictoCamposException`).
+
 ## Nombre corto y título en WhatsApp
 
 `TituloWhatsApp.Calcular(nombre, nombreCorto)` (005/RF-11): el nombre corto si existe; si no, el nombre cuando mide

@@ -1,0 +1,34 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador general. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador general en su restaurante. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Crear categoría (005/RF-01..RF-03, RF-09). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Responde 201 con Location: /api/r/{slug}/categorias/{id}; nace activa.
+# nombre: 1-60 caracteres tras recortar espacios. nombreCorto: opcional, hasta 24 (en blanco = sin nombre corto).
+# orden: entero >= 1 (obligatorio; un tipo incorrecto como 1.5, "3" o "abc" da 400 en "orden").
+# 400 por campo si un formato es inválido. 409 si el nombre o el nombre corto ya existen en el restaurante
+# (sin distinguir mayúsculas ni espacios): { "title": "Conflicto", "errors": { "nombre": [...], "nombreCorto": [...] } }.
+# @name crearCategoria
+POST {{baseUrl}}/api/r/{{slug}}/categorias
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_CATEGORIA>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "orden": 1
+}

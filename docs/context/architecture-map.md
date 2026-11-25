@@ -35,6 +35,8 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   (`GuardaEndpointsTests`) falla si un endpoint no declara ninguna de las dos cosas.
 - `FiltroExcepciones`: traduce excepciones de aplicación a `ProblemDetails` (validación 400,
   credenciales 401, no encontrado 404, conflicto 409, resto 500 sin detalles internos).
+  `ConflictoCamposException` (005) da 409 `Conflicto` con `errors` por campo en camelCase
+  (`RespuestasProblema.ConClavesCamelCase`).
 - `RespuestasProblema`: construye los 400 de validación con una única forma (también para los
   fallos de enlace del modelo).
 - Orden del pipeline: `UseExceptionHandler` → `UseStatusCodePages` → (Swagger en Development) → `UseCors` →

@@ -81,6 +81,10 @@ public static class RespuestasProblema
             cancellationToken: contexto.RequestAborted);
     }
 
+    /// <summary>Errores por campo con las claves en camelCase, para los problemas que no son un 400 de validación.</summary>
+    public static Dictionary<string, string[]> ConClavesCamelCase(IReadOnlyDictionary<string, string[]> errores) =>
+        errores.ToDictionary(e => ACamelCase(e.Key), e => e.Value);
+
     private static string ACamelCase(string clave)
     {
         // Claves anidadas ("a.B") y vacías (cuerpo completo) se conservan salvo la inicial de cada segmento.

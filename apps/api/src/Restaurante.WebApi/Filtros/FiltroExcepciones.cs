@@ -23,6 +23,7 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
             NoEncontradoException e => Problema(StatusCodes.Status404NotFound, "No encontrado", e.Message),
             ProhibidoException e => Problema(StatusCodes.Status403Forbidden, "Acceso denegado", e.Message),
             SinSucursalesActivasException e => Problema(StatusCodes.Status403Forbidden, "Sin sucursales activas", e.Message),
+            ConflictoCamposException e => Conflicto(e),
             ConflictoException e => Problema(StatusCodes.Status409Conflict, "Conflicto", e.Message),
             _ => ErrorInterno(context),
         };
@@ -33,6 +34,18 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
         RespuestasProblema.Validacion(excepcion.Errors
             .GroupBy(e => e.PropertyName)
             .Select(g => KeyValuePair.Create(g.Key, g.Select(e => e.ErrorMessage).ToArray())));
+
+    private static ObjectResult Conflicto(ConflictoCamposException excepcion)
+    {
+        var detalles = new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "Conflicto",
+            Detail = excepcion.Message,
+        };
+        detalles.Extensions["errors"] = RespuestasProblema.ConClavesCamelCase(excepcion.Errores);
+        return Resultado(detalles);
+    }
 
     private ObjectResult ErrorInterno(ExceptionContext context)
     {
