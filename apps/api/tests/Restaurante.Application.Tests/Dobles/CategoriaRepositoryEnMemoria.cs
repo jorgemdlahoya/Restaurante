@@ -24,7 +24,10 @@ public sealed class CategoriaRepositoryEnMemoria(IContextoRestaurante? contexto 
     public Task<(IReadOnlyList<Categoria> Elementos, int Total)> ListarAsync(int pagina, int tamano, CancellationToken ct)
     {
         var todas = Visibles.OrderBy(c => c.Orden).ThenBy(c => c.NombreNormalizado).ThenBy(c => c.Id).ToList();
-        IReadOnlyList<Categoria> elementos = todas.Skip((pagina - 1) * tamano).Take(tamano).ToList();
+        var desplazamiento = ((long)pagina - 1) * tamano;
+        IReadOnlyList<Categoria> elementos = desplazamiento >= todas.Count
+            ? []
+            : todas.Skip((int)desplazamiento).Take(tamano).ToList();
         return Task.FromResult((elementos, todas.Count));
     }
 

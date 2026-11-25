@@ -19,9 +19,16 @@ public sealed class CategoriaRepository(RestauranteDbContext contexto) : ICatego
         int pagina, int tamano, CancellationToken ct)
     {
         var total = await contexto.Categorias.CountAsync(ct);
+        // El desplazamiento se calcula en long: con una página enorme (int) desbordaría a un OFFSET negativo.
+        var desplazamiento = ((long)pagina - 1) * tamano;
+        if (desplazamiento >= total)
+        {
+            return ([], total);
+        }
+
         var elementos = await contexto.Categorias.AsNoTracking()
             .OrderBy(c => c.Orden).ThenBy(c => c.Nombre).ThenBy(c => c.Id)
-            .Skip((pagina - 1) * tamano).Take(tamano)
+            .Skip((int)desplazamiento).Take(tamano)
             .ToListAsync(ct);
         return (elementos, total);
     }

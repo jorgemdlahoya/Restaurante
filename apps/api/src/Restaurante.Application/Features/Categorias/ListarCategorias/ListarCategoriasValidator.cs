@@ -9,6 +9,6 @@ public sealed class ListarCategoriasValidator : AbstractValidator<ListarCategori
     public ListarCategoriasValidator()
     {
         RuleFor(x => x.Pagina).GreaterThanOrEqualTo(1).WithMessage("La página debe ser mayor o igual que 1");
-        RuleFor(x => x.Tamano).InclusiveBetween(1, TamanoMaximo).WithMessage("El tamaño debe estar entre 1 y 100");
+        RuleFor(x => x.Tamano).InclusiveBetween(1, TamanoMaximo).WithMessage($"El tamaño debe estar entre 1 y {TamanoMaximo}");
     }
 }

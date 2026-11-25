@@ -118,6 +118,22 @@ public sealed class CategoriasIntegracionTests(PostgresFixture postgres)
         Assert.Equal(3, total2);
     }
 
+    [Fact(DisplayName = "005/RF-04: una página enorme devuelve una lista vacía con el total")]
+    public async Task Pagina_enorme_devuelve_lista_vacia_con_el_total()
+    {
+        var cadena = await BaseMigradaAsync();
+        var r = await PostgresFixture.SembrarRestauranteAsync(cadena, "alfa");
+        await GuardarAsync(cadena, r, Nueva(r, "A"));
+        await GuardarAsync(cadena, r, Nueva(r, "B", orden: 2));
+
+        await using var ctx = PostgresFixture.CrearContexto(cadena, r);
+        var repo = new CategoriaRepository(ctx);
+        var (elementos, total) = await repo.ListarAsync(int.MaxValue, 20, CancellationToken.None);
+
+        Assert.Empty(elementos);
+        Assert.Equal(2, total);
+    }
+
     [Fact(DisplayName = "005/RF-02: la base rechaza orden menor que 1")]
     public async Task Base_rechaza_orden_menor_que_uno()
     {

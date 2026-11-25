@@ -243,6 +243,19 @@ public sealed class CategoriasEndpointsTests : IDisposable
         Assert.Equal([mensaje], errores.GetProperty(campo).EnumerateArray().Select(e => e.GetString()));
     }
 
+    [Fact(DisplayName = "005/RF-04: una página enorme devuelve 200 con elementos vacíos")]
+    public async Task Listado_con_pagina_enorme_devuelve_vacio()
+    {
+        Sembrar(_a.Id, "Bebidas");
+
+        var respuesta = await AdminDeA().GetAsync($"{Ruta}?pagina=2147483647");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal(0, raiz.GetProperty("elementos").GetArrayLength());
+        Assert.Equal(1, raiz.GetProperty("total").GetInt32());
+    }
+
     [Fact(DisplayName = "005/RF-04: un cuerpo JSON inválido conserva la clave cuerpo")]
     public async Task Cuerpo_json_invalido_conserva_la_clave_cuerpo()
     {
