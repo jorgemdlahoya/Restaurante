@@ -114,3 +114,81 @@ test('005/RF-11: editar cambia el nombre corto y el título', async ({ page }) =
     { id: 'c2', cuerpo: { nombre: 'Pozoles tradicionales de la casa', nombreCorto: 'Pozole', orden: 2 } },
   ]);
 });
+
+test('005/RF-13: eliminar pide confirmación y quita la fila', async ({ page }) => {
+  const api = await simularCategorias(page, 'la-esquina', [BEBIDAS, POZOLES]);
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await fila(page, 'Bebidas').getByRole('button', { name: 'Eliminar' }).click();
+  const dialogo = page.getByRole('dialog', { name: '¿Eliminar Bebidas?' });
+  await expect(dialogo).toContainText('No se podrá recuperar. Si sólo quieres ocultarla, desactívala.');
+  await dialogo.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(dialogo).toHaveCount(0);
+  expect(api.eliminaciones).toEqual([]);
+  await expect(fila(page, 'Bebidas')).toBeVisible();
+
+  await fila(page, 'Bebidas').getByRole('button', { name: 'Eliminar' }).click();
+  await page.getByRole('dialog', { name: '¿Eliminar Bebidas?' }).getByRole('button', { name: 'Eliminar' }).click();
+
+  await expect(fila(page, 'Bebidas')).toHaveCount(0);
+  await expect(fila(page, 'Pozoles tradicionales de la casa')).toBeVisible();
+  expect(api.eliminaciones).toEqual(['c1']);
+});
+
+test('005/RF-13: desactivar y activar no piden confirmación', async ({ page }) => {
+  const api = await simularCategorias(page, 'la-esquina', [BEBIDAS]);
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await fila(page, 'Bebidas').getByRole('button', { name: 'Desactivar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(fila(page, 'Bebidas')).toContainText('Inactiva');
+
+  await fila(page, 'Bebidas').getByRole('button', { name: 'Activar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(fila(page, 'Bebidas')).not.toContainText('Inactiva');
+  await expect(fila(page, 'Bebidas')).toContainText('Activa');
+  expect(api.cambiosDeEstado).toEqual([
+    { id: 'c1', cuerpo: { activa: false } },
+    { id: 'c1', cuerpo: { activa: true } },
+  ]);
+});
+
+test('005/RF-13: eliminar la única categoría de la última página vuelve a la anterior', async ({ page }) => {
+  await simularCategorias(page, 'la-esquina', variasCategorias(21));
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await page.getByRole('button', { name: 'Siguiente' }).click();
+  await expect(filasDeDatos(page)).toHaveCount(1);
+  await fila(page, 'Categoría 21').getByRole('button', { name: 'Eliminar' }).click();
+  await page.getByRole('dialog', { name: '¿Eliminar Categoría 21?' }).getByRole('button', { name: 'Eliminar' }).click();
+
+  await expect(filasDeDatos(page)).toHaveCount(20);
+  await expect(fila(page, 'Categoría 01')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Anterior' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
+});
+
+test('005/RF-14: el administrador general ve el enlace Menú en el inicio', async ({ page }) => {
+  await simularCategorias(page, 'la-esquina', [BEBIDAS]);
+  await entrar(page);
+
+  await page.getByRole('link', { name: 'Menú' }).click();
+
+  await expect(page).toHaveURL(/\/r\/la-esquina\/menu\/categorias$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Categorías' })).toBeVisible();
+});
+
+test('005/RF-14: otro rol que abre las categorías vuelve al inicio', async ({ page }) => {
+  const api = await simularCategorias(page, 'la-esquina', [BEBIDAS]);
+  await entrar(page, 'cajero');
+
+  await expect(page.getByRole('link', { name: 'Menú' })).toHaveCount(0);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await expect(page).toHaveURL(/\/r\/la-esquina\/inicio$/);
+  await expect(page.getByRole('heading', { level: 1, name: 'Inicio' })).toBeVisible();
+  expect(api.consultas).toEqual([]);
+});
