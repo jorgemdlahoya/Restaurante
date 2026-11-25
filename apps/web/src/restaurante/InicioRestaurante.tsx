@@ -45,6 +45,11 @@ function ContenidoInicio({ identidad }: { identidad: Identidad }) {
               Sucursales
             </Link>
           )}
+          {esGeneral && (
+            <Link className={estilos.enlace} to={`/r/${identidad.slug}/menu/categorias`}>
+              Menú
+            </Link>
+          )}
           <Link className={estilos.enlace} to={`/r/${identidad.slug}/usuarios`}>
             Usuarios
           </Link>

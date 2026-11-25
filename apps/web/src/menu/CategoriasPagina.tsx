@@ -1,11 +1,13 @@
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
+import { ErrorApi } from '../api/cliente';
+import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import type { Identidad } from '../restaurante/api';
 import { MarcoRestaurante } from '../restaurante/MarcoRestaurante';
 import { RutaProtegida } from '../rutas/RutaProtegida';
 import { useSesion } from '../sesion/ProveedorSesion';
-import { type Categoria, claveCategorias, listarCategorias } from './api';
+import { cambiarEstadoCategoria, type Categoria, claveCategorias, eliminarCategoria, listarCategorias } from './api';
 import estilos from './CategoriasPagina.module.css';
 import { FormularioCategoria } from './FormularioCategoria';
 import { tituloWhatsApp } from './tituloWhatsApp';
@@ -30,6 +32,7 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   const consultas = useQueryClient();
   const [pagina, setPagina] = useState(1);
   const [edicion, setEdicion] = useState<Edicion>(null);
+  const [porEliminar, setPorEliminar] = useState<Categoria | null>(null);
 
   const lista = useQuery({
     queryKey: claveCategorias(slugRestaurante, pagina),
@@ -37,11 +40,36 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
     placeholderData: keepPreviousData,
   });
 
-  function alGuardar() {
-    setEdicion(null);
-    consultas.invalidateQueries({ queryKey: claveCategorias(slugRestaurante) });
+  function refrescar() {
+    return consultas.invalidateQueries({ queryKey: claveCategorias(slugRestaurante) });
   }
 
+  function alGuardar() {
+    setEdicion(null);
+    refrescar();
+  }
+
+  const cambiarEstado = useMutation({
+    mutationFn: ({ id, activa }: { id: string; activa: boolean }) =>
+      cambiarEstadoCategoria(token, slugRestaurante, id, activa),
+    onSettled: refrescar,
+  });
+
+  const eliminar = useMutation({
+    mutationFn: (id: string) => eliminarCategoria(token, slugRestaurante, id),
+    onSuccess: () => {
+      // Si se borró la única fila de una página que no es la primera, se vuelve a la anterior.
+      if (pagina > 1 && lista.data?.elementos.length === 1) setPagina((p) => p - 1);
+    },
+    onSettled: refrescar,
+  });
+
+  function confirmarEliminacion() {
+    if (porEliminar) eliminar.mutate(porEliminar.id);
+    setPorEliminar(null);
+  }
+
+  const errorAccion = cambiarEstado.error ?? eliminar.error;
   const datos = lista.data;
   const hayAnterior = pagina > 1;
   const haySiguiente = datos ? pagina * datos.tamano < datos.total : false;
@@ -68,6 +96,7 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
 
       {lista.isPending && <p>Cargando…</p>}
       {lista.isError && <p role="alert">No se pudo cargar la lista de categorías.</p>}
+      {errorAccion && <p role="alert">{mensajeDeError(errorAccion)}</p>}
 
       {datos && (
         <>
@@ -95,6 +124,16 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
                       <button type="button" className={estilos.secundario} onClick={() => setEdicion({ modo: 'editar', categoria: c })}>
                         Editar
                       </button>
+                      <button
+                        type="button"
+                        className={estilos.secundario}
+                        onClick={() => cambiarEstado.mutate({ id: c.id, activa: !c.activa })}
+                      >
+                        {c.activa ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button type="button" className={estilos.peligro} onClick={() => setPorEliminar(c)}>
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -113,6 +152,21 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
           </nav>
         </>
       )}
+
+      {porEliminar && (
+        <DialogoConfirmacion
+          titulo={`¿Eliminar ${porEliminar.nombre}?`}
+          mensaje="No se podrá recuperar. Si sólo quieres ocultarla, desactívala."
+          confirmar="Eliminar"
+          onConfirmar={confirmarEliminacion}
+          onCancelar={() => setPorEliminar(null)}
+        />
+      )}
     </>
   );
+}
+
+function mensajeDeError(error: unknown) {
+  if (error instanceof ErrorApi && error.estado === 403) return 'No tienes permiso para esta acción.';
+  return 'No se pudo completar la acción. Inténtalo de nuevo.';
 }

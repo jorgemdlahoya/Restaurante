@@ -83,6 +83,17 @@
   margin-top: 1rem;
 }
 
+.peligro {
+  font: inherit;
+  font-weight: 700;
+  padding: 0.5rem 0.875rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  border: none;
+  background: var(--color-acento);
+  color: var(--color-fondo);
+}
+
 .secundario:disabled {
   opacity: 0.5;
   cursor: not-allowed;

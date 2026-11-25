@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -38,11 +38,14 @@ function simularApi() {
     orden: i + 1,
     activa: true,
   }));
-  vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada) => {
+  vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada, init) => {
     const url = new URL(String(entrada), 'http://localhost');
     let cuerpo: unknown = { status: 404, title: 'No encontrado' };
     let status = 404;
-    if (url.pathname.endsWith('/categorias')) {
+    if (init?.method === 'DELETE') {
+      status = 403;
+      cuerpo = { status: 403, title: 'Acceso denegado' };
+    } else if (url.pathname.endsWith('/categorias')) {
       const pagina = Number(url.searchParams.get('pagina'));
       status = 200;
       cuerpo = { elementos: todas.slice((pagina - 1) * 20, pagina * 20), total: todas.length, pagina, tamano: 20 };
@@ -83,5 +86,15 @@ describe('CategoriasPagina', () => {
     expect(await screen.findAllByRole('cell', { name: 'Categoría 21' })).not.toHaveLength(0);
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeEnabled();
+  });
+
+  it('005/RF-13: un 403 al eliminar muestra que no hay permiso', async () => {
+    montar();
+
+    const filaPrimera = (await screen.findAllByRole('row')).find((f) => f.textContent?.includes('Categoría 01'))!;
+    await userEvent.click(within(filaPrimera).getByRole('button', { name: 'Eliminar' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permiso para esta acción.');
   });
 });
