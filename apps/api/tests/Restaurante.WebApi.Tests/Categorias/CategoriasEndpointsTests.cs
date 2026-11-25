@@ -481,4 +481,64 @@ public sealed class CategoriasEndpointsTests : IDisposable
 
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
     }
+
+    [Fact(DisplayName = "005/RF-07: eliminar responde 204, la quita de la lista y libera sus nombres")]
+    public async Task Eliminar_responde_204_y_libera_nombres()
+    {
+        var c = Existente(_a.Id, "Bebidas", "Beb");
+        var cliente = AdminDeA();
+
+        var respuesta = await cliente.DeleteAsync($"{Ruta}/{c.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, respuesta.StatusCode);
+        Assert.Equal(0, respuesta.Content.Headers.ContentLength ?? 0);
+        var lista = await LeerAsync(await cliente.GetAsync(Ruta));
+        Assert.Empty(lista.GetProperty("elementos").EnumerateArray());
+        var alta = await PostJsonAsync(cliente, """{"nombre":"Bebidas","nombreCorto":"Beb","orden":1}""");
+        Assert.Equal(HttpStatusCode.Created, alta.StatusCode);
+        Assert.NotNull(c.EliminadaEn);
+        Assert.Contains(c, _fabrica.Categorias.Categorias);
+    }
+
+    [Theory(DisplayName = "005/RF-08: eliminar una categoría de otro restaurante, inexistente o ya eliminada da 404")]
+    [InlineData("ajena")]
+    [InlineData("inexistente")]
+    [InlineData("eliminada")]
+    public async Task Eliminar_no_visible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "ajena" => Existente(_b.Id, "Ajena").Id,
+            "eliminada" => EliminadaDeA().Id,
+            _ => Guid.NewGuid()
+        };
+
+        var respuesta = await AdminDeA().DeleteAsync($"{Ruta}/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+        Assert.Equal("Categoría no encontrada", raiz.GetProperty("detail").GetString());
+    }
+
+    [Fact(DisplayName = "005/RF-08: un segundo DELETE de la misma categoría da 404")]
+    public async Task Eliminar_dos_veces_da_404()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+        var cliente = AdminDeA();
+
+        Assert.Equal(HttpStatusCode.NoContent, (await cliente.DeleteAsync($"{Ruta}/{c.Id}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await cliente.DeleteAsync($"{Ruta}/{c.Id}")).StatusCode);
+    }
+
+    [Fact(DisplayName = "005/RF-09: eliminar exige administrador_general")]
+    public async Task Eliminar_con_administrador_sucursal_da_403()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+
+        var respuesta = await ClienteComo(Rol.AdministradorSucursal, _a.Id).DeleteAsync($"{Ruta}/{c.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        Assert.Null(c.EliminadaEn);
+    }
 }

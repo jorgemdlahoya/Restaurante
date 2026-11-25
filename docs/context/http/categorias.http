@@ -68,3 +68,11 @@ Content-Type: application/json
 {
   "activa": false
 }
+
+### Eliminar categoría (005/RF-07, RF-08, RF-09). Sólo administrador general.
+# Borrado lógico: responde 204 sin cuerpo, la categoría sale de la lista y su nombre y nombre corto quedan libres.
+# 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente
+# o ya eliminada (un segundo DELETE da 404). Otro rol recibe 403.
+# @name eliminarCategoria
+DELETE {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
+Authorization: Bearer {{token}}

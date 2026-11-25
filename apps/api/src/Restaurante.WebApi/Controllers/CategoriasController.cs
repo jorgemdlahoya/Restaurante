@@ -5,6 +5,7 @@ using Restaurante.Application.Features.Categorias;
 using Restaurante.Application.Features.Categorias.CambiarEstadoCategoria;
 using Restaurante.Application.Features.Categorias.CrearCategoria;
 using Restaurante.Application.Features.Categorias.EditarCategoria;
+using Restaurante.Application.Features.Categorias.EliminarCategoria;
 using Restaurante.Application.Features.Categorias.ListarCategorias;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
@@ -69,4 +70,12 @@ public sealed class CategoriasController(IMediator mediador) : ControllerBase
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
     public async Task<ActionResult<CategoriaDto>> CambiarEstado(string slug, Guid id, CambiarEstadoCategoriaPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarEstadoCategoriaCommand(id, peticion.Activa), ct));
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Eliminar(string slug, Guid id, CancellationToken ct)
+    {
+        await mediador.Send(new EliminarCategoriaCommand(id), ct);
+        return NoContent();
+    }
 }
