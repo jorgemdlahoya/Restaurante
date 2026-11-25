@@ -119,6 +119,8 @@
   `nombreCorto`, `orden` sin prefijo; 005/RF-02).
 - **CategoriaDto**: `{ id, nombre, nombreCorto, orden, activa }`; respuesta de `POST /api/r/{slug}/categorias` (201,
   400 por campo, 409 con `errors` por nombre/nombre corto repetidos vía `ConflictoCamposException`; sólo `administrador_general`).
+- **PaginaCategoriasDto**: `{ elementos, total, pagina, tamano }`; respuesta de `GET /api/r/{slug}/categorias?pagina=&tamano=`
+  (defecto 1 y 20; pagina ≥ 1, tamano 1–100; 400 con `errors.pagina`/`errors.tamano`; 005/RF-04).
 - **Nombre corto / título en WhatsApp**: `TituloWhatsApp.Calcular` (005/RF-11): nombre corto, o el nombre si ≤ 24, o
   23 caracteres + `…` sin partir pares sustitutos; `SeRecorta` dispara el aviso de recorte.
 - **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07).

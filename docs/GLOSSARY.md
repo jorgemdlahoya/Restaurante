@@ -374,6 +374,14 @@ otro rol). El nombre y el nombre corto son únicos en el restaurante sin disting
 (`ComprobadorUnicidadCategoria`): si se repiten, 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto`
 (`ConflictoCamposException`).
 
+## PaginaCategoriasDto
+
+Respuesta de `GET /api/r/{slug}/categorias?pagina=&tamano=` (005/RF-04, sólo `administrador_general`):
+`{ elementos: CategoriaDto[], total, pagina, tamano }`. Lista las categorías no eliminadas (activas e inactivas) del
+restaurante por `orden` y nombre. Por defecto `pagina=1`, `tamano=20`; `pagina >= 1` y `tamano` entre 1 y 100
+(`ListarCategoriasValidator`); un parámetro mal formado (`?pagina=abc`) o fuera de rango da 400 con `errors.pagina` /
+`errors.tamano`.
+
 ## Nombre corto y título en WhatsApp
 
 `TituloWhatsApp.Calcular(nombre, nombreCorto)` (005/RF-11): el nombre corto si existe; si no, el nombre cuando mide

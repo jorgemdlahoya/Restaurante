@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Features.Categorias;
 using Restaurante.Application.Features.Categorias.CrearCategoria;
+using Restaurante.Application.Features.Categorias.ListarCategorias;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -23,6 +24,17 @@ public sealed record CrearCategoriaPeticion(
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")] // Restaurante no disponible
 public sealed class CategoriasController(IMediator mediador) : ControllerBase
 {
+    private const int PaginaPorDefecto = 1;
+    private const int TamanoPorDefecto = 20;
+
+    [HttpGet]
+    [ProducesResponseType<PaginaCategoriasDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<ActionResult<PaginaCategoriasDto>> Listar(
+        [FromQuery] int? pagina, [FromQuery] int? tamano, CancellationToken ct) =>
+        Ok(await mediador.Send(
+            new ListarCategoriasQuery(pagina ?? PaginaPorDefecto, tamano ?? TamanoPorDefecto), ct));
+
     [HttpPost]
     [ProducesResponseType<CategoriaDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]

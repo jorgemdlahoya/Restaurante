@@ -178,4 +178,100 @@ public sealed class CategoriasEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
         Assert.Empty(_fabrica.Categorias.Categorias);
     }
+
+    private static async Task<JsonElement> LeerAsync(HttpResponseMessage respuesta)
+    {
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        return json.RootElement.Clone();
+    }
+
+    [Fact(DisplayName = "005/RF-04: GET devuelve las no eliminadas, activas e inactivas, por orden y nombre")]
+    public async Task Listado_devuelve_no_eliminadas_por_orden_y_nombre()
+    {
+        Sembrar(_a.Id, "Postres", orden: 2);
+        Sembrar(_a.Id, "Bebidas", orden: 2);
+        Sembrar(_a.Id, "Entradas", orden: 1);
+        Sembrar(_a.Id, "Oculta", orden: 3);
+        _fabrica.Categorias.Categorias[^1].Desactivar();
+        Sembrar(_a.Id, "Borrada", orden: 1);
+        _fabrica.Categorias.Categorias[^1].Eliminar(DateTimeOffset.UtcNow);
+
+        var respuesta = await AdminDeA().GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        var elementos = raiz.GetProperty("elementos").EnumerateArray().ToList();
+        Assert.Equal(["Entradas", "Bebidas", "Postres", "Oculta"], elementos.Select(e => e.GetProperty("nombre").GetString()));
+        Assert.True(elementos[0].GetProperty("activa").GetBoolean());
+        Assert.False(elementos[3].GetProperty("activa").GetBoolean());
+        Assert.Equal(4, raiz.GetProperty("total").GetInt32());
+    }
+
+    [Fact(DisplayName = "005/RF-04: por defecto página 1 de 20 con el total")]
+    public async Task Listado_por_defecto_pagina_1_de_20()
+    {
+        for (var i = 1; i <= 25; i++)
+        {
+            Sembrar(_a.Id, $"Cat {i:00}", orden: i);
+        }
+
+        var primera = await LeerAsync(await AdminDeA().GetAsync(Ruta));
+        Assert.Equal(20, primera.GetProperty("elementos").GetArrayLength());
+        Assert.Equal(25, primera.GetProperty("total").GetInt32());
+        Assert.Equal(1, primera.GetProperty("pagina").GetInt32());
+        Assert.Equal(20, primera.GetProperty("tamano").GetInt32());
+
+        var segunda = await LeerAsync(await AdminDeA().GetAsync($"{Ruta}?pagina=2"));
+        Assert.Equal(5, segunda.GetProperty("elementos").GetArrayLength());
+        Assert.Equal(2, segunda.GetProperty("pagina").GetInt32());
+        Assert.Equal("Cat 21", segunda.GetProperty("elementos")[0].GetProperty("nombre").GetString());
+    }
+
+    [Theory(DisplayName = "005/RF-04: parámetros fuera de rango dan 400")]
+    [InlineData("pagina=0", "pagina", "La página debe ser mayor o igual que 1")]
+    [InlineData("pagina=abc", "pagina", "El cuerpo de la petición no es válido.")]
+    [InlineData("tamano=0", "tamano", "El tamaño debe estar entre 1 y 100")]
+    [InlineData("tamano=101", "tamano", "El tamaño debe estar entre 1 y 100")]
+    [InlineData("tamano=abc", "tamano", "El cuerpo de la petición no es válido.")]
+    public async Task Listado_con_parametros_invalidos_da_400(string consulta, string campo, string mensaje)
+    {
+        var respuesta = await AdminDeA().GetAsync($"{Ruta}?{consulta}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var errores = (await LeerAsync(respuesta)).GetProperty("errors");
+        Assert.Equal([campo], errores.EnumerateObject().Select(p => p.Name));
+        Assert.Equal([mensaje], errores.GetProperty(campo).EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact(DisplayName = "005/RF-04: un cuerpo JSON inválido conserva la clave cuerpo")]
+    public async Task Cuerpo_json_invalido_conserva_la_clave_cuerpo()
+    {
+        var respuesta = await PostJsonAsync(AdminDeA(), "{no es json");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var errores = (await LeerAsync(respuesta)).GetProperty("errors");
+        Assert.Equal(["cuerpo"], errores.EnumerateObject().Select(p => p.Name));
+    }
+
+    [Fact(DisplayName = "005/RF-04: no lista categorías de otro restaurante")]
+    public async Task Listado_no_incluye_otro_restaurante()
+    {
+        Sembrar(_a.Id, "Propia");
+        Sembrar(_b.Id, "Ajena");
+
+        var raiz = await LeerAsync(await AdminDeA().GetAsync(Ruta));
+
+        Assert.Equal(["Propia"], raiz.GetProperty("elementos").EnumerateArray().Select(e => e.GetProperty("nombre").GetString()));
+        Assert.Equal(1, raiz.GetProperty("total").GetInt32());
+    }
+
+    [Fact(DisplayName = "005/RF-09: listar exige administrador_general")]
+    public async Task Listar_con_cajero_da_403()
+    {
+        Sembrar(_a.Id, "Bebidas");
+
+        var respuesta = await ClienteComo(Rol.Cajero, _a.Id).GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+    }
 }

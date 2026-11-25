@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Restaurante.Application.Abstracciones;
@@ -28,7 +29,13 @@ public static class DependencyInjection
 
         services.AddControllers(o => o.Filters.Add<FiltroExcepciones>())
             .ConfigureApiBehaviorOptions(o => o.InvalidModelStateResponseFactory = contexto =>
-                RespuestasProblema.Validacion(contexto.ModelState));
+                RespuestasProblema.Validacion(
+                    contexto.ModelState,
+                    // Los parámetros de consulta de la acción conservan su nombre como clave del error.
+                    contexto.ActionDescriptor.Parameters
+                        .Where(p => p.BindingInfo?.BindingSource == BindingSource.Query)
+                        .Select(p => p.Name)
+                        .ToHashSet(StringComparer.Ordinal)));
         // Errores fuera de MVC (ruta/método/contenido, excepciones de middleware): problem+json en español.
         services.AddProblemDetails(o => o.CustomizeProblemDetails = RespuestasProblema.Personalizar);
         services.AddHttpContextAccessor();

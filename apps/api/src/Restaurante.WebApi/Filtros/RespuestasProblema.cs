@@ -29,11 +29,28 @@ public static class RespuestasProblema
     /// faltantes o vacíos los resuelven los validadores, así que aquí todo es un cuerpo inválido.
     /// </summary>
     public static ObjectResult Validacion(ModelStateDictionary modelState) =>
+        Validacion(modelState, new HashSet<string>());
+
+    /// <summary>
+    /// Igual que la sobrecarga sin parámetros de consulta, pero un fallo de enlace de un parámetro de
+    /// consulta (<paramref name="parametrosConsulta"/>, p. ej. <c>pagina</c>) conserva su nombre como clave.
+    /// </summary>
+    public static ObjectResult Validacion(ModelStateDictionary modelState, IReadOnlySet<string> parametrosConsulta) =>
         Validacion(modelState
             .Where(e => e.Value is { Errors.Count: > 0 })
             .Select(e => KeyValuePair.Create(
-                e.Key.StartsWith("$.", StringComparison.Ordinal) ? e.Key[2..] : "cuerpo",
+                ClaveDeEnlace(e.Key, parametrosConsulta),
                 new[] { MensajeCuerpoInvalido })));
+
+    private static string ClaveDeEnlace(string clave, IReadOnlySet<string> parametrosConsulta)
+    {
+        if (clave.StartsWith("$.", StringComparison.Ordinal))
+        {
+            return clave[2..];
+        }
+
+        return parametrosConsulta.Contains(clave) ? clave : "cuerpo";
+    }
 
     /// <summary>
     /// Títulos en español de los errores que no genera MVC (ruteo, negociación de contenido, middleware).

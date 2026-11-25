@@ -38,7 +38,8 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   `ConflictoCamposException` (005) da 409 `Conflicto` con `errors` por campo en camelCase
   (`RespuestasProblema.ConClavesCamelCase`).
 - `RespuestasProblema`: construye los 400 de validación con una única forma (también para los
-  fallos de enlace del modelo).
+  fallos de enlace del modelo). Un fallo de enlace de un parámetro de consulta (`?pagina=abc`) conserva su nombre
+  como clave (`errors.pagina`); los de cuerpo siguen como `x` (de `$.x`) o `cuerpo`.
 - Orden del pipeline: `UseExceptionHandler` → `UseStatusCodePages` → (Swagger en Development) → `UseCors` →
   `UseAuthentication` → `MiddlewareSesionUsuario` → `MiddlewareContextoRestaurante` →
   `MiddlewareContextoSucursal` → controllers.
