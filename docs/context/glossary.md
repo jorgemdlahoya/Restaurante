@@ -113,3 +113,8 @@
   asignadas y activas, en el orden por nombre del repositorio (como `UsuarioDto`); el nombre sale de la base de datos.
 - **SinSucursalesActivasException**: login con credenciales válidas y usuario activo, pero con todas sus sucursales
   desactivadas (no aplica al administrador general): 403 `Sin sucursales activas` y ningún token (004/RF-17).
+- **Categoría**: agrupación del menú de un restaurante (`Domain.Menu.Categoria`, 005/RF-02): nombre 1–60, nombre
+  corto opcional ≤ 24 (en blanco → `null`), orden ≥ 1, activa por defecto; normalizados con `Trim().ToLowerInvariant()`.
+- **Nombre corto / título en WhatsApp**: `TituloWhatsApp.Calcular` (005/RF-11): nombre corto, o el nombre si ≤ 24, o
+  23 caracteres + `…` sin partir pares sustitutos; `SeRecorta` dispara el aviso de recorte.
+- **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07).

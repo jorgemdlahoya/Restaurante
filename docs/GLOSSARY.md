@@ -352,3 +352,21 @@ está activo y es administrador de sucursal, cajero o cocinero con todas sus suc
 la convierte en 403 `Sin sucursales activas` (ProblemDetails) y no se emite token. Se evalúa después de verificar la
 contraseña y `Activo`, por lo que una contraseña incorrecta sigue dando 401. El administrador general y el de
 plataforma quedan fuera de la regla.
+
+## Categoría
+
+Agrupación del menú de un restaurante (`Restaurante.Domain.Menu.Categoria`, 005/RF-02). Tiene `Nombre` (1–60 tras
+`Trim()`), `NombreCorto` opcional (≤ 24; en blanco se guarda como `null`), `Orden` (entero ≥ 1) y `Activa`
+(empieza en `true`). `NombreNormalizado` y `NombreCortoNormalizado` (`Trim().ToLowerInvariant()`, "Café" ≠ "Cafe")
+sirven para la unicidad. Implementa `IEntidadDeRestaurante` e `IEliminable`.
+
+## Nombre corto y título en WhatsApp
+
+`TituloWhatsApp.Calcular(nombre, nombreCorto)` (005/RF-11): el nombre corto si existe; si no, el nombre cuando mide
+24 unidades UTF-16 o menos; si no, los primeros 23 caracteres más `…`, sin partir un par sustituto (si la unidad 23
+es un sustituto alto se corta en 22). `SeRecorta` indica cuándo se avisa "Este nombre se verá recortado en WhatsApp".
+
+## Borrado lógico (IEliminable)
+
+Contrato `IEliminable { DateTimeOffset? EliminadaEn }`: eliminar (`Categoria.Eliminar`, 005/RF-07) sólo marca la fecha
+y conserva los datos; las consultas excluyen las entidades eliminadas.
