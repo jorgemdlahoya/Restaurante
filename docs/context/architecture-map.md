@@ -249,7 +249,7 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   pisaría la del restaurante.
 - `src/App.tsx`: enrutador (`react-router`; exporta `rutas`). Rutas: `/` (redirige a `/plataforma/login`),
   `/plataforma/login`, `/plataforma/restaurantes` (`RutaProtegida`, rol `administrador_plataforma`),
-  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal` y `usuarios`
+  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal`, `usuarios` y `menu/categorias`
   (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo `/r/:slug`) que muestra `PaginaNoEncontrada`.
 - `src/api/`: `cliente.ts` (`pedirApi`, `ErrorApi`, `urlApi`; el token se pasa en cada llamada, nunca
   implícito; `TITULO_SESION_INVALIDA` y `alSesionInvalida`, que avisa a los suscritos cuando una petición con
@@ -267,6 +267,12 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   "Nuevo usuario" y "Editar" deshabilitados hasta tener `mi-sesion`), `FormularioUsuario` (alta/edición; para el
   administrador de sucursal, sólo cajero/cocinero y su sucursal fija, tomada de las props al enviar),
   `DialogoContrasena` y `api.ts` (`NOMBRES_ROL`, `claveUsuarios`).
+- `src/menu/`: gestión de categorías del menú (feature 005): `CategoriasPagina` (`/r/{slug}/menu/categorias`, sólo
+  `administrador_general`; lista paginada, alta/edición, activar/desactivar y eliminar con `DialogoConfirmacion`),
+  `FormularioCategoria` (alta/edición con errores por campo; un error sin campo conocido se muestra como aviso
+  general), `VistaPreviaWhatsApp`, `api.ts` (`claveCategorias`, tamaño de página 20), `tituloWhatsApp.ts`
+  (`LIMITE_TITULO_WHATSAPP`, espejo de `Domain.Menu.TituloWhatsApp`) y `mensajeError.ts` (403 → "No tienes permiso
+  para esta acción."). `InicioRestaurante` enlaza a la página con el enlace "Menú".
 - `src/rutas/`: `RutaProtegida.tsx` (exige rol y, en restaurante, el `slug`; si no, redirige al login).
 - `src/restaurante/`: `DisenoRestaurante` (layout de `/r/:slug`: carga la identidad con `api.ts`, aplica el
   tema con `ProveedorTema` y muestra `RestauranteNoDisponible` ante 404), `LoginRestaurante`,

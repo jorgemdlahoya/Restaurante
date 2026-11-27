@@ -230,6 +230,18 @@ ante el 403 `Sin sucursales activas` (004/RF-24) y el inicio cuando `mi-sesion` 
 `NOMBRES_ROL` (`usuarios/api.ts`): nombre visible de cada rol de restaurante ("Administrador general",
 "Administrador de sucursal", "Cajero", "Cocinero").
 
+## LIMITE_TITULO_WHATSAPP (frontend)
+
+`LIMITE_TITULO_WHATSAPP` (`menu/tituloWhatsApp.ts`) = 24: largo máximo del título de una categoría en WhatsApp; espejo de
+`TituloWhatsApp.Limite` del dominio. `tituloWhatsApp` y `seRecorta` alimentan la tabla y `VistaPreviaWhatsApp` (005/RF-11).
+`menu/mensajeError.ts` muestra "No tienes permiso para esta acción." ante todo 403 de la gestión de categorías.
+
+## MensajesCategoria / ICategoriaRepository / ListarCategoriasValidator.TamanoMaximo
+
+`MensajesCategoria` (Application): textos de validación y conflicto de categorías. `ICategoriaRepository` (puerto en
+Application; implementado por `CategoriaRepository`): obtener, listar paginado, unicidad y persistencia.
+`ListarCategoriasValidator.TamanoMaximo` = 100: tope de `tamano` en `GET /api/r/{slug}/categorias` (005/RF-04).
+
 ## claveMiSesion / mi-sesion (frontend)
 
 `sesion/miSesion.ts`: `obtenerMiSesion(token, slug)` pide `GET /api/r/{slug}/mi-sesion` (`MiSesion`: nombre, rol y

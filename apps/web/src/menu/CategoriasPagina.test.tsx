@@ -97,4 +97,17 @@ describe('CategoriasPagina', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent('No tienes permiso para esta acción.');
   });
+
+  it('005/RF-10: un 403 al cargar la lista muestra que no hay permiso', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async () =>
+        new Response(JSON.stringify({ status: 403, title: 'Acceso denegado' }), {
+          status: 403,
+          headers: { 'Content-Type': 'application/json' },
+        }),
+    );
+    montar();
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^No tienes permiso para esta acción\.$/);
+  });
 });

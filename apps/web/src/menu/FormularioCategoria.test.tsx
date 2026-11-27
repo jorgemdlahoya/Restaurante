@@ -78,6 +78,31 @@ describe('FormularioCategoria', () => {
     expect(onGuardada).not.toHaveBeenCalled();
   });
 
+  it('005/RF-12: un error del servidor sin campo conocido se muestra como aviso general', async () => {
+    simularFetch(() =>
+      respuestaJson(400, {
+        title: 'One or more validation errors occurred.',
+        detail: 'El cuerpo de la petición no es válido',
+        errors: { cuerpo: ['El cuerpo no es válido'] },
+      }),
+    );
+    const onGuardada = montar();
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Bebidas');
+    await userEvent.type(screen.getByLabelText('Orden'), '1');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('El cuerpo de la petición no es válido');
+    expect(onGuardada).not.toHaveBeenCalled();
+  });
+
+  it('005/RF-12: un 403 al guardar muestra que no hay permiso', async () => {
+    simularFetch(() => respuestaJson(403, { title: 'Acceso denegado', detail: 'Otro texto' }));
+    montar();
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Bebidas');
+    await userEvent.type(screen.getByLabelText('Orden'), '1');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/^No tienes permiso para esta acción\.$/);
+  });
+
   it('005/RF-12: en edición envía PUT con los datos y nombre corto en blanco como null', async () => {
     const espia = simularFetch(() => respuestaJson(200, { ...categoria, nombreCorto: null }));
     const onGuardada = montar(categoria);

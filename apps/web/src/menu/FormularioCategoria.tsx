@@ -3,6 +3,7 @@ import { ErrorApi } from '../api/cliente';
 import { CampoFormulario } from '../componentes/CampoFormulario';
 import { crearCategoria, editarCategoria, type Categoria } from './api';
 import estilos from './FormularioCategoria.module.css';
+import { mensajeDeError } from './mensajeError';
 import { VistaPreviaWhatsApp } from './VistaPreviaWhatsApp';
 
 type Props = {
@@ -13,6 +14,7 @@ type Props = {
   onCancelar(): void;
 };
 
+const CAMPOS_CONOCIDOS = ['nombre', 'nombreCorto', 'orden'];
 const MENSAJE_ORDEN = 'El orden debe ser un entero mayor o igual que 1';
 
 function leerOrden(texto: string): number | null {
@@ -49,10 +51,13 @@ export function FormularioCategoria({ slugRestaurante, token, categoria, onGuard
         : await crearCategoria(token, slugRestaurante, datos);
       onGuardada(guardada);
     } catch (e) {
-      if (e instanceof ErrorApi && (e.estado === 400 || e.estado === 409) && Object.keys(e.errores).length > 0) {
+      const hayCampoConocido =
+        e instanceof ErrorApi && Object.keys(e.errores).some((campo) => CAMPOS_CONOCIDOS.includes(campo));
+      if (e instanceof ErrorApi && (e.estado === 400 || e.estado === 409) && hayCampoConocido) {
         setErrores(e.errores);
       } else {
-        setErrorGeneral(e instanceof ErrorApi ? (e.detalle ?? e.titulo) : 'No se pudo guardar. Inténtalo de nuevo.');
+        const alternativo = e instanceof ErrorApi ? (e.detalle ?? e.titulo) : 'No se pudo guardar. Inténtalo de nuevo.';
+        setErrorGeneral(mensajeDeError(e, alternativo));
       }
     } finally {
       setGuardando(false);

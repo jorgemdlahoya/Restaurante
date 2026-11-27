@@ -81,6 +81,10 @@
   409 al cambiar el estado muestra el detalle de la API.
 - **ROLES_GESTION_USUARIOS / NOMBRES_ROL** (frontend): roles que abren `/r/{slug}/usuarios` (los dos administradores;
   el resto vuelve al inicio, 004/RF-22) y nombre visible de cada rol de restaurante.
+- **LIMITE_TITULO_WHATSAPP** (frontend, `menu/tituloWhatsApp.ts`): 24, espejo de `TituloWhatsApp.Limite`; `menu/mensajeError.ts`
+  muestra "No tienes permiso para esta acción." ante cualquier 403 de categorías.
+- **MensajesCategoria / ICategoriaRepository / ListarCategoriasValidator.TamanoMaximo**: textos de categorías, puerto del
+  repositorio en Application y tope 100 de `tamano` del listado (005/RF-04).
 - **claveMiSesion / mi-sesion** (frontend, `sesion/miSesion.ts`): `obtenerMiSesion` pide `GET /api/r/{slug}/mi-sesion`;
   `claveMiSesion(slug)` = `['mi-sesion', slug]`. Alimenta la elección de sucursal, el selector del personal, el aviso
   sin sucursales del inicio y las sucursales fijas del formulario de usuarios.

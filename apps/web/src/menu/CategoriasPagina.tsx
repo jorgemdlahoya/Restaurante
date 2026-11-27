@@ -1,7 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useOutletContext } from 'react-router';
-import { ErrorApi } from '../api/cliente';
 import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import type { Identidad } from '../restaurante/api';
 import { MarcoRestaurante } from '../restaurante/MarcoRestaurante';
@@ -10,6 +9,7 @@ import { useSesion } from '../sesion/ProveedorSesion';
 import { cambiarEstadoCategoria, type Categoria, claveCategorias, eliminarCategoria, listarCategorias } from './api';
 import estilos from './CategoriasPagina.module.css';
 import { FormularioCategoria } from './FormularioCategoria';
+import { mensajeDeError } from './mensajeError';
 import { tituloWhatsApp } from './tituloWhatsApp';
 
 type Edicion = { modo: 'alta' } | { modo: 'editar'; categoria: Categoria } | null;
@@ -65,8 +65,16 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   });
 
   function confirmarEliminacion() {
-    if (porEliminar) eliminar.mutate(porEliminar.id);
+    if (porEliminar) {
+      cambiarEstado.reset(); // sólo se muestra el error de la última acción
+      eliminar.mutate(porEliminar.id);
+    }
     setPorEliminar(null);
+  }
+
+  function alternarEstado(c: Categoria) {
+    eliminar.reset(); // sólo se muestra el error de la última acción
+    cambiarEstado.mutate({ id: c.id, activa: !c.activa });
   }
 
   const errorAccion = cambiarEstado.error ?? eliminar.error;
@@ -95,8 +103,12 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
       )}
 
       {lista.isPending && <p>Cargando…</p>}
-      {lista.isError && <p role="alert">No se pudo cargar la lista de categorías.</p>}
-      {errorAccion && <p role="alert">{mensajeDeError(errorAccion)}</p>}
+      {lista.isError && (
+        <p role="alert">{mensajeDeError(lista.error, 'No se pudo cargar la lista de categorías.')}</p>
+      )}
+      {errorAccion && (
+        <p role="alert">{mensajeDeError(errorAccion, 'No se pudo completar la acción. Inténtalo de nuevo.')}</p>
+      )}
 
       {datos && (
         <>
@@ -127,7 +139,7 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
                       <button
                         type="button"
                         className={estilos.secundario}
-                        onClick={() => cambiarEstado.mutate({ id: c.id, activa: !c.activa })}
+                        onClick={() => alternarEstado(c)}
                       >
                         {c.activa ? 'Desactivar' : 'Activar'}
                       </button>
@@ -166,7 +178,3 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   );
 }
 
-function mensajeDeError(error: unknown) {
-  if (error instanceof ErrorApi && error.estado === 403) return 'No tienes permiso para esta acción.';
-  return 'No se pudo completar la acción. Inténtalo de nuevo.';
-}

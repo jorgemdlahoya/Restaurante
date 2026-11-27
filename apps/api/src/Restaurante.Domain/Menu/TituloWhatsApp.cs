@@ -5,6 +5,11 @@ public static class TituloWhatsApp
 {
     public const int Limite = 24;
 
+    /// <remarks>
+    /// No recorta espacios: <paramref name="nombre"/> y <paramref name="nombreCorto"/> deben llegar ya normalizados
+    /// (sin espacios en los extremos y con el nombre corto en blanco como <c>null</c>), tal como los guarda
+    /// <c>Categoria</c>. La versión de TypeScript sí recorta.
+    /// </remarks>
     public static string Calcular(string nombre, string? nombreCorto)
     {
         if (!string.IsNullOrWhiteSpace(nombreCorto))
