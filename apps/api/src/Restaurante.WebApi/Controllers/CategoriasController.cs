@@ -7,6 +7,7 @@ using Restaurante.Application.Features.Categorias.CrearCategoria;
 using Restaurante.Application.Features.Categorias.EditarCategoria;
 using Restaurante.Application.Features.Categorias.EliminarCategoria;
 using Restaurante.Application.Features.Categorias.ListarCategorias;
+using Restaurante.Application.Features.Categorias.ObtenerCategoria;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -45,6 +46,11 @@ public sealed class CategoriasController(IMediator mediador) : ControllerBase
         [FromQuery] int? pagina, [FromQuery] int? tamano, CancellationToken ct) =>
         Ok(await mediador.Send(
             new ListarCategoriasQuery(pagina ?? PaginaPorDefecto, tamano ?? TamanoPorDefecto), ct));
+
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<CategoriaDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<CategoriaDto>> Obtener(string slug, Guid id, CancellationToken ct) =>
+        Ok(await mediador.Send(new ObtenerCategoriaQuery(id), ct));
 
     [HttpPost]
     [ProducesResponseType<CategoriaDto>(StatusCodes.Status201Created)]

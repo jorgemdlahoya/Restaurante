@@ -144,3 +144,7 @@
   respuesta de `POST /api/r/{slug}/categorias/{categoriaId}/platillos` (201 con `Location`, 400 por campo, 404 categoría no
   encontrada, 400 en `categoriaId` si está inactiva, 409 por nombre/nombre corto vía `ComprobadorUnicidadPlatillo`; sólo
   `administrador_general`; 006/RF-01, RF-03, RF-04, RF-11).
+- **PaginaPlatillosDto**: `{ elementos, total, pagina, tamano }`; respuesta de
+  `GET /api/r/{slug}/categorias/{categoriaId}/platillos?pagina=&tamano=` (defecto 1 y 20; 404 si la categoría no existe;
+  006/RF-05). Detalles: `GET .../platillos/{id}` (PlatilloDto, 404 `Platillo no encontrado`; RF-06, RF-10) y
+  `GET .../categorias/{id}` (CategoriaDto; RF-05).

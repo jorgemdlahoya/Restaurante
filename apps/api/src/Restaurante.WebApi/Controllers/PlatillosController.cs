@@ -3,6 +3,8 @@ using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Features.Platillos;
 using Restaurante.Application.Features.Platillos.CrearPlatillo;
+using Restaurante.Application.Features.Platillos.ListarPlatillos;
+using Restaurante.Application.Features.Platillos.ObtenerPlatillo;
 using Restaurante.Domain.Usuarios;
 using Restaurante.WebApi.Filtros;
 
@@ -25,6 +27,22 @@ public sealed record CrearPlatilloPeticion(
 [ProducesResponseType<ProblemDetails>(StatusCodes.Status404NotFound, "application/problem+json")] // Restaurante o categoría no disponibles
 public sealed class PlatillosController(IMediator mediador) : ControllerBase
 {
+    private const int PaginaPorDefecto = 1;
+    private const int TamanoPorDefecto = 20;
+
+    [HttpGet("categorias/{categoriaId:guid}/platillos")]
+    [ProducesResponseType<PaginaPlatillosDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<ActionResult<PaginaPlatillosDto>> Listar(
+        string slug, Guid categoriaId, [FromQuery] int? pagina, [FromQuery] int? tamano, CancellationToken ct) =>
+        Ok(await mediador.Send(
+            new ListarPlatillosQuery(categoriaId, pagina ?? PaginaPorDefecto, tamano ?? TamanoPorDefecto), ct));
+
+    [HttpGet("platillos/{id:guid}")]
+    [ProducesResponseType<PlatilloDto>(StatusCodes.Status200OK)]
+    public async Task<ActionResult<PlatilloDto>> Obtener(string slug, Guid id, CancellationToken ct) =>
+        Ok(await mediador.Send(new ObtenerPlatilloQuery(id), ct));
+
     [HttpPost("categorias/{categoriaId:guid}/platillos")]
     [ProducesResponseType<PlatilloDto>(StatusCodes.Status201Created)]
     [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]

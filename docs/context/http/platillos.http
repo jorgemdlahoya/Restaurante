@@ -42,3 +42,20 @@ Content-Type: application/json
   "orden": 1,
   "ingredientes": ["<INGREDIENTE_1>", "<INGREDIENTE_2>"]
 }
+
+### Listar los platillos de una categoría (006/RF-05, RF-11). Sólo administrador general; otro rol recibe 403.
+# Devuelve los platillos no eliminados (activos e inactivos) por orden y nombre, también si la categoría está inactiva:
+# { "elementos": [ PlatilloDto ], "total": n, "pagina": 1, "tamano": 20 }
+# pagina >= 1 (por defecto 1); tamano entre 1 y 100 (por defecto 20); fuera de rango o no numérico da 400 con
+# errors.pagina / errors.tamano. 404 "Categoría no encontrada" si no existe, está eliminada o es de otro restaurante.
+# @name listarPlatillos
+GET {{baseUrl}}/api/r/{{slug}}/categorias/{{categoriaId}}/platillos?pagina=1&tamano=20
+Authorization: Bearer {{token}}
+
+### Consultar un platillo (006/RF-06, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Devuelve { id, categoriaId, categoriaNombre, nombre, nombreCorto, descripcion, orden, ingredientes, activo }
+# con los ingredientes en su orden. 404 { "title": "No encontrado", "detail": "Platillo no encontrado" } si no existe,
+# está eliminado o es de otro restaurante.
+# @name obtenerPlatillo
+GET {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}

@@ -222,4 +222,167 @@ public sealed class PlatillosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
         Assert.Empty(_fabrica.Platillos.Platillos);
     }
+
+    private Platillo Sembrar(
+        Guid restauranteId, Guid categoriaId, string nombre, int orden = 1, string[]? ingredientes = null)
+    {
+        var platillo = Platillo.Crear(
+            restauranteId, categoriaId, new DatosPlatillo(nombre, null, null, orden, ingredientes ?? []), DateTimeOffset.UtcNow);
+        _fabrica.Platillos.Platillos.Add(platillo);
+        return platillo;
+    }
+
+    private static async Task<JsonElement> LeerAsync(HttpResponseMessage respuesta)
+    {
+        using var json = JsonDocument.Parse(await respuesta.Content.ReadAsStringAsync());
+        return json.RootElement.Clone();
+    }
+
+    private static IEnumerable<string?> Nombres(JsonElement raiz) =>
+        raiz.GetProperty("elementos").EnumerateArray().Select(e => e.GetProperty("nombre").GetString());
+
+    [Fact(DisplayName = "006/RF-05: GET lista los platillos no eliminados de la categoría por orden y nombre")]
+    public async Task Listado_trae_los_no_eliminados_de_la_categoria_por_orden_y_nombre()
+    {
+        Sembrar(_a.Id, _pozoles.Id, "Zeta", orden: 1);
+        Sembrar(_a.Id, _pozoles.Id, "Alfa", orden: 2);
+        Sembrar(_a.Id, _pozoles.Id, "Beta", orden: 1).Desactivar();
+        Sembrar(_a.Id, _pozoles.Id, "Borrado").Eliminar(DateTimeOffset.UtcNow);
+        Sembrar(_a.Id, SembrarCategoria(_a.Id, "Postres").Id, "Flan");
+
+        var respuesta = await AdminDeA().GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal(["Beta", "Zeta", "Alfa"], Nombres(raiz));
+        Assert.Equal(3, raiz.GetProperty("total").GetInt32());
+        var primero = raiz.GetProperty("elementos")[0];
+        Assert.False(primero.GetProperty("activo").GetBoolean());
+        Assert.Equal("Pozoles", primero.GetProperty("categoriaNombre").GetString());
+    }
+
+    [Fact(DisplayName = "006/RF-05: por defecto página 1 de 20 con el total")]
+    public async Task Listado_por_defecto_pagina_1_de_20()
+    {
+        for (var i = 1; i <= 25; i++)
+        {
+            Sembrar(_a.Id, _pozoles.Id, $"Plato {i:00}", orden: i);
+        }
+
+        var primera = await LeerAsync(await AdminDeA().GetAsync(Ruta));
+        Assert.Equal(20, primera.GetProperty("elementos").GetArrayLength());
+        Assert.Equal(25, primera.GetProperty("total").GetInt32());
+        Assert.Equal(1, primera.GetProperty("pagina").GetInt32());
+        Assert.Equal(20, primera.GetProperty("tamano").GetInt32());
+
+        var segunda = await LeerAsync(await AdminDeA().GetAsync($"{Ruta}?pagina=2"));
+        Assert.Equal(5, segunda.GetProperty("elementos").GetArrayLength());
+        Assert.Equal("Plato 21", segunda.GetProperty("elementos")[0].GetProperty("nombre").GetString());
+    }
+
+    [Fact(DisplayName = "006/RF-05: una categoría inactiva lista sus platillos")]
+    public async Task Categoria_inactiva_lista_sus_platillos()
+    {
+        Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        _pozoles.Desactivar();
+
+        var respuesta = await AdminDeA().GetAsync(Ruta);
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal(["Pozole rojo"], Nombres(await LeerAsync(respuesta)));
+    }
+
+    [Theory(DisplayName = "006/RF-05: categoría inexistente, eliminada o de otro restaurante da 404")]
+    [InlineData("inexistente")]
+    [InlineData("eliminada")]
+    [InlineData("ajena")]
+    public async Task Listado_de_categoria_no_disponible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "eliminada" => EliminadaDeA().Id,
+            "ajena" => SembrarCategoria(_b.Id, "Ajena").Id,
+            _ => Guid.NewGuid(),
+        };
+
+        var respuesta = await AdminDeA().GetAsync(RutaDe(id));
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("Categoría no encontrada", raiz.GetProperty("detail").GetString());
+    }
+
+    [Theory(DisplayName = "006/RF-05: parámetros fuera de rango dan 400")]
+    [InlineData("pagina=0", "pagina", "La página debe ser mayor o igual que 1")]
+    [InlineData("pagina=abc", "pagina", "El cuerpo de la petición no es válido.")]
+    [InlineData("tamano=0", "tamano", "El tamaño debe estar entre 1 y 100")]
+    [InlineData("tamano=101", "tamano", "El tamaño debe estar entre 1 y 100")]
+    [InlineData("tamano=abc", "tamano", "El cuerpo de la petición no es válido.")]
+    public async Task Listado_con_parametros_invalidos_da_400(string consulta, string campo, string mensaje)
+    {
+        var respuesta = await AdminDeA().GetAsync($"{Ruta}?{consulta}");
+
+        Assert.Equal(HttpStatusCode.BadRequest, respuesta.StatusCode);
+        var errores = (await LeerAsync(respuesta)).GetProperty("errors");
+        Assert.Equal([campo], errores.EnumerateObject().Select(p => p.Name));
+        Assert.Equal([mensaje], errores.GetProperty(campo).EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact(DisplayName = "006/RF-06: GET de un platillo devuelve su categoría e ingredientes en orden")]
+    public async Task Detalle_devuelve_categoria_e_ingredientes_en_orden()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo", ingredientes: ["Crema", "Cebolla", "Limón"]);
+
+        var respuesta = await AdminDeA().GetAsync($"/api/r/resto-a/platillos/{platillo.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal(platillo.Id, raiz.GetProperty("id").GetGuid());
+        Assert.Equal(_pozoles.Id, raiz.GetProperty("categoriaId").GetGuid());
+        Assert.Equal("Pozoles", raiz.GetProperty("categoriaNombre").GetString());
+        Assert.Equal("Pozole rojo", raiz.GetProperty("nombre").GetString());
+        Assert.Equal(["Crema", "Cebolla", "Limón"], raiz.GetProperty("ingredientes").EnumerateArray().Select(e => e.GetString()));
+        Assert.True(raiz.GetProperty("activo").GetBoolean());
+    }
+
+    [Theory(DisplayName = "006/RF-10: un platillo inexistente, eliminado o de otro restaurante da 404")]
+    [InlineData("inexistente")]
+    [InlineData("eliminado")]
+    [InlineData("ajeno")]
+    public async Task Detalle_no_disponible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "eliminado" => EliminadoDeA().Id,
+            "ajeno" => Sembrar(_b.Id, SembrarCategoria(_b.Id, "Ajena").Id, "Ajeno").Id,
+            _ => Guid.NewGuid(),
+        };
+
+        var respuesta = await AdminDeA().GetAsync($"/api/r/resto-a/platillos/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+        Assert.Equal("Platillo no encontrado", raiz.GetProperty("detail").GetString());
+    }
+
+    private Platillo EliminadoDeA()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Borrado");
+        platillo.Eliminar(DateTimeOffset.UtcNow);
+        return platillo;
+    }
+
+    [Fact(DisplayName = "006/RF-11: listar y consultar exigen administrador_general")]
+    public async Task Listar_y_consultar_con_cajero_dan_403()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var cajero = ClienteComo(Rol.Cajero, _a.Id);
+
+        var lista = await cajero.GetAsync(Ruta);
+        var detalle = await cajero.GetAsync($"/api/r/resto-a/platillos/{platillo.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, lista.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, detalle.StatusCode);
+    }
 }

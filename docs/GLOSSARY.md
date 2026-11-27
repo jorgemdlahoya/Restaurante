@@ -443,3 +443,12 @@ comprobación del alta: categoría inexistente, eliminada o de otro restaurante,
 inactiva, 400 en `categoriaId` (`La categoría está inactiva`); nombre o nombre corto repetidos entre los platillos del
 restaurante (`ComprobadorUnicidadPlatillo`), 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto` (006/RF-03,
 RF-04). Un platillo puede llamarse como una categoría: la unicidad es sólo entre platillos.
+
+## PaginaPlatillosDto
+
+Respuesta de `GET /api/r/{slug}/categorias/{categoriaId}/platillos?pagina=&tamano=` (006/RF-05, RF-11, sólo
+`administrador_general`): `{ elementos: PlatilloDto[], total, pagina, tamano }`. Lista los platillos no eliminados de la
+categoría (activos e inactivos; también si la categoría está inactiva) por `orden`, nombre e id. Mismos parámetros y claves de
+error que `PaginaCategoriasDto` (defecto 1 y 20; `tamano` 1–100). Categoría inexistente, eliminada o ajena: 404
+`Categoría no encontrada`. El detalle `GET /api/r/{slug}/platillos/{id}` devuelve un `PlatilloDto` (006/RF-06; 404 `Platillo
+no encontrado`, RF-10) y `GET /api/r/{slug}/categorias/{id}` devuelve un `CategoriaDto` (006/RF-05).

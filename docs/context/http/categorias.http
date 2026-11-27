@@ -42,6 +42,13 @@ Content-Type: application/json
 GET {{baseUrl}}/api/r/{{slug}}/categorias?pagina=1&tamano=20
 Authorization: Bearer {{token}}
 
+### Consultar una categoría (006/RF-05, RF-11). Sólo administrador general; otro rol recibe 403.
+# Devuelve { id, nombre, nombreCorto, orden, activa }, también si está inactiva.
+# 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente o eliminada.
+# @name obtenerCategoria
+GET {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
+Authorization: Bearer {{token}}
+
 ### Editar categoría (005/RF-05, RF-08, RF-09). Sólo administrador general.
 # Mismo cuerpo y validaciones que el alta; nombreCorto en blanco lo quita. Orden de errores: 400 (formato) -> 404 -> 409.
 # 409 compara contra las demás categorías (no contra sí misma: cambiar sólo mayúsculas da 200).
