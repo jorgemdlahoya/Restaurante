@@ -132,3 +132,9 @@
 - **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07). Endpoint
   `DELETE /api/r/{slug}/categorias/{id}`: 204 sin cuerpo, sólo `administrador_general` (403 otro rol); libera nombre y
   nombre corto; 404 `Categoría no encontrada` si es de otro restaurante, inexistente o ya eliminada (005/RF-08, RF-09).
+- **Platillo / DatosPlatillo**: `Restaurante.Domain.Menu.Platillo` (006/RF-02): nombre 1–60, nombre corto ≤ 24 y
+  descripción ≤ 300 (vacíos → `null`), orden ≥ 1, `Activo` inicia en `true`; `Editar(categoriaId, datos)` valida antes
+  de asignar. `Eliminar` marca `EliminadaEn` y conserva los datos (006/RF-09).
+- **Ingredientes incluidos / IngredientesPlatillo**: ≤ 30 ingredientes de 1–40 caracteres, sin repetidos según
+  `Trim().ToLowerInvariant()`, guardados recortados y en orden (006/RF-02). `Errores` es la única fuente de los mensajes
+  (`El ingrediente {n} está vacío|no puede superar 40 caracteres|está repetido`, `{n}` desde 1); `Normalizar` lanza si hay.

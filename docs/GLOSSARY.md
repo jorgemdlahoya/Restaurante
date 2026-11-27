@@ -411,3 +411,18 @@ y conserva los datos; las consultas excluyen las entidades eliminadas. Se expone
 `DELETE /api/r/{slug}/categorias/{id}` (`EliminarCategoriaCommand`): 204 sin cuerpo, sólo `administrador_general`
 (403 para otro rol); la categoría sale de la lista y libera su nombre y nombre corto. Otro restaurante, inexistente o
 ya eliminada (un segundo DELETE): 404 `Categoría no encontrada` (005/RF-07, RF-08, RF-09).
+
+## Platillo
+
+Plato del menú de un restaurante dentro de una categoría (`Restaurante.Domain.Menu.Platillo`, 006/RF-02). Tiene
+`Nombre` (1–60 tras `Trim()`), `NombreCorto` (≤ 24, vacío → `null`), `Descripcion` (≤ 300, vacía → `null`), `Orden`
+(≥ 1), `Ingredientes` y `Activo` (empieza en `true`). Se crea con `DatosPlatillo` y se edita con `Editar(categoriaId,
+datos)`, que valida todo antes de asignar. `Eliminar` sólo marca `EliminadaEn` y conserva los datos (006/RF-09).
+
+## Ingredientes incluidos (IngredientesPlatillo)
+
+Lista de ingredientes de un platillo (006/RF-02): hasta 30 (`MaximoElementos`), cada uno de 1–40 caracteres
+(`LongitudMaxima`) tras `Trim()`, sin repetidos según `Trim().ToLowerInvariant()`; se guardan recortados y en su orden.
+`IngredientesPlatillo.Errores` devuelve los mensajes (`El ingrediente {n} está vacío`, `... no puede superar 40
+caracteres`, `... está repetido`, `No puede haber más de 30 ingredientes`; `{n}` desde 1) y es la única fuente de las
+reglas; `Normalizar` recorta y lanza `ArgumentException` si hay errores.
