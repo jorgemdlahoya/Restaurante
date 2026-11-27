@@ -153,6 +153,10 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
     entra, elige sucursal en `/r/<slug>/elegir-sucursal` y llega al inicio con el selector `Sucursal`;
     al desactivarlo, su siguiente petición autenticada recibe 401 y vuelve al login con el aviso
     «Tu sesión terminó. Vuelve a iniciar sesión.».
+  - `categorias.spec.ts` (005/RF-01, RF-05, RF-07): el administrador general entra a `Menú`, crea las
+    categorías `Bebidas` (orden 1) y `Pozoles` (orden 2), edita `Bebidas` a orden 3 y comprueba que
+    `Pozoles` queda en la primera fila, elimina `Bebidas` confirmando y vuelve a crear `Bebidas`
+    (orden 2), reutilizando el nombre.
 
 ## Dependencias de desarrollo con avisos
 

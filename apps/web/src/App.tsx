@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate, type RouteObject, RouterProvider } from 'react-router';
 import { PaginaNoEncontrada } from './componentes/PaginaNoEncontrada';
+import { CategoriasPagina } from './menu/CategoriasPagina';
 import { LoginPlataforma } from './plataforma/LoginPlataforma';
 import { RestaurantesPagina } from './plataforma/RestaurantesPagina';
 import { DisenoRestaurante } from './restaurante/DisenoRestaurante';
@@ -33,6 +34,7 @@ export const rutas: RouteObject[] = [
       { path: 'sucursales', element: <SucursalesPagina /> },
       { path: 'sucursales/:sucursal', element: <DetalleSucursalPagina /> },
       { path: 'usuarios', element: <UsuariosPagina /> },
+      { path: 'menu/categorias', element: <CategoriasPagina /> },
       { path: '*', element: <PaginaNoEncontrada /> },
     ],
   },

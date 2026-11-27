@@ -35,8 +35,11 @@ En `src/Restaurante.WebApi/Filtros/` y `Seguridad/`:
   (`GuardaEndpointsTests`) falla si un endpoint no declara ninguna de las dos cosas.
 - `FiltroExcepciones`: traduce excepciones de aplicación a `ProblemDetails` (validación 400,
   credenciales 401, no encontrado 404, conflicto 409, resto 500 sin detalles internos).
+  `ConflictoCamposException` (005) da 409 `Conflicto` con `errors` por campo en camelCase
+  (`RespuestasProblema.ConClavesCamelCase`).
 - `RespuestasProblema`: construye los 400 de validación con una única forma (también para los
-  fallos de enlace del modelo).
+  fallos de enlace del modelo). Un fallo de enlace de un parámetro de consulta (`?pagina=abc`) conserva su nombre
+  como clave (`errors.pagina`); los de cuerpo siguen como `x` (de `$.x`) o `cuerpo`.
 - Orden del pipeline: `UseExceptionHandler` → `UseStatusCodePages` → (Swagger en Development) → `UseCors` →
   `UseAuthentication` → `MiddlewareSesionUsuario` → `MiddlewareContextoRestaurante` →
   `MiddlewareContextoSucursal` → controllers.
@@ -215,6 +218,26 @@ Application (`Features/Usuarios`):
 - `IniciarSesionHandler` lanza `SinSucursalesActivasException` (403 `Sin sucursales activas`) si un usuario que no es
   general no tiene ninguna sucursal activa (004/RF-17); el token lleva el claim `sello`.
 
+## Categorías del menú y borrado lógico en el filtro global (feature 005)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Categorias`, aditiva):
+
+- `categorias`: `id`, `restaurante_id` (FK a `restaurantes`, `Restrict`), `nombre` varchar(60),
+  `nombre_normalizado` varchar(60), `nombre_corto` varchar(24) nulo, `nombre_corto_normalizado` nulo, `orden`
+  int con check `ck_categorias_orden` (`orden >= 1`), `activa`, `creada_en`, `eliminada_en` nulo (borrado lógico).
+- Índices únicos parciales (`eliminada_en IS NULL`): `ix_categorias_restaurante_nombre`
+  (`restaurante_id`, `nombre_normalizado`) e `ix_categorias_restaurante_nombre_corto`
+  (`restaurante_id`, `nombre_corto_normalizado`, además `nombre_corto IS NOT NULL`): eliminar una categoría
+  libera su nombre y su nombre corto. Índice no único `ix_categorias_restaurante_orden_nombre`.
+- `FiltrosGlobales.Aplicar` también reconoce `IEliminable` (`Restaurante.Domain.Comun`): a toda entidad que lo
+  implemente le añade `e.EliminadaEn == null`, combinado con `AND` al filtro de restaurante/sucursal en la misma
+  expresión (cada tipo tiene un único `HasQueryFilter`). `Sucursal`, `HorarioDia` y `CierreTemporal` no cambian.
+- `CategoriaRepository` (puerto `ICategoriaRepository` en Application): obtener, listar paginado (`Skip/Take`
+  ordenado por `Orden`, `Nombre`), existencia de nombre y de nombre corto normalizados (con `excluirId`), agregar
+  y guardar. `GuardarCambiosAsync` traduce `UniqueViolation` por `ConstraintName` a `ConflictoCamposException`
+  (`Application/Comun/Excepciones`, con `Errores` por campo: `nombreCorto` para el índice del nombre corto, cualquier
+  otro `nombre`); los textos están en `MensajesCategoria`. Application no referencia Npgsql ni EF.
+
 ## Frontend (`apps/web`)
 
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
@@ -226,7 +249,7 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   pisaría la del restaurante.
 - `src/App.tsx`: enrutador (`react-router`; exporta `rutas`). Rutas: `/` (redirige a `/plataforma/login`),
   `/plataforma/login`, `/plataforma/restaurantes` (`RutaProtegida`, rol `administrador_plataforma`),
-  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal` y `usuarios`
+  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal`, `usuarios` y `menu/categorias`
   (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo `/r/:slug`) que muestra `PaginaNoEncontrada`.
 - `src/api/`: `cliente.ts` (`pedirApi`, `ErrorApi`, `urlApi`; el token se pasa en cada llamada, nunca
   implícito; `TITULO_SESION_INVALIDA` y `alSesionInvalida`, que avisa a los suscritos cuando una petición con
@@ -244,6 +267,12 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   "Nuevo usuario" y "Editar" deshabilitados hasta tener `mi-sesion`), `FormularioUsuario` (alta/edición; para el
   administrador de sucursal, sólo cajero/cocinero y su sucursal fija, tomada de las props al enviar),
   `DialogoContrasena` y `api.ts` (`NOMBRES_ROL`, `claveUsuarios`).
+- `src/menu/`: gestión de categorías del menú (feature 005): `CategoriasPagina` (`/r/{slug}/menu/categorias`, sólo
+  `administrador_general`; lista paginada, alta/edición, activar/desactivar y eliminar con `DialogoConfirmacion`),
+  `FormularioCategoria` (alta/edición con errores por campo; un error sin campo conocido se muestra como aviso
+  general), `VistaPreviaWhatsApp`, `api.ts` (`claveCategorias`, tamaño de página 20), `tituloWhatsApp.ts`
+  (`LIMITE_TITULO_WHATSAPP`, espejo de `Domain.Menu.TituloWhatsApp`) y `mensajeError.ts` (403 → "No tienes permiso
+  para esta acción."). `InicioRestaurante` enlaza a la página con el enlace "Menú".
 - `src/rutas/`: `RutaProtegida.tsx` (exige rol y, en restaurante, el `slug`; si no, redirige al login).
 - `src/restaurante/`: `DisenoRestaurante` (layout de `/r/:slug`: carga la identidad con `api.ts`, aplica el
   tema con `ProveedorTema` y muestra `RestauranteNoDisponible` ante 404), `LoginRestaurante`,

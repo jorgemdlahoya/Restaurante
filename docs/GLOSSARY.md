@@ -230,6 +230,18 @@ ante el 403 `Sin sucursales activas` (004/RF-24) y el inicio cuando `mi-sesion` 
 `NOMBRES_ROL` (`usuarios/api.ts`): nombre visible de cada rol de restaurante ("Administrador general",
 "Administrador de sucursal", "Cajero", "Cocinero").
 
+## LIMITE_TITULO_WHATSAPP (frontend)
+
+`LIMITE_TITULO_WHATSAPP` (`menu/tituloWhatsApp.ts`) = 24: largo máximo del título de una categoría en WhatsApp; espejo de
+`TituloWhatsApp.Limite` del dominio. `tituloWhatsApp` y `seRecorta` alimentan la tabla y `VistaPreviaWhatsApp` (005/RF-11).
+`menu/mensajeError.ts` muestra "No tienes permiso para esta acción." ante todo 403 de la gestión de categorías.
+
+## MensajesCategoria / ICategoriaRepository / ListarCategoriasValidator.TamanoMaximo
+
+`MensajesCategoria` (Application): textos de validación y conflicto de categorías. `ICategoriaRepository` (puerto en
+Application; implementado por `CategoriaRepository`): obtener, listar paginado, unicidad y persistencia.
+`ListarCategoriasValidator.TamanoMaximo` = 100: tope de `tamano` en `GET /api/r/{slug}/categorias` (005/RF-04).
+
 ## claveMiSesion / mi-sesion (frontend)
 
 `sesion/miSesion.ts`: `obtenerMiSesion(token, slug)` pide `GET /api/r/{slug}/mi-sesion` (`MiSesion`: nombre, rol y
@@ -352,3 +364,50 @@ está activo y es administrador de sucursal, cajero o cocinero con todas sus suc
 la convierte en 403 `Sin sucursales activas` (ProblemDetails) y no se emite token. Se evalúa después de verificar la
 contraseña y `Activo`, por lo que una contraseña incorrecta sigue dando 401. El administrador general y el de
 plataforma quedan fuera de la regla.
+
+## Categoría
+
+Agrupación del menú de un restaurante (`Restaurante.Domain.Menu.Categoria`, 005/RF-02). Tiene `Nombre` (1–60 tras
+`Trim()`), `NombreCorto` opcional (≤ 24; en blanco se guarda como `null`), `Orden` (entero ≥ 1) y `Activa`
+(empieza en `true`). `NombreNormalizado` y `NombreCortoNormalizado` (`Trim().ToLowerInvariant()`, "Café" ≠ "Cafe")
+sirven para la unicidad. Implementa `IEntidadDeRestaurante` e `IEliminable`.
+
+## DatosCategoriaDto
+
+Datos editables de una categoría tal como llegan por la API: `{ nombre?, nombreCorto?, orden? }` (todo anulable para
+que los faltantes los valide `ValidadorDatosCategoria`, 005/RF-02: nombre 1–60 y nombre corto ≤ 24 tras `Trim()`, orden
+entero ≥ 1; claves de error `nombre`, `nombreCorto`, `orden`, sin prefijo). Lo reutilizan el alta y la edición.
+
+## CategoriaDto
+
+Representación pública de una categoría: `{ id, nombre, nombreCorto, orden, activa }`. Es la respuesta de
+`POST /api/r/{slug}/categorias` (201, `Location: /api/r/{slug}/categorias/{id}`; sólo `administrador_general`, 403 para
+otro rol). El nombre y el nombre corto son únicos en el restaurante sin distinguir mayúsculas ni espacios
+(`ComprobadorUnicidadCategoria`): si se repiten, 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto`
+(`ConflictoCamposException`). También es la respuesta de `PUT /api/r/{slug}/categorias/{id}` (editar, 005/RF-05; el
+conflicto excluye a la propia categoría, así que cambiar sólo mayúsculas da 200) y de
+`PUT /api/r/{slug}/categorias/{id}/estado` con `{ activa }` (005/RF-06; sin `activa` o no booleano, 400 en `activa`).
+Una categoría desactivada sigue en la lista y conserva su nombre reservado. Otro restaurante, inexistente o eliminada:
+404 `Categoría no encontrada` (005/RF-08).
+
+## PaginaCategoriasDto
+
+Respuesta de `GET /api/r/{slug}/categorias?pagina=&tamano=` (005/RF-04, sólo `administrador_general`):
+`{ elementos: CategoriaDto[], total, pagina, tamano }`. Lista las categorías no eliminadas (activas e inactivas) del
+restaurante por `orden` y nombre. Por defecto `pagina=1`, `tamano=20`; `pagina >= 1` y `tamano` entre 1 y 100
+(`ListarCategoriasValidator`); un parámetro mal formado (`?pagina=abc`) o fuera de rango da 400 con `errors.pagina` /
+`errors.tamano`.
+
+## Nombre corto y título en WhatsApp
+
+`TituloWhatsApp.Calcular(nombre, nombreCorto)` (005/RF-11): el nombre corto si existe; si no, el nombre cuando mide
+24 unidades UTF-16 o menos; si no, los primeros 23 caracteres más `…`, sin partir un par sustituto (si la unidad 23
+es un sustituto alto se corta en 22). `SeRecorta` indica cuándo se avisa "Este nombre se verá recortado en WhatsApp".
+
+## Borrado lógico (IEliminable)
+
+Contrato `IEliminable { DateTimeOffset? EliminadaEn }`: eliminar (`Categoria.Eliminar`, 005/RF-07) sólo marca la fecha
+y conserva los datos; las consultas excluyen las entidades eliminadas. Se expone como
+`DELETE /api/r/{slug}/categorias/{id}` (`EliminarCategoriaCommand`): 204 sin cuerpo, sólo `administrador_general`
+(403 para otro rol); la categoría sale de la lista y libera su nombre y nombre corto. Otro restaurante, inexistente o
+ya eliminada (un segundo DELETE): 404 `Categoría no encontrada` (005/RF-07, RF-08, RF-09).

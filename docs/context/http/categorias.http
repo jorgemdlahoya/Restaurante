@@ -1,0 +1,78 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador general. Sustituir los marcadores sólo en local; no commitear datos reales.
+
+### Iniciar sesión como administrador general en su restaurante. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Crear categoría (005/RF-01..RF-03, RF-09). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Responde 201 con Location: /api/r/{slug}/categorias/{id}; nace activa.
+# nombre: 1-60 caracteres tras recortar espacios. nombreCorto: opcional, hasta 24 (en blanco = sin nombre corto).
+# orden: entero >= 1 (obligatorio; un tipo incorrecto como 1.5, "3" o "abc" da 400 en "orden").
+# 400 por campo si un formato es inválido. 409 si el nombre o el nombre corto ya existen en el restaurante
+# (sin distinguir mayúsculas ni espacios): { "title": "Conflicto", "errors": { "nombre": [...], "nombreCorto": [...] } }.
+# @name crearCategoria
+POST {{baseUrl}}/api/r/{{slug}}/categorias
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_CATEGORIA>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "orden": 1
+}
+
+### Listar categorías (005/RF-04, RF-09). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Devuelve las categorías no eliminadas (activas e inactivas) por orden y nombre:
+# { "elementos": [ { id, nombre, nombreCorto, orden, activa } ], "total": n, "pagina": 1, "tamano": 20 }
+# pagina >= 1 (por defecto 1); tamano entre 1 y 100 (por defecto 20). Un valor fuera de rango o no numérico
+# (pagina=abc, tamano=101) da 400 con errors.pagina / errors.tamano.
+# @name listarCategorias
+GET {{baseUrl}}/api/r/{{slug}}/categorias?pagina=1&tamano=20
+Authorization: Bearer {{token}}
+
+### Editar categoría (005/RF-05, RF-08, RF-09). Sólo administrador general.
+# Mismo cuerpo y validaciones que el alta; nombreCorto en blanco lo quita. Orden de errores: 400 (formato) -> 404 -> 409.
+# 409 compara contra las demás categorías (no contra sí misma: cambiar sólo mayúsculas da 200).
+# 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente o eliminada.
+# @name editarCategoria
+PUT {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_CATEGORIA>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "orden": 1
+}
+
+### Activar o desactivar categoría (005/RF-06, RF-08, RF-09). Sólo administrador general.
+# activa es obligatorio y booleano: sin él o con "si"/"true" entre comillas da 400 en "activa".
+# Desactivada sigue en la lista (activa: false) y su nombre sigue reservado (un alta con ese nombre da 409).
+# @name cambiarEstadoCategoria
+PUT {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activa": false
+}
+
+### Eliminar categoría (005/RF-07, RF-08, RF-09). Sólo administrador general.
+# Borrado lógico: responde 204 sin cuerpo, la categoría sale de la lista y su nombre y nombre corto quedan libres.
+# 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente
+# o ya eliminada (un segundo DELETE da 404). Otro rol recibe 403.
+# @name eliminarCategoria
+DELETE {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
+Authorization: Bearer {{token}}

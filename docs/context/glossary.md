@@ -81,6 +81,10 @@
   409 al cambiar el estado muestra el detalle de la API.
 - **ROLES_GESTION_USUARIOS / NOMBRES_ROL** (frontend): roles que abren `/r/{slug}/usuarios` (los dos administradores;
   el resto vuelve al inicio, 004/RF-22) y nombre visible de cada rol de restaurante.
+- **LIMITE_TITULO_WHATSAPP** (frontend, `menu/tituloWhatsApp.ts`): 24, espejo de `TituloWhatsApp.Limite`; `menu/mensajeError.ts`
+  muestra "No tienes permiso para esta acción." ante cualquier 403 de categorías.
+- **MensajesCategoria / ICategoriaRepository / ListarCategoriasValidator.TamanoMaximo**: textos de categorías, puerto del
+  repositorio en Application y tope 100 de `tamano` del listado (005/RF-04).
 - **claveMiSesion / mi-sesion** (frontend, `sesion/miSesion.ts`): `obtenerMiSesion` pide `GET /api/r/{slug}/mi-sesion`;
   `claveMiSesion(slug)` = `['mi-sesion', slug]`. Alimenta la elección de sucursal, el selector del personal, el aviso
   sin sucursales del inicio y las sucursales fijas del formulario de usuarios.
@@ -113,3 +117,18 @@
   asignadas y activas, en el orden por nombre del repositorio (como `UsuarioDto`); el nombre sale de la base de datos.
 - **SinSucursalesActivasException**: login con credenciales válidas y usuario activo, pero con todas sus sucursales
   desactivadas (no aplica al administrador general): 403 `Sin sucursales activas` y ningún token (004/RF-17).
+- **Categoría**: agrupación del menú de un restaurante (`Domain.Menu.Categoria`, 005/RF-02): nombre 1–60, nombre
+  corto opcional ≤ 24 (en blanco → `null`), orden ≥ 1, activa por defecto; normalizados con `Trim().ToLowerInvariant()`.
+- **DatosCategoriaDto**: `{ nombre?, nombreCorto?, orden? }` validado por `ValidadorDatosCategoria` (claves `nombre`,
+  `nombreCorto`, `orden` sin prefijo; 005/RF-02).
+- **CategoriaDto**: `{ id, nombre, nombreCorto, orden, activa }`; respuesta de `POST /api/r/{slug}/categorias` (201,
+  400 por campo, 409 con `errors` por nombre/nombre corto repetidos vía `ConflictoCamposException`; sólo `administrador_general`). También responde `PUT .../categorias/{id}` (editar; excluye su propio id en la unicidad,
+  005/RF-05) y `PUT .../categorias/{id}/estado` con `{ activa }` (400 en `activa` si falta o no es booleano, 005/RF-06);
+  404 `Categoría no encontrada` si es de otro restaurante, inexistente o eliminada (005/RF-08).
+- **PaginaCategoriasDto**: `{ elementos, total, pagina, tamano }`; respuesta de `GET /api/r/{slug}/categorias?pagina=&tamano=`
+  (defecto 1 y 20; pagina ≥ 1, tamano 1–100; 400 con `errors.pagina`/`errors.tamano`; 005/RF-04).
+- **Nombre corto / título en WhatsApp**: `TituloWhatsApp.Calcular` (005/RF-11): nombre corto, o el nombre si ≤ 24, o
+  23 caracteres + `…` sin partir pares sustitutos; `SeRecorta` dispara el aviso de recorte.
+- **Borrado lógico / IEliminable**: `EliminadaEn` marca la eliminación y conserva los datos (005/RF-07). Endpoint
+  `DELETE /api/r/{slug}/categorias/{id}`: 204 sin cuerpo, sólo `administrador_general` (403 otro rol); libera nombre y
+  nombre corto; 404 `Categoría no encontrada` si es de otro restaurante, inexistente o ya eliminada (005/RF-08, RF-09).

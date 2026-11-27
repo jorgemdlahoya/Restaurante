@@ -1,0 +1,68 @@
+{
+  "tareas": {
+    "T-01": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:16:13",
+      "commit": "3cb2e7f8d89ff1d270c291048bf3bbfd3bd26708"
+    },
+    "T-02": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:23:11",
+      "commit": "2b857bb0f076e4bcb63e17aee1c94881340fa82a"
+    },
+    "T-03": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:30:38",
+      "commit": "c464288de9ce10276e9b9aeb53a904945e411004"
+    },
+    "T-04": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:39:40",
+      "commit": "b7b41feaf8f1c76d35d92c824bc75af532b7db20"
+    },
+    "T-05": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:46:15",
+      "commit": "18c7cad2994ef1fe68e2160f40288c6c34e14b3a"
+    },
+    "T-06": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:52:17",
+      "commit": "7c8940e66aa67433c8c289f46091824f0bfd48be"
+    },
+    "T-07": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T04:57:49",
+      "commit": "a2a492291d75f327d09b00eb0d5428d45000ce07"
+    },
+    "T-08": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T05:03:07",
+      "commit": "541be5bc6f89a5728a5cefda7f4e1769059ab3b4"
+    },
+    "T-09": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T05:12:16",
+      "commit": "ef77607ed99735027c1f806dab08199261973c53"
+    },
+    "T-10": {
+      "estado": "hecha",
+      "fecha": "2026-11-25T12:52:05",
+      "commit": "c8eafdbb13af955b54731bffafa5d8d03dfe5d4d"
+    }
+  },
+  "aceptadas": {
+    "HU-04": {
+      "fecha": "2026-11-25T12:41:23"
+    },
+    "HU-01": {
+      "fecha": "2026-11-27T19:58:08"
+    },
+    "HU-02": {
+      "fecha": "2026-11-27T19:59:21"
+    },
+    "HU-03": {
+      "fecha": "2026-11-27T22:38:42"
+    }
+  }
+}
