@@ -426,3 +426,20 @@ Lista de ingredientes de un platillo (006/RF-02): hasta 30 (`MaximoElementos`), 
 `IngredientesPlatillo.Errores` devuelve los mensajes (`El ingrediente {n} está vacío`, `... no puede superar 40
 caracteres`, `... está repetido`, `No puede haber más de 30 ingredientes`; `{n}` desde 1) y es la única fuente de las
 reglas; `Normalizar` recorta y lanza `ArgumentException` si hay errores.
+
+## DatosPlatilloDto
+
+Datos editables de un platillo tal como llegan por la API: `{ nombre?, nombreCorto?, descripcion?, orden?, ingredientes? }`
+(todo anulable para que los faltantes los valide `ValidadorDatosPlatillo`, 006/RF-02; claves de error `nombre`,
+`nombreCorto`, `descripcion`, `orden`, `ingredientes`, sin prefijo; la clave `ingredientes` recoge los mensajes de
+`IngredientesPlatillo.Errores`). `ADominio()` produce el `DatosPlatillo` del dominio. Lo reutilizan el alta y la edición.
+
+## PlatilloDto
+
+Representación pública de un platillo: `{ id, categoriaId, categoriaNombre, nombre, nombreCorto, descripcion, orden,
+ingredientes, activo }`. Es la respuesta de `POST /api/r/{slug}/categorias/{categoriaId}/platillos` (201,
+`Location: /api/r/{slug}/platillos/{id}`; sólo `administrador_general`, 403 para otro rol; 006/RF-01, RF-11). Orden de
+comprobación del alta: categoría inexistente, eliminada o de otro restaurante, 404 `Categoría no encontrada`; categoría
+inactiva, 400 en `categoriaId` (`La categoría está inactiva`); nombre o nombre corto repetidos entre los platillos del
+restaurante (`ComprobadorUnicidadPlatillo`), 409 `Conflicto` con `errors.nombre` y/o `errors.nombreCorto` (006/RF-03,
+RF-04). Un platillo puede llamarse como una categoría: la unicidad es sólo entre platillos.

@@ -138,3 +138,9 @@
 - **Ingredientes incluidos / IngredientesPlatillo**: ≤ 30 ingredientes de 1–40 caracteres, sin repetidos según
   `Trim().ToLowerInvariant()`, guardados recortados y en orden (006/RF-02). `Errores` es la única fuente de los mensajes
   (`El ingrediente {n} está vacío|no puede superar 40 caracteres|está repetido`, `{n}` desde 1); `Normalizar` lanza si hay.
+- **DatosPlatilloDto**: `{ nombre?, nombreCorto?, descripcion?, orden?, ingredientes? }` validado por
+  `ValidadorDatosPlatillo` (claves sin prefijo; `ingredientes` usa `IngredientesPlatillo.Errores`; 006/RF-02).
+- **PlatilloDto**: `{ id, categoriaId, categoriaNombre, nombre, nombreCorto, descripcion, orden, ingredientes, activo }`;
+  respuesta de `POST /api/r/{slug}/categorias/{categoriaId}/platillos` (201 con `Location`, 400 por campo, 404 categoría no
+  encontrada, 400 en `categoriaId` si está inactiva, 409 por nombre/nombre corto vía `ComprobadorUnicidadPlatillo`; sólo
+  `administrador_general`; 006/RF-01, RF-03, RF-04, RF-11).
