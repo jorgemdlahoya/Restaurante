@@ -238,6 +238,24 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Categoria
   (`Application/Comun/Excepciones`, con `Errores` por campo: `nombreCorto` para el índice del nombre corto, cualquier
   otro `nombre`); los textos están en `MensajesCategoria`. Application no referencia Npgsql ni EF.
 
+## Platillos del menú (feature 006)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Platillos`, aditiva):
+
+- `platillos`: `id`, `restaurante_id` (FK a `restaurantes`, `Restrict`), `categoria_id` (FK a `categorias`,
+  `Restrict`), `nombre` varchar(60), `nombre_normalizado`, `nombre_corto` varchar(24) nulo,
+  `nombre_corto_normalizado` nulo, `descripcion` varchar(300) nula, `orden` int con check `ck_platillos_orden`
+  (`orden >= 1`), `ingredientes` `text[]` `not null default '{}'` (mapeado sobre el campo de respaldo
+  `_ingredientes`; conserva el orden y EF detecta el cambio al reemplazar la lista), `activo`, `creado_en`,
+  `eliminada_en` nulo (borrado lógico, filtrado por `FiltrosGlobales` como en categorías).
+- Índices únicos parciales (`eliminada_en IS NULL`): `ix_platillos_restaurante_nombre` e
+  `ix_platillos_restaurante_nombre_corto` (además `nombre_corto IS NOT NULL`); índice no único
+  `ix_platillos_categoria_orden_nombre` (`categoria_id`, `orden`, `nombre`).
+- `PlatilloRepository` (puerto `IPlatilloRepository` en Application): obtener, listar por categoría paginado
+  (`Orden`, `Nombre`, `Id`; desplazamiento en `long`), existencia de nombre y de nombre corto, contar por categoría
+  (activos e inactivos no eliminados), agregar y guardar; `UniqueViolation` → `ConflictoCamposException`
+  (`nombreCorto` o `nombre`); textos en `MensajesPlatillo`.
+
 ## Frontend (`apps/web`)
 
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
