@@ -1,6 +1,6 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { useOutletContext } from 'react-router';
+import { Link, useOutletContext } from 'react-router';
 import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import type { Identidad } from '../restaurante/api';
 import { MarcoRestaurante } from '../restaurante/MarcoRestaurante';
@@ -133,6 +133,9 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
                       <span className={c.activa ? estilos.activa : estilos.inactiva}>{c.activa ? 'Activa' : 'Inactiva'}</span>
                     </td>
                     <td className={estilos.acciones}>
+                      <Link className={estilos.secundario} to={`/r/${slugRestaurante}/menu/categorias/${c.id}/platillos`}>
+                        Platillos
+                      </Link>
                       <button type="button" className={estilos.secundario} onClick={() => setEdicion({ modo: 'editar', categoria: c })}>
                         Editar
                       </button>
