@@ -150,3 +150,81 @@ test('006/RF-18: una categoría que no existe muestra Categoría no encontrada',
   await page.getByRole('link', { name: 'Categorías' }).click();
   await expect(page).toHaveURL(/\/r\/la-esquina\/menu\/categorias$/);
 });
+
+test('006/RF-16: eliminar un platillo pide confirmación y quita la fila', async ({ page }) => {
+  const POZOLE_VERDE = platillo({ id: 'p2', categoriaId: 'c1', nombre: 'Pozole verde', orden: 2 });
+  const { apiPlatillos } = await simularMenu(page, [POZOLES, BEBIDAS], [POZOLE_ROJO, POZOLE_VERDE]);
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias/c1/platillos');
+
+  await fila(page, 'Pozole rojo').getByRole('button', { name: 'Eliminar' }).click();
+  const dialogo = page.getByRole('dialog', { name: '¿Eliminar Pozole rojo?' });
+  await expect(dialogo).toContainText('No se podrá recuperar. Si sólo quieres ocultarlo, desactívalo.');
+  await dialogo.getByRole('button', { name: 'Cancelar' }).click();
+  await expect(dialogo).toHaveCount(0);
+  expect(apiPlatillos.eliminaciones).toEqual([]);
+
+  await fila(page, 'Pozole rojo').getByRole('button', { name: 'Eliminar' }).click();
+  await page.getByRole('dialog', { name: '¿Eliminar Pozole rojo?' }).getByRole('button', { name: 'Eliminar' }).click();
+
+  await expect(fila(page, 'Pozole rojo')).toHaveCount(0);
+  await expect(fila(page, 'Pozole verde')).toBeVisible();
+  expect(apiPlatillos.eliminaciones).toEqual(['p1']);
+});
+
+test('006/RF-16: desactivar y activar un platillo no piden confirmación', async ({ page }) => {
+  const { apiPlatillos } = await simularMenu(page);
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias/c1/platillos');
+
+  await fila(page, 'Pozole rojo').getByRole('button', { name: 'Desactivar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(fila(page, 'Pozole rojo')).toContainText('Inactivo');
+
+  await fila(page, 'Pozole rojo').getByRole('button', { name: 'Activar' }).click();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+  await expect(fila(page, 'Pozole rojo')).not.toContainText('Inactivo');
+  await expect(fila(page, 'Pozole rojo')).toContainText('Activo');
+  expect(apiPlatillos.cambiosDeEstado).toEqual([
+    { id: 'p1', cuerpo: { activo: false } },
+    { id: 'p1', cuerpo: { activo: true } },
+  ]);
+});
+
+test('006/RF-17: eliminar una categoría con platillos muestra el aviso y deja desactivarla', async ({ page }) => {
+  const api = await simularCategorias(page, 'la-esquina', [POZOLES, BEBIDAS], { platillosPorCategoria: { c1: 2 } });
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await fila(page, 'Pozoles').getByRole('button', { name: 'Eliminar' }).click();
+  await page.getByRole('dialog', { name: '¿Eliminar Pozoles?' }).getByRole('button', { name: 'Eliminar' }).click();
+
+  const aviso = page.getByRole('dialog', { name: 'No se puede eliminar Pozoles' });
+  await expect(aviso).toContainText('Esta categoría tiene 2 platillos');
+  await aviso.getByRole('button', { name: 'Desactivar categoría' }).click();
+
+  await expect(aviso).toHaveCount(0);
+  await expect(fila(page, 'Pozoles')).toContainText('Inactiva');
+  expect(api.eliminaciones).toEqual(['c1']);
+  expect(api.cambiosDeEstado).toEqual([{ id: 'c1', cuerpo: { activa: false } }]);
+});
+
+test('006/RF-17: con la categoría ya inactiva el aviso sólo ofrece Cancelar', async ({ page }) => {
+  const api = await simularCategorias(page, 'la-esquina', [POZOLES, POSTRES_INACTIVA], {
+    platillosPorCategoria: { c3: 1 },
+  });
+  await entrar(page);
+  await page.goto('/r/la-esquina/menu/categorias');
+
+  await fila(page, 'Postres').getByRole('button', { name: 'Eliminar' }).click();
+  await page.getByRole('dialog', { name: '¿Eliminar Postres?' }).getByRole('button', { name: 'Eliminar' }).click();
+
+  const aviso = page.getByRole('dialog', { name: 'No se puede eliminar Postres' });
+  await expect(aviso).toContainText('Esta categoría tiene 1 platillo');
+  await expect(aviso.getByRole('button', { name: 'Desactivar categoría' })).toHaveCount(0);
+  await aviso.getByRole('button', { name: 'Cancelar' }).click();
+
+  await expect(aviso).toHaveCount(0);
+  await expect(fila(page, 'Postres')).toBeVisible();
+  expect(api.cambiosDeEstado).toEqual([]);
+});
