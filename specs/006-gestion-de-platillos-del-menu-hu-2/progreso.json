@@ -26,5 +26,9 @@
       "commit": "36a277911a63ade5b033f0a2111524a1fec037c3"
     }
   },
-  "aceptadas": {}
+  "aceptadas": {
+    "HU-02": {
+      "fecha": "2026-11-27T22:58:34"
+    }
+  }
 }
