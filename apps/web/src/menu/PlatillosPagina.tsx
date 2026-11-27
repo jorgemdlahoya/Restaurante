@@ -1,13 +1,20 @@
-import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useOutletContext, useParams } from 'react-router';
 import { ErrorApi } from '../api/cliente';
+import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import type { Identidad } from '../restaurante/api';
 import { MarcoRestaurante } from '../restaurante/MarcoRestaurante';
 import { RutaProtegida } from '../rutas/RutaProtegida';
 import { useSesion } from '../sesion/ProveedorSesion';
 import { listarCategoriasActivas, obtenerCategoria } from './api';
-import { clavePlatillos, listarPlatillos, type Platillo } from './apiPlatillos';
+import {
+  cambiarEstadoPlatillo,
+  clavePlatillos,
+  eliminarPlatillo,
+  listarPlatillos,
+  type Platillo,
+} from './apiPlatillos';
 import { FormularioPlatillo } from './FormularioPlatillo';
 import { mensajeDeError } from './mensajeError';
 import estilos from './PlatillosPagina.module.css';
@@ -36,6 +43,7 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
   const consultas = useQueryClient();
   const [pagina, setPagina] = useState(1);
   const [edicion, setEdicion] = useState<Edicion>(null);
+  const [porEliminar, setPorEliminar] = useState<Platillo | null>(null);
   const enlaceCategorias = `/r/${slugRestaurante}/menu/categorias`;
 
   const categoria = useQuery({
@@ -55,10 +63,44 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
     enabled: edicion?.modo === 'editar',
   });
 
+  function refrescar() {
+    return consultas.invalidateQueries({ queryKey: clavePlatillos(slugRestaurante, categoriaId) });
+  }
+
   function alGuardar() {
     setEdicion(null);
-    consultas.invalidateQueries({ queryKey: clavePlatillos(slugRestaurante, categoriaId) });
+    refrescar();
   }
+
+  const cambiarEstado = useMutation({
+    mutationFn: ({ id, activo }: { id: string; activo: boolean }) =>
+      cambiarEstadoPlatillo(token, slugRestaurante, id, activo),
+    onSettled: refrescar,
+  });
+
+  const eliminar = useMutation({
+    mutationFn: (id: string) => eliminarPlatillo(token, slugRestaurante, id),
+    onSuccess: () => {
+      // Si se borró la única fila de una página que no es la primera, se vuelve a la anterior.
+      if (pagina > 1 && lista.data?.elementos.length === 1) setPagina((n) => n - 1);
+    },
+    onSettled: refrescar,
+  });
+
+  function alternarEstado(p: Platillo) {
+    eliminar.reset(); // sólo se muestra el error de la última acción
+    cambiarEstado.mutate({ id: p.id, activo: !p.activo });
+  }
+
+  function confirmarEliminacion() {
+    if (porEliminar) {
+      cambiarEstado.reset();
+      eliminar.mutate(porEliminar.id);
+    }
+    setPorEliminar(null);
+  }
+
+  const errorAccion = cambiarEstado.error ?? eliminar.error;
 
   if (categoria.isPending) return <p>Cargando…</p>;
   if (categoria.isError) {
@@ -119,6 +161,9 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
 
       {lista.isPending && <p>Cargando…</p>}
       {lista.isError && <p role="alert">{mensajeDeError(lista.error, 'No se pudo cargar la lista de platillos.')}</p>}
+      {errorAccion && (
+        <p role="alert">{mensajeDeError(errorAccion, 'No se pudo completar la acción. Inténtalo de nuevo.')}</p>
+      )}
 
       {datos && (
         <>
@@ -148,6 +193,12 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
                       <button type="button" className={estilos.secundario} onClick={() => setEdicion({ modo: 'editar', platillo: p })}>
                         Editar
                       </button>
+                      <button type="button" className={estilos.secundario} onClick={() => alternarEstado(p)}>
+                        {p.activo ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button type="button" className={estilos.peligro} onClick={() => setPorEliminar(p)}>
+                        Eliminar
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -165,6 +216,16 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
             </button>
           </nav>
         </>
+      )}
+
+      {porEliminar && (
+        <DialogoConfirmacion
+          titulo={`¿Eliminar ${porEliminar.nombre}?`}
+          mensaje="No se podrá recuperar. Si sólo quieres ocultarlo, desactívalo."
+          confirmar="Eliminar"
+          onConfirmar={confirmarEliminacion}
+          onCancelar={() => setPorEliminar(null)}
+        />
       )}
     </>
   );

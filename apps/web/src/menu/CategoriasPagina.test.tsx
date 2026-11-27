@@ -110,4 +110,32 @@ describe('CategoriasPagina', () => {
 
     expect(await screen.findByRole('alert')).toHaveTextContent(/^No tienes permiso para esta acción\.$/);
   });
+
+  it('006/RF-17: Cancelar cierra el aviso sin cambiar la categoría', async () => {
+    const peticiones: string[] = [];
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (entrada, init) => {
+      const url = new URL(String(entrada), 'http://localhost');
+      peticiones.push(`${init?.method ?? 'GET'} ${url.pathname}`);
+      const [status, cuerpo] =
+        init?.method === 'DELETE'
+          ? [409, { status: 409, title: 'Conflicto', detail: 'Esta categoría tiene 2 platillos', platillos: 2 }]
+          : url.pathname.endsWith('/categorias')
+            ? [200, { elementos: [{ id: 'c1', nombre: 'Pozoles', nombreCorto: null, orden: 1, activa: true }], total: 1, pagina: 1, tamano: 20 }]
+            : [200, []];
+      return new Response(JSON.stringify(cuerpo), { status, headers: { 'Content-Type': 'application/json' } });
+    });
+    montar();
+
+    const filaPozoles = (await screen.findAllByRole('row')).find((f) => f.textContent?.includes('Pozoles'))!;
+    await userEvent.click(within(filaPozoles).getByRole('button', { name: 'Eliminar' }));
+    await userEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Eliminar' }));
+
+    const aviso = await screen.findByRole('dialog', { name: 'No se puede eliminar Pozoles' });
+    expect(aviso).toHaveTextContent('Esta categoría tiene 2 platillos');
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Cancelar' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(peticiones.some((p) => p.startsWith('PUT'))).toBe(false);
+  });
 });

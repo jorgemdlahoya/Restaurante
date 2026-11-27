@@ -1,6 +1,7 @@
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useOutletContext } from 'react-router';
+import { ErrorApi } from '../api/cliente';
 import { DialogoConfirmacion } from '../componentes/DialogoConfirmacion';
 import type { Identidad } from '../restaurante/api';
 import { MarcoRestaurante } from '../restaurante/MarcoRestaurante';
@@ -33,6 +34,7 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   const [pagina, setPagina] = useState(1);
   const [edicion, setEdicion] = useState<Edicion>(null);
   const [porEliminar, setPorEliminar] = useState<Categoria | null>(null);
+  const [conPlatillos, setConPlatillos] = useState<{ categoria: Categoria; mensaje: string } | null>(null);
 
   const lista = useQuery({
     queryKey: claveCategorias(slugRestaurante, pagina),
@@ -56,7 +58,11 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   });
 
   const eliminar = useMutation({
-    mutationFn: (id: string) => eliminarCategoria(token, slugRestaurante, id),
+    mutationFn: (c: Categoria) => eliminarCategoria(token, slugRestaurante, c.id),
+    onError: (error, c) => {
+      // 409 de la feature 006: la categoría tiene platillos; se ofrece desactivarla en su lugar.
+      if (esCategoriaConPlatillos(error)) setConPlatillos({ categoria: c, mensaje: error.detalle ?? error.titulo });
+    },
     onSuccess: () => {
       // Si se borró la única fila de una página que no es la primera, se vuelve a la anterior.
       if (pagina > 1 && lista.data?.elementos.length === 1) setPagina((p) => p - 1);
@@ -67,7 +73,7 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   function confirmarEliminacion() {
     if (porEliminar) {
       cambiarEstado.reset(); // sólo se muestra el error de la última acción
-      eliminar.mutate(porEliminar.id);
+      eliminar.mutate(porEliminar);
     }
     setPorEliminar(null);
   }
@@ -77,7 +83,8 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
     cambiarEstado.mutate({ id: c.id, activa: !c.activa });
   }
 
-  const errorAccion = cambiarEstado.error ?? eliminar.error;
+  // El 409 de categoría con platillos se muestra en su propio aviso, no como error de la acción.
+  const errorAccion = cambiarEstado.error ?? (esCategoriaConPlatillos(eliminar.error) ? null : eliminar.error);
   const datos = lista.data;
   const hayAnterior = pagina > 1;
   const haySiguiente = datos ? pagina * datos.tamano < datos.total : false;
@@ -177,7 +184,24 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
           onCancelar={() => setPorEliminar(null)}
         />
       )}
+
+      {conPlatillos && (
+        <DialogoConfirmacion
+          titulo={`No se puede eliminar ${conPlatillos.categoria.nombre}`}
+          mensaje={conPlatillos.mensaje}
+          confirmar={conPlatillos.categoria.activa ? 'Desactivar categoría' : undefined}
+          onConfirmar={() => {
+            alternarEstado(conPlatillos.categoria);
+            setConPlatillos(null);
+          }}
+          onCancelar={() => setConPlatillos(null)}
+        />
+      )}
     </>
   );
 }
 
+
+function esCategoriaConPlatillos(error: unknown): error is ErrorApi {
+  return error instanceof ErrorApi && error.estado === 409 && typeof error.extensiones.platillos === 'number';
+}
