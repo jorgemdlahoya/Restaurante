@@ -93,3 +93,10 @@ Content-Type: application/json
 {
   "activo": false
 }
+
+### Eliminar un platillo (006/RF-09, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Borrado lógico: responde 204 sin cuerpo, el platillo sale de la lista y su nombre y nombre corto quedan libres.
+# 404 "Platillo no encontrado" si no existe, ya está eliminado (un segundo DELETE da 404) o es de otro restaurante.
+# @name eliminarPlatillo
+DELETE {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}

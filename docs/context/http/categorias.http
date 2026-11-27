@@ -80,6 +80,8 @@ Content-Type: application/json
 # Borrado lógico: responde 204 sin cuerpo, la categoría sale de la lista y su nombre y nombre corto quedan libres.
 # 404 { "title": "No encontrado", "detail": "Categoría no encontrada" } si es de otro restaurante, inexistente
 # o ya eliminada (un segundo DELETE da 404). Otro rol recibe 403.
+# 409 { "title": "Conflicto", "detail": "Esta categoría tiene 2 platillos", "platillos": 2 } (006/RF-12) si tiene platillos
+# activos o inactivos no eliminados ("Esta categoría tiene 1 platillo" si es uno); elimina o mueve los platillos primero.
 # @name eliminarCategoria
 DELETE {{baseUrl}}/api/r/{{slug}}/categorias/<ID_CATEGORIA>
 Authorization: Bearer {{token}}

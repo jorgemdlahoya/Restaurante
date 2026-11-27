@@ -614,4 +614,98 @@ public sealed class PlatillosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, estado.StatusCode);
         Assert.True(platillo.Activo);
     }
+
+    [Fact(DisplayName = "006/RF-09: eliminar responde 204, lo quita de la lista y libera sus nombres")]
+    public async Task Eliminar_responde_204_y_libera_nombres()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var cliente = AdminDeA();
+
+        var respuesta = await cliente.DeleteAsync(RutaPlatillo(platillo.Id));
+
+        Assert.Equal(HttpStatusCode.NoContent, respuesta.StatusCode);
+        Assert.Equal(0, respuesta.Content.Headers.ContentLength ?? 0);
+        Assert.Empty((await LeerAsync(await cliente.GetAsync(Ruta))).GetProperty("elementos").EnumerateArray());
+        var alta = await PostJsonAsync(cliente, Ruta, """{"nombre":"Pozole rojo","orden":1}""");
+        Assert.Equal(HttpStatusCode.Created, alta.StatusCode);
+        Assert.NotNull(platillo.EliminadaEn);
+        Assert.Contains(platillo, _fabrica.Platillos.Platillos);
+    }
+
+    [Theory(DisplayName = "006/RF-10: eliminar un platillo inexistente o ya eliminado da 404")]
+    [InlineData("inexistente")]
+    [InlineData("eliminado")]
+    [InlineData("ajeno")]
+    public async Task Eliminar_no_visible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "eliminado" => Eliminado().Id,
+            "ajeno" => Sembrar(_b.Id, SembrarCategoria(_b.Id, "Ajena").Id, "Ajeno").Id,
+            _ => Guid.NewGuid(),
+        };
+
+        var respuesta = await AdminDeA().DeleteAsync(RutaPlatillo(id));
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+        Assert.Equal("Platillo no encontrado", raiz.GetProperty("detail").GetString());
+
+        Platillo Eliminado()
+        {
+            var p = Sembrar(_a.Id, _pozoles.Id, "Viejo");
+            p.Eliminar(DateTimeOffset.UtcNow);
+            return p;
+        }
+    }
+
+    [Fact(DisplayName = "006/RF-11: eliminar exige administrador_general")]
+    public async Task Eliminar_con_cajero_da_403()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var respuesta = await ClienteComo(Rol.Cajero, _a.Id).DeleteAsync(RutaPlatillo(platillo.Id));
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+        Assert.Null(platillo.EliminadaEn);
+    }
+
+    [Theory(DisplayName = "006/RF-12: eliminar una categoría con platillos da 409 con la cantidad")]
+    [InlineData(2, "Esta categoría tiene 2 platillos")]
+    [InlineData(1, "Esta categoría tiene 1 platillo")]
+    public async Task Eliminar_categoria_con_platillos_da_409(int cantidad, string detalle)
+    {
+        for (var i = 0; i < cantidad; i++)
+        {
+            var p = Sembrar(_a.Id, _pozoles.Id, $"Plato {i}", orden: i + 1);
+            if (i == 1) p.Desactivar();
+        }
+        var cliente = AdminDeA();
+
+        var respuesta = await cliente.DeleteAsync($"/api/r/resto-a/categorias/{_pozoles.Id}");
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("Conflicto", raiz.GetProperty("title").GetString());
+        Assert.Equal(detalle, raiz.GetProperty("detail").GetString());
+        Assert.Equal(cantidad, raiz.GetProperty("platillos").GetInt32());
+        Assert.Null(_pozoles.EliminadaEn);
+        var lista = await LeerAsync(await cliente.GetAsync("/api/r/resto-a/categorias"));
+        Assert.Contains("Pozoles", lista.GetProperty("elementos").EnumerateArray().Select(e => e.GetProperty("nombre").GetString()));
+    }
+
+    [Fact(DisplayName = "006/RF-12: tras eliminar su único platillo la categoría se puede eliminar")]
+    public async Task Tras_eliminar_el_unico_platillo_la_categoria_se_elimina()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var cliente = AdminDeA();
+        Assert.Equal(HttpStatusCode.Conflict, (await cliente.DeleteAsync($"/api/r/resto-a/categorias/{_pozoles.Id}")).StatusCode);
+
+        Assert.Equal(HttpStatusCode.NoContent, (await cliente.DeleteAsync(RutaPlatillo(platillo.Id))).StatusCode);
+        var respuesta = await cliente.DeleteAsync($"/api/r/resto-a/categorias/{_pozoles.Id}");
+
+        Assert.Equal(HttpStatusCode.NoContent, respuesta.StatusCode);
+        Assert.NotNull(_pozoles.EliminadaEn);
+    }
 }

@@ -24,6 +24,7 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
             ProhibidoException e => Problema(StatusCodes.Status403Forbidden, "Acceso denegado", e.Message),
             SinSucursalesActivasException e => Problema(StatusCodes.Status403Forbidden, "Sin sucursales activas", e.Message),
             ConflictoCamposException e => Conflicto(e),
+            CategoriaConPlatillosException e => Conflicto(e),
             ConflictoException e => Problema(StatusCodes.Status409Conflict, "Conflicto", e.Message),
             _ => ErrorInterno(context),
         };
@@ -44,6 +45,18 @@ public sealed class FiltroExcepciones(ILogger<FiltroExcepciones> logger) : IExce
             Detail = excepcion.Message,
         };
         detalles.Extensions["errors"] = RespuestasProblema.ConClavesCamelCase(excepcion.Errores);
+        return Resultado(detalles);
+    }
+
+    private static ObjectResult Conflicto(CategoriaConPlatillosException excepcion)
+    {
+        var detalles = new ProblemDetails
+        {
+            Status = StatusCodes.Status409Conflict,
+            Title = "Conflicto",
+            Detail = excepcion.Message,
+        };
+        detalles.Extensions["platillos"] = excepcion.Cantidad;
         return Resultado(detalles);
     }
 

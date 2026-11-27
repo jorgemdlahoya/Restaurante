@@ -5,6 +5,7 @@ using Restaurante.Application.Features.Platillos;
 using Restaurante.Application.Features.Platillos.CambiarEstadoPlatillo;
 using Restaurante.Application.Features.Platillos.CrearPlatillo;
 using Restaurante.Application.Features.Platillos.EditarPlatillo;
+using Restaurante.Application.Features.Platillos.EliminarPlatillo;
 using Restaurante.Application.Features.Platillos.ListarPlatillos;
 using Restaurante.Application.Features.Platillos.ObtenerPlatillo;
 using Restaurante.Domain.Usuarios;
@@ -85,4 +86,12 @@ public sealed class PlatillosController(IMediator mediador) : ControllerBase
     public async Task<ActionResult<PlatilloDto>> CambiarEstado(
         string slug, Guid id, CambiarEstadoPlatilloPeticion peticion, CancellationToken ct) =>
         Ok(await mediador.Send(new CambiarEstadoPlatilloCommand(id, peticion.Activo), ct));
+
+    [HttpDelete("platillos/{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    public async Task<IActionResult> Eliminar(string slug, Guid id, CancellationToken ct)
+    {
+        await mediador.Send(new EliminarPlatilloCommand(id), ct);
+        return NoContent();
+    }
 }

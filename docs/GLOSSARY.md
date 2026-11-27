@@ -452,3 +452,12 @@ categoría (activos e inactivos; también si la categoría está inactiva) por `
 error que `PaginaCategoriasDto` (defecto 1 y 20; `tamano` 1–100). Categoría inexistente, eliminada o ajena: 404
 `Categoría no encontrada`. El detalle `GET /api/r/{slug}/platillos/{id}` devuelve un `PlatilloDto` (006/RF-06; 404 `Platillo
 no encontrado`, RF-10) y `GET /api/r/{slug}/categorias/{id}` devuelve un `CategoriaDto` (006/RF-05).
+`DELETE /api/r/{slug}/platillos/{id}` elimina el platillo (borrado lógico, 204, libera sus nombres; 404 `Platillo no
+encontrado`; 006/RF-09, RF-10).
+
+## CategoriaConPlatillosException
+
+Excepción de `Restaurante.Application.Comun.Excepciones` con `Cantidad` y `Message` `Esta categoría tiene N platillos`
+(`Esta categoría tiene 1 platillo` si N = 1). La lanza `EliminarCategoriaHandler` si `IPlatilloRepository.ContarPorCategoriaAsync`
+(platillos activos e inactivos no eliminados) es mayor que 0; `FiltroExcepciones` la traduce a 409 `Conflicto` con la extensión
+`platillos: N` (006/RF-12). Los platillos eliminados no cuentan.

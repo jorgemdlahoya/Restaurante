@@ -147,4 +147,7 @@
 - **PaginaPlatillosDto**: `{ elementos, total, pagina, tamano }`; respuesta de
   `GET /api/r/{slug}/categorias/{categoriaId}/platillos?pagina=&tamano=` (defecto 1 y 20; 404 si la categoría no existe;
   006/RF-05). Detalles: `GET .../platillos/{id}` (PlatilloDto, 404 `Platillo no encontrado`; RF-06, RF-10) y
-  `GET .../categorias/{id}` (CategoriaDto; RF-05).
+  `GET .../categorias/{id}` (CategoriaDto; RF-05). `DELETE .../platillos/{id}` elimina (borrado lógico, 204; 404; RF-09, RF-10).
+- **CategoriaConPlatillosException**: `Cantidad` + mensaje `Esta categoría tiene N platillos` / `... 1 platillo`; la lanza
+  `EliminarCategoriaHandler` si la categoría tiene platillos no eliminados y el filtro responde 409 `Conflicto` con
+  `platillos: N` (006/RF-12).

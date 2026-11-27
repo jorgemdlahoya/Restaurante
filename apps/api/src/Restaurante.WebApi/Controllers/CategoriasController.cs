@@ -79,6 +79,7 @@ public sealed class CategoriasController(IMediator mediador) : ControllerBase
 
     [HttpDelete("{id:guid}")]
     [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")] // Con platillos
     public async Task<IActionResult> Eliminar(string slug, Guid id, CancellationToken ct)
     {
         await mediador.Send(new EliminarCategoriaCommand(id), ct);
