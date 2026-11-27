@@ -385,4 +385,233 @@ public sealed class PlatillosEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, lista.StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, detalle.StatusCode);
     }
+
+    private static Task<HttpResponseMessage> PutJsonAsync(HttpClient cliente, string ruta, string json) =>
+        cliente.PutAsync(ruta, new StringContent(json, Encoding.UTF8, "application/json"));
+
+    private static string RutaPlatillo(Guid id) => $"/api/r/resto-a/platillos/{id}";
+
+    private static string CuerpoEdicion(Guid categoriaId, string nombre = "Pozole verde") =>
+        $$"""{"categoriaId":"{{categoriaId}}","nombre":"{{nombre}}","orden":2,"ingredientes":["Cebolla","Limón"]}""";
+
+    private async Task<JsonElement> ObtenerAsync(Guid id) =>
+        await LeerAsync(await AdminDeA().GetAsync(RutaPlatillo(id)));
+
+    [Fact(DisplayName = "006/RF-07: PUT edita los datos y los ingredientes")]
+    public async Task Editar_cambia_los_datos_y_los_ingredientes()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo", ingredientes: ["Crema"]);
+
+        var respuesta = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(_pozoles.Id));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("Pozole verde", raiz.GetProperty("nombre").GetString());
+        Assert.Equal(2, raiz.GetProperty("orden").GetInt32());
+        Assert.Equal(["Cebolla", "Limón"], raiz.GetProperty("ingredientes").EnumerateArray().Select(e => e.GetString()));
+        var releido = await ObtenerAsync(platillo.Id);
+        Assert.Equal("Pozole verde", releido.GetProperty("nombre").GetString());
+        Assert.Equal(["Cebolla", "Limón"], releido.GetProperty("ingredientes").EnumerateArray().Select(e => e.GetString()));
+    }
+
+    [Fact(DisplayName = "006/RF-07: renombrar cambiando sólo mayúsculas da 200")]
+    public async Task Editar_solo_mayusculas_da_200()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "pozole rojo");
+
+        var respuesta = await PutJsonAsync(
+            AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(_pozoles.Id, "Pozole Rojo"));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        Assert.Equal("Pozole Rojo", (await ObtenerAsync(platillo.Id)).GetProperty("nombre").GetString());
+    }
+
+    [Fact(DisplayName = "006/RF-07: mover a otra categoría activa cambia categoriaId y categoriaNombre")]
+    public async Task Mover_a_otra_categoria_activa()
+    {
+        var postres = SembrarCategoria(_a.Id, "Postres");
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(postres.Id));
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var releido = await ObtenerAsync(platillo.Id);
+        Assert.Equal(postres.Id, releido.GetProperty("categoriaId").GetGuid());
+        Assert.Equal("Postres", releido.GetProperty("categoriaNombre").GetString());
+    }
+
+    [Fact(DisplayName = "006/RF-07: mover a una categoría inactiva da 400 y quedarse en la actual inactiva da 200")]
+    public async Task Mover_a_inactiva_da_400_y_quedarse_en_la_actual_inactiva_da_200()
+    {
+        var postres = SembrarCategoria(_a.Id, "Postres");
+        postres.Desactivar();
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var mover = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(postres.Id));
+
+        await AssertValidacionAsync(mover, "categoriaId", "La categoría está inactiva");
+        Assert.Equal(_pozoles.Id, platillo.CategoriaId);
+
+        _pozoles.Desactivar();
+        var quedarse = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(_pozoles.Id));
+
+        Assert.Equal(HttpStatusCode.OK, quedarse.StatusCode);
+        Assert.Equal("Pozole verde", platillo.Nombre);
+    }
+
+    [Theory(DisplayName = "006/RF-07: una categoría inexistente o de otro restaurante da 400 La categoría no existe")]
+    [InlineData("inexistente")]
+    [InlineData("ajena")]
+    public async Task Categoria_inexistente_o_ajena_da_400(string caso)
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var id = caso == "ajena" ? SembrarCategoria(_b.Id, "Ajena").Id : Guid.NewGuid();
+
+        var respuesta = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(id));
+
+        await AssertValidacionAsync(respuesta, "categoriaId", "La categoría no existe");
+        Assert.Equal("Pozole rojo", platillo.Nombre);
+    }
+
+    [Theory(DisplayName = "006/RF-07: sin categoría o con un identificador inválido da 400 en categoriaId")]
+    [InlineData("""{"nombre":"Pozole","orden":1}""", "La categoría es obligatoria")]
+    [InlineData("""{"categoriaId":null,"nombre":"Pozole","orden":1}""", "La categoría es obligatoria")]
+    [InlineData("""{"categoriaId":"no-es-guid","nombre":"Pozole","orden":1}""", "El cuerpo de la petición no es válido.")]
+    public async Task Sin_categoria_o_invalida_da_400(string cuerpo, string mensaje)
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), cuerpo);
+
+        await AssertValidacionAsync(respuesta, "categoriaId", mensaje);
+        Assert.Equal("Pozole rojo", platillo.Nombre);
+    }
+
+    [Theory(DisplayName = "006/RF-07: editar con datos inválidos da 400 por campo")]
+    [InlineData("""{"nombre":"","orden":1}""", "nombre", "El nombre es obligatorio")]
+    [InlineData("""{"nombre":"Ok","orden":"3"}""", "orden", "El cuerpo de la petición no es válido.")]
+    [InlineData("""{"nombre":"Ok","orden":1,"ingredientes":[" crema ","Crema"]}""", "ingredientes", "El ingrediente 2 está repetido")]
+    public async Task Editar_con_datos_invalidos_da_400(string cuerpo, string campo, string mensaje)
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var completo = cuerpo.Replace("{", $$"""{"categoriaId":"{{_pozoles.Id}}",""");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), RutaPlatillo(platillo.Id), completo);
+
+        await AssertValidacionAsync(respuesta, campo, mensaje);
+        Assert.Equal("Pozole rojo", platillo.Nombre);
+    }
+
+    [Fact(DisplayName = "006/RF-07: nombre de otro platillo da 409 en nombre")]
+    public async Task Editar_con_nombre_de_otro_platillo_da_409()
+    {
+        Sembrar(_a.Id, _pozoles.Id, "Pozole verde");
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var respuesta = await PutJsonAsync(
+            AdminDeA(), RutaPlatillo(platillo.Id), CuerpoEdicion(_pozoles.Id, " POZOLE VERDE "));
+
+        Assert.Equal(HttpStatusCode.Conflict, respuesta.StatusCode);
+        var errores = (await LeerAsync(respuesta)).GetProperty("errors");
+        Assert.Equal(
+            ["Ya existe un platillo con ese nombre"],
+            errores.GetProperty("nombre").EnumerateArray().Select(e => e.GetString()));
+        Assert.Equal("Pozole rojo", platillo.Nombre);
+    }
+
+    [Fact(DisplayName = "006/RF-07: nombre corto y descripción en blanco al editar se guardan como null")]
+    public async Task Editar_con_corto_y_descripcion_en_blanco_los_quita()
+    {
+        var platillo = Platillo.Crear(
+            _a.Id, _pozoles.Id, new DatosPlatillo("Pozole rojo", "Pozole", "Con maciza", 1, []), DateTimeOffset.UtcNow);
+        _fabrica.Platillos.Platillos.Add(platillo);
+
+        var respuesta = await PutJsonAsync(
+            AdminDeA(), RutaPlatillo(platillo.Id),
+            $$"""{"categoriaId":"{{_pozoles.Id}}","nombre":"Pozole rojo","nombreCorto":"   ","descripcion":"  ","orden":1}""");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var releido = await ObtenerAsync(platillo.Id);
+        Assert.Equal(JsonValueKind.Null, releido.GetProperty("nombreCorto").ValueKind);
+        Assert.Equal(JsonValueKind.Null, releido.GetProperty("descripcion").ValueKind);
+        Assert.Null(platillo.NombreCorto);
+        Assert.Null(platillo.Descripcion);
+    }
+
+    [Fact(DisplayName = "006/RF-08: desactivar lo mantiene en la lista y con el nombre reservado")]
+    public async Task Desactivar_lo_mantiene_en_la_lista_y_con_el_nombre_reservado()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var cliente = AdminDeA();
+
+        var apagar = await PutJsonAsync(cliente, $"{RutaPlatillo(platillo.Id)}/estado", """{"activo":false}""");
+
+        Assert.Equal(HttpStatusCode.OK, apagar.StatusCode);
+        Assert.False((await LeerAsync(apagar)).GetProperty("activo").GetBoolean());
+        var lista = await LeerAsync(await cliente.GetAsync(Ruta));
+        Assert.Equal(["Pozole rojo"], Nombres(lista));
+        Assert.False(lista.GetProperty("elementos")[0].GetProperty("activo").GetBoolean());
+
+        var repetido = await PostJsonAsync(cliente, Ruta, """{"nombre":"pozole rojo","orden":2}""");
+        Assert.Equal(HttpStatusCode.Conflict, repetido.StatusCode);
+
+        var encender = await PutJsonAsync(cliente, $"{RutaPlatillo(platillo.Id)}/estado", """{"activo":true}""");
+        Assert.Equal(HttpStatusCode.OK, encender.StatusCode);
+        Assert.True((await LeerAsync(encender)).GetProperty("activo").GetBoolean());
+    }
+
+    [Theory(DisplayName = "006/RF-08: estado sin activo o no booleano da 400 en activo")]
+    [InlineData("{}", "El estado es obligatorio")]
+    [InlineData("""{"activo":null}""", "El estado es obligatorio")]
+    [InlineData("""{"activo":"si"}""", "El cuerpo de la petición no es válido.")]
+    [InlineData("""{"activo":"true"}""", "El cuerpo de la petición no es válido.")]
+    public async Task Estado_invalido_da_400_en_activo(string cuerpo, string mensaje)
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+
+        var respuesta = await PutJsonAsync(AdminDeA(), $"{RutaPlatillo(platillo.Id)}/estado", cuerpo);
+
+        await AssertValidacionAsync(respuesta, "activo", mensaje);
+        Assert.True(platillo.Activo);
+    }
+
+    [Theory(DisplayName = "006/RF-10: editar o cambiar estado de un platillo inexistente, eliminado o de otro restaurante da 404")]
+    [InlineData("inexistente")]
+    [InlineData("eliminado")]
+    [InlineData("ajeno")]
+    public async Task Editar_o_cambiar_estado_no_disponible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "eliminado" => EliminadoDeA().Id,
+            "ajeno" => Sembrar(_b.Id, SembrarCategoria(_b.Id, "Ajena").Id, "Ajeno").Id,
+            _ => Guid.NewGuid(),
+        };
+        var cliente = AdminDeA();
+
+        var editar = await PutJsonAsync(cliente, RutaPlatillo(id), CuerpoEdicion(_pozoles.Id));
+        var estado = await PutJsonAsync(cliente, $"{RutaPlatillo(id)}/estado", """{"activo":false}""");
+
+        foreach (var respuesta in new[] { editar, estado })
+        {
+            Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+            var raiz = await LeerAsync(respuesta);
+            Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+            Assert.Equal("Platillo no encontrado", raiz.GetProperty("detail").GetString());
+        }
+    }
+
+    [Fact(DisplayName = "006/RF-11: editar y cambiar estado exigen administrador_general")]
+    public async Task Editar_y_cambiar_estado_con_cajero_dan_403()
+    {
+        var platillo = Sembrar(_a.Id, _pozoles.Id, "Pozole rojo");
+        var cajero = ClienteComo(Rol.Cajero, _a.Id);
+
+        var editar = await PutJsonAsync(cajero, RutaPlatillo(platillo.Id), CuerpoEdicion(_pozoles.Id));
+        var estado = await PutJsonAsync(cajero, $"{RutaPlatillo(platillo.Id)}/estado", """{"activo":false}""");
+
+        Assert.Equal(HttpStatusCode.Forbidden, editar.StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, estado.StatusCode);
+        Assert.True(platillo.Activo);
+    }
 }

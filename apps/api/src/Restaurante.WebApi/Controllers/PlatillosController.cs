@@ -2,7 +2,9 @@ using System.Text.Json.Serialization;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 using Restaurante.Application.Features.Platillos;
+using Restaurante.Application.Features.Platillos.CambiarEstadoPlatillo;
 using Restaurante.Application.Features.Platillos.CrearPlatillo;
+using Restaurante.Application.Features.Platillos.EditarPlatillo;
 using Restaurante.Application.Features.Platillos.ListarPlatillos;
 using Restaurante.Application.Features.Platillos.ObtenerPlatillo;
 using Restaurante.Domain.Usuarios;
@@ -18,6 +20,17 @@ public sealed record CrearPlatilloPeticion(
     // MVC lee JSON con las opciones Web (un "3" entre comillas se aceptaría como número): el orden es sólo numérico.
     [property: JsonNumberHandling(JsonNumberHandling.Strict)] int? Orden,
     IReadOnlyList<string?>? Ingredientes);
+
+/// <summary>Cuerpo de la edición: los campos del alta más la categoría (cambiarla mueve el platillo).</summary>
+public sealed record EditarPlatilloPeticion(
+    Guid? CategoriaId,
+    string? Nombre,
+    string? NombreCorto,
+    string? Descripcion,
+    [property: JsonNumberHandling(JsonNumberHandling.Strict)] int? Orden,
+    IReadOnlyList<string?>? Ingredientes);
+
+public sealed record CambiarEstadoPlatilloPeticion(bool? Activo);
 
 [ApiController]
 [Route("api/r/{slug}")]
@@ -55,4 +68,21 @@ public sealed class PlatillosController(IMediator mediador) : ControllerBase
                 peticion.Nombre, peticion.NombreCorto, peticion.Descripcion, peticion.Orden, peticion.Ingredientes)), ct);
         return Created($"/api/r/{slug.ToLowerInvariant()}/platillos/{platillo.Id}", platillo);
     }
+
+    [HttpPut("platillos/{id:guid}")]
+    [ProducesResponseType<PlatilloDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    [ProducesResponseType<ProblemDetails>(StatusCodes.Status409Conflict, "application/problem+json")]
+    public async Task<ActionResult<PlatilloDto>> Editar(
+        string slug, Guid id, EditarPlatilloPeticion peticion, CancellationToken ct) =>
+        Ok(await mediador.Send(
+            new EditarPlatilloCommand(id, peticion.CategoriaId, new DatosPlatilloDto(
+                peticion.Nombre, peticion.NombreCorto, peticion.Descripcion, peticion.Orden, peticion.Ingredientes)), ct));
+
+    [HttpPut("platillos/{id:guid}/estado")]
+    [ProducesResponseType<PlatilloDto>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ValidationProblemDetails>(StatusCodes.Status400BadRequest, "application/problem+json")]
+    public async Task<ActionResult<PlatilloDto>> CambiarEstado(
+        string slug, Guid id, CambiarEstadoPlatilloPeticion peticion, CancellationToken ct) =>
+        Ok(await mediador.Send(new CambiarEstadoPlatilloCommand(id, peticion.Activo), ct));
 }

@@ -59,3 +59,37 @@ Authorization: Bearer {{token}}
 # @name obtenerPlatillo
 GET {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
 Authorization: Bearer {{token}}
+
+### Editar o mover un platillo (006/RF-07, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Cuerpo: los campos del alta más categoriaId (obligatorio). Si categoriaId es otra categoría, el platillo se mueve.
+# Responde 200 con el PlatilloDto. Orden de errores: 400 de formato (sin categoriaId: "La categoría es obligatoria";
+# un categoriaId que no es GUID también da 400 en "categoriaId") -> 404 "Platillo no encontrado" (no existe, eliminado
+# o de otro restaurante) -> 400 en categoriaId ("La categoría no existe", también si es de otro restaurante; "La
+# categoría está inactiva" al mover a una inactiva, aunque quedarse en la actual inactiva es válido) -> 409 si el nombre
+# o nombre corto son de otro platillo (renombrar sólo cambiando mayúsculas no choca consigo mismo).
+# @name editarPlatillo
+PUT {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoriaId": "{{categoriaId}}",
+  "nombre": "<NOMBRE_PLATILLO>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "descripcion": "<DESCRIPCION_OPCIONAL>",
+  "orden": 1,
+  "ingredientes": ["<INGREDIENTE_1>", "<INGREDIENTE_2>"]
+}
+
+### Activar o desactivar un platillo (006/RF-08, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Un platillo inactivo sigue en la lista y conserva su nombre reservado. Responde 200 con el PlatilloDto.
+# Sin "activo" o con un valor no booleano ("si", "true" entre comillas) da 400 en errors.activo ("El estado es obligatorio"
+# si falta o es null). 404 "Platillo no encontrado" si no existe, está eliminado o es de otro restaurante.
+# @name cambiarEstadoPlatillo
+PUT {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activo": false
+}
