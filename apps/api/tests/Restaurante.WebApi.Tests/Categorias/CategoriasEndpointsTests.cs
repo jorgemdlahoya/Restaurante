@@ -541,4 +541,50 @@ public sealed class CategoriasEndpointsTests : IDisposable
         Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
         Assert.Null(c.EliminadaEn);
     }
+
+    [Fact(DisplayName = "006/RF-05: GET de una categoría devuelve sus datos y su estado")]
+    public async Task Detalle_devuelve_datos_y_estado()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+        c.Desactivar();
+
+        var respuesta = await AdminDeA().GetAsync($"{Ruta}/{c.Id}");
+
+        Assert.Equal(HttpStatusCode.OK, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal(c.Id, raiz.GetProperty("id").GetGuid());
+        Assert.Equal("Bebidas", raiz.GetProperty("nombre").GetString());
+        Assert.False(raiz.GetProperty("activa").GetBoolean());
+    }
+
+    [Theory(DisplayName = "006/RF-05: GET de una categoría inexistente, eliminada o de otro restaurante da 404")]
+    [InlineData("inexistente")]
+    [InlineData("eliminada")]
+    [InlineData("ajena")]
+    public async Task Detalle_no_disponible_da_404(string caso)
+    {
+        var id = caso switch
+        {
+            "eliminada" => EliminadaDeA().Id,
+            "ajena" => Existente(_b.Id, "Ajena").Id,
+            _ => Guid.NewGuid(),
+        };
+
+        var respuesta = await AdminDeA().GetAsync($"{Ruta}/{id}");
+
+        Assert.Equal(HttpStatusCode.NotFound, respuesta.StatusCode);
+        var raiz = await LeerAsync(respuesta);
+        Assert.Equal("No encontrado", raiz.GetProperty("title").GetString());
+        Assert.Equal("Categoría no encontrada", raiz.GetProperty("detail").GetString());
+    }
+
+    [Fact(DisplayName = "006/RF-11: consultar una categoría exige administrador_general")]
+    public async Task Detalle_con_cajero_da_403()
+    {
+        var c = Existente(_a.Id, "Bebidas");
+
+        var respuesta = await ClienteComo(Rol.Cajero, _a.Id).GetAsync($"{Ruta}/{c.Id}");
+
+        Assert.Equal(HttpStatusCode.Forbidden, respuesta.StatusCode);
+    }
 }

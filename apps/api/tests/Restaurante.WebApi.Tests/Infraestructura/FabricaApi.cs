@@ -74,6 +74,8 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
 
     public AlmacenCategorias Categorias { get; } = new();
 
+    public AlmacenPlatillos Platillos { get; } = new();
+
     public RestauranteRepositoryEnMemoria Restaurantes { get; } = new();
 
     /// <summary>Siembra un restaurante (activo o no) en el repositorio en memoria y lo devuelve.</summary>
@@ -281,6 +283,9 @@ public sealed class FabricaApi :WebApplicationFactory<Program>
             servicios.RemoveAll<ICategoriaRepository>();
             servicios.AddScoped<ICategoriaRepository>(sp =>
                 new CategoriaRepositoryEnMemoria(Categorias, sp.GetRequiredService<IContextoRestaurante>()));
+            servicios.RemoveAll<IPlatilloRepository>();
+            servicios.AddScoped<IPlatilloRepository>(sp =>
+                new PlatilloRepositoryEnMemoria(Platillos, sp.GetRequiredService<IContextoRestaurante>()));
             servicios.RemoveAll<ICierreTemporalRepository>();
             servicios.AddScoped<ICierreTemporalRepository>(sp =>
                 new CierreTemporalRepositoryEnMemoria(

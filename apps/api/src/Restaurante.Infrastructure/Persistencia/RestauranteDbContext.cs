@@ -21,6 +21,7 @@ public sealed class RestauranteDbContext(
     public DbSet<HorarioDia> Horarios => Set<HorarioDia>();
     public DbSet<CierreTemporal> CierresTemporales => Set<CierreTemporal>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
+    public DbSet<Platillo> Platillos => Set<Platillo>();
 
     /// <summary>
     /// Propiedad de instancia: EF la parametriza en cada consulta con el valor de este contexto,

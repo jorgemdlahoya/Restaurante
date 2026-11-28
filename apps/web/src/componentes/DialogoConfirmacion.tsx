@@ -4,7 +4,8 @@ import estilos from './DialogoConfirmacion.module.css';
 type Props = {
   titulo: string;
   mensaje: string;
-  confirmar: string;
+  /** Texto del botón de confirmar; sin él, el diálogo sólo ofrece "Cancelar" (un aviso). */
+  confirmar?: string;
   onConfirmar(): void;
   onCancelar(): void;
 };
@@ -34,9 +35,11 @@ export function DialogoConfirmacion({ titulo, mensaje, confirmar, onConfirmar, o
           <button ref={cancelarRef} type="button" className={estilos.secundario} onClick={onCancelar}>
             Cancelar
           </button>
-          <button type="button" className={estilos.peligro} onClick={onConfirmar}>
-            {confirmar}
-          </button>
+          {confirmar && (
+            <button type="button" className={estilos.peligro} onClick={onConfirmar}>
+              {confirmar}
+            </button>
+          )}
         </div>
       </div>
     </div>

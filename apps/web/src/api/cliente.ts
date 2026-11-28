@@ -5,14 +5,23 @@ export class ErrorApi extends Error {
   titulo: string;
   detalle?: string;
   errores: Record<string, string[]>;
+  /** Resto de campos del ProblemDetails (p. ej. `platillos` en el 409 de una categoría con platillos). */
+  extensiones: Record<string, unknown>;
 
-  constructor(estado: number, titulo: string, detalle?: string, errores: Record<string, string[]> = {}) {
+  constructor(
+    estado: number,
+    titulo: string,
+    detalle?: string,
+    errores: Record<string, string[]> = {},
+    extensiones: Record<string, unknown> = {},
+  ) {
     super(detalle ?? titulo);
     this.name = 'ErrorApi';
     this.estado = estado;
     this.titulo = titulo;
     this.detalle = detalle;
     this.errores = errores;
+    this.extensiones = extensiones;
   }
 }
 
@@ -51,7 +60,7 @@ export async function pedirApi<T>(ruta: string, opciones: OpcionesApi = {}): Pro
   if (respuesta.status === 204 || respuesta.status === 304) return undefined as T;
 
   if (!respuesta.ok) {
-    let problema: { title?: string; detail?: string; errors?: Record<string, string[]> } = {};
+    let problema: { title?: string; detail?: string; errors?: Record<string, string[]> } & Record<string, unknown> = {};
     try {
       problema = await respuesta.json();
     } catch {
@@ -60,12 +69,8 @@ export async function pedirApi<T>(ruta: string, opciones: OpcionesApi = {}): Pro
     if (respuesta.status === 401 && token && problema.title === TITULO_SESION_INVALIDA) {
       manejadoresSesionInvalida.forEach((m) => m());
     }
-    throw new ErrorApi(
-      respuesta.status,
-      problema.title ?? respuesta.statusText ?? 'Error',
-      problema.detail,
-      problema.errors ?? {},
-    );
+    const { title, detail, errors, ...extensiones } = problema;
+    throw new ErrorApi(respuesta.status, title ?? respuesta.statusText ?? 'Error', detail, errors ?? {}, extensiones);
   }
 
   return (await respuesta.json()) as T;

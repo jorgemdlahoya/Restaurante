@@ -1,0 +1,102 @@
+@baseUrl = http://localhost:5000
+@slug = la-esquina
+# Autocontenido: la petición "login" de abajo produce @token. Ejecútala primero, con las
+# credenciales del administrador general. Sustituir los marcadores sólo en local; no commitear datos reales.
+# @categoriaId: id de una categoría activa del restaurante (ver categorias.http, "Listar categorías").
+@categoriaId = <ID_CATEGORIA>
+
+### Iniciar sesión como administrador general en su restaurante. Produce el token de este archivo.
+# @name login
+POST {{baseUrl}}/api/r/{{slug}}/auth/login
+Content-Type: application/json
+
+{
+  "nombreUsuario": "<NOMBRE_USUARIO_ADMIN>",
+  "contrasena": "<CONTRASENA_ADMIN>"
+}
+
+### Token capturado para las peticiones siguientes
+@token = {{login.response.body.$.token}}
+
+### Crear platillo en una categoría (006/RF-01..RF-04, RF-11). Sólo administrador general; otro rol o token de plataforma recibe 403.
+# Responde 201 con Location: /api/r/{slug}/platillos/{id}; nace activo.
+# nombre: 1-60 caracteres tras recortar espacios. nombreCorto: opcional, hasta 24 (en blanco = sin nombre corto).
+# descripcion: opcional, hasta 300 (en blanco = sin descripción). orden: entero >= 1 (obligatorio; un tipo incorrecto
+# como 1.5 o "3" da 400 en "orden"). ingredientes: opcional (ausente = lista vacía), hasta 30, cada uno de 1-40
+# caracteres, sin repetidos sin distinguir mayúsculas ni espacios; se guardan recortados y en su orden.
+# 400 por campo si un formato es inválido (errors.ingredientes: "El ingrediente 2 está repetido", ...).
+# 404 "Categoría no encontrada" si la categoría no existe, está eliminada o es de otro restaurante.
+# 400 en categoriaId ("La categoría está inactiva") si la categoría está inactiva.
+# 409 si el nombre o el nombre corto ya existen entre los platillos del restaurante (sin distinguir mayúsculas ni
+# espacios): { "title": "Conflicto", "errors": { "nombre": [...], "nombreCorto": [...] } }. Un platillo puede llamarse
+# como una categoría.
+# @name crearPlatillo
+POST {{baseUrl}}/api/r/{{slug}}/categorias/{{categoriaId}}/platillos
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "nombre": "<NOMBRE_PLATILLO>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "descripcion": "<DESCRIPCION_OPCIONAL>",
+  "orden": 1,
+  "ingredientes": ["<INGREDIENTE_1>", "<INGREDIENTE_2>"]
+}
+
+### Listar los platillos de una categoría (006/RF-05, RF-11). Sólo administrador general; otro rol recibe 403.
+# Devuelve los platillos no eliminados (activos e inactivos) por orden y nombre, también si la categoría está inactiva:
+# { "elementos": [ PlatilloDto ], "total": n, "pagina": 1, "tamano": 20 }
+# pagina >= 1 (por defecto 1); tamano entre 1 y 100 (por defecto 20); fuera de rango o no numérico da 400 con
+# errors.pagina / errors.tamano. 404 "Categoría no encontrada" si no existe, está eliminada o es de otro restaurante.
+# @name listarPlatillos
+GET {{baseUrl}}/api/r/{{slug}}/categorias/{{categoriaId}}/platillos?pagina=1&tamano=20
+Authorization: Bearer {{token}}
+
+### Consultar un platillo (006/RF-06, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Devuelve { id, categoriaId, categoriaNombre, nombre, nombreCorto, descripcion, orden, ingredientes, activo }
+# con los ingredientes en su orden. 404 { "title": "No encontrado", "detail": "Platillo no encontrado" } si no existe,
+# está eliminado o es de otro restaurante.
+# @name obtenerPlatillo
+GET {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}
+
+### Editar o mover un platillo (006/RF-07, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Cuerpo: los campos del alta más categoriaId (obligatorio). Si categoriaId es otra categoría, el platillo se mueve.
+# Responde 200 con el PlatilloDto. Orden de errores: 400 de formato (sin categoriaId: "La categoría es obligatoria";
+# un categoriaId que no es GUID también da 400 en "categoriaId") -> 404 "Platillo no encontrado" (no existe, eliminado
+# o de otro restaurante) -> 400 en categoriaId ("La categoría no existe", también si es de otro restaurante; "La
+# categoría está inactiva" al mover a una inactiva, aunque quedarse en la actual inactiva es válido) -> 409 si el nombre
+# o nombre corto son de otro platillo (renombrar sólo cambiando mayúsculas no choca consigo mismo).
+# @name editarPlatillo
+PUT {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "categoriaId": "{{categoriaId}}",
+  "nombre": "<NOMBRE_PLATILLO>",
+  "nombreCorto": "<NOMBRE_CORTO_OPCIONAL>",
+  "descripcion": "<DESCRIPCION_OPCIONAL>",
+  "orden": 1,
+  "ingredientes": ["<INGREDIENTE_1>", "<INGREDIENTE_2>"]
+}
+
+### Activar o desactivar un platillo (006/RF-08, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Un platillo inactivo sigue en la lista y conserva su nombre reservado. Responde 200 con el PlatilloDto.
+# Sin "activo" o con un valor no booleano ("si", "true" entre comillas) da 400 en errors.activo ("El estado es obligatorio"
+# si falta o es null). 404 "Platillo no encontrado" si no existe, está eliminado o es de otro restaurante.
+# @name cambiarEstadoPlatillo
+PUT {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>/estado
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "activo": false
+}
+
+### Eliminar un platillo (006/RF-09, RF-10, RF-11). Sólo administrador general; otro rol recibe 403.
+# Borrado lógico: responde 204 sin cuerpo, el platillo sale de la lista y su nombre y nombre corto quedan libres.
+# 404 "Platillo no encontrado" si no existe, ya está eliminado (un segundo DELETE da 404) o es de otro restaurante.
+# @name eliminarPlatillo
+DELETE {{baseUrl}}/api/r/{{slug}}/platillos/<ID_PLATILLO>
+Authorization: Bearer {{token}}

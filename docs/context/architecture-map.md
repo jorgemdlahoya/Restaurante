@@ -238,6 +238,24 @@ Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Categoria
   (`Application/Comun/Excepciones`, con `Errores` por campo: `nombreCorto` para el índice del nombre corto, cualquier
   otro `nombre`); los textos están en `MensajesCategoria`. Application no referencia Npgsql ni EF.
 
+## Platillos del menú (feature 006)
+
+Persistencia en `Restaurante.Infrastructure/Persistencia` (migración `Platillos`, aditiva):
+
+- `platillos`: `id`, `restaurante_id` (FK a `restaurantes`, `Restrict`), `categoria_id` (FK a `categorias`,
+  `Restrict`), `nombre` varchar(60), `nombre_normalizado`, `nombre_corto` varchar(24) nulo,
+  `nombre_corto_normalizado` nulo, `descripcion` varchar(300) nula, `orden` int con check `ck_platillos_orden`
+  (`orden >= 1`), `ingredientes` `text[]` `not null default '{}'` (mapeado sobre el campo de respaldo
+  `_ingredientes`; conserva el orden y EF detecta el cambio al reemplazar la lista), `activo`, `creado_en`,
+  `eliminada_en` nulo (borrado lógico, filtrado por `FiltrosGlobales` como en categorías).
+- Índices únicos parciales (`eliminada_en IS NULL`): `ix_platillos_restaurante_nombre` e
+  `ix_platillos_restaurante_nombre_corto` (además `nombre_corto IS NOT NULL`); índice no único
+  `ix_platillos_categoria_orden_nombre` (`categoria_id`, `orden`, `nombre`).
+- `PlatilloRepository` (puerto `IPlatilloRepository` en Application): obtener, listar por categoría paginado
+  (`Orden`, `Nombre`, `Id`; desplazamiento en `long`), existencia de nombre y de nombre corto, contar por categoría
+  (activos e inactivos no eliminados), agregar y guardar; `UniqueViolation` → `ConflictoCamposException`
+  (`nombreCorto` o `nombre`); textos en `MensajesPlatillo`.
+
 ## Frontend (`apps/web`)
 
 React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, limpieza en
@@ -249,8 +267,8 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   pisaría la del restaurante.
 - `src/App.tsx`: enrutador (`react-router`; exporta `rutas`). Rutas: `/` (redirige a `/plataforma/login`),
   `/plataforma/login`, `/plataforma/restaurantes` (`RutaProtegida`, rol `administrador_plataforma`),
-  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal`, `usuarios` y `menu/categorias`
-  (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo `/r/:slug`) que muestra `PaginaNoEncontrada`.
+  `/r/:slug` con hijas `login`, `inicio`, `elegir-sucursal`, `sucursales`, `sucursales/:sucursal`, `usuarios`, `menu/categorias` y
+  `menu/categorias/:categoriaId/platillos` (dentro de `DisenoRestaurante`) y una ruta `*` (también bajo `/r/:slug`) que muestra `PaginaNoEncontrada`.
 - `src/api/`: `cliente.ts` (`pedirApi`, `ErrorApi`, `urlApi`; el token se pasa en cada llamada, nunca
   implícito; `TITULO_SESION_INVALIDA` y `alSesionInvalida`, que avisa a los suscritos cuando una petición con
   token recibe 401 "Sesión no válida") y `auth.ts` (login de plataforma y de restaurante).
@@ -273,6 +291,11 @@ React 19 + TypeScript + Vite 7, pruebas con Vitest 3 (jsdom, `globals: false`, l
   general), `VistaPreviaWhatsApp`, `api.ts` (`claveCategorias`, tamaño de página 20), `tituloWhatsApp.ts`
   (`LIMITE_TITULO_WHATSAPP`, espejo de `Domain.Menu.TituloWhatsApp`) y `mensajeError.ts` (403 → "No tienes permiso
   para esta acción."). `InicioRestaurante` enlaza a la página con el enlace "Menú".
+  Platillos (feature 006): cada fila de categorías tiene la acción "Platillos", que abre `PlatillosPagina`
+  (`/r/{slug}/menu/categorias/{categoriaId}/platillos`, sólo `administrador_general`; título "Platillos de
+  {categoría}" con `obtenerCategoria`, aviso y "Nuevo platillo" deshabilitado si la categoría está inactiva, lista
+  paginada con la cantidad de ingredientes, "Categoría no encontrada" ante 404), `FormularioPlatillo` (selector de
+  categoría en edición con `listarCategoriasActivas`), `EditorIngredientes` y `apiPlatillos.ts` (`clavePlatillos`).
 - `src/rutas/`: `RutaProtegida.tsx` (exige rol y, en restaurante, el `slug`; si no, redirige al login).
 - `src/restaurante/`: `DisenoRestaurante` (layout de `/r/:slug`: carga la identidad con `api.ts`, aplica el
   tema con `ProveedorTema` y muestra `RestauranteNoDisponible` ante 404), `LoginRestaurante`,

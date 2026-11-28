@@ -3,6 +3,7 @@ using MediatR;
 using Microsoft.Extensions.DependencyInjection;
 using Restaurante.Application.Comun.Behaviors;
 using Restaurante.Application.Features.Categorias;
+using Restaurante.Application.Features.Platillos;
 using Restaurante.Application.Features.Usuarios;
 
 namespace Restaurante.Application;
@@ -24,6 +25,7 @@ public static class DependencyInjection
         // Por petición: guarda las sucursales del restaurante ya leídas.
         services.AddScoped<ResolutorActor>();
         services.AddScoped<ComprobadorUnicidadCategoria>();
+        services.AddScoped<ComprobadorUnicidadPlatillo>();
 
         return services;
     }

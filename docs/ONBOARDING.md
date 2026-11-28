@@ -157,6 +157,10 @@ Las pruebas de Playwright (`npx playwright test`) arrancan solas el servidor de 
     categorías `Bebidas` (orden 1) y `Pozoles` (orden 2), edita `Bebidas` a orden 3 y comprueba que
     `Pozoles` queda en la primera fila, elimina `Bebidas` confirmando y vuelve a crear `Bebidas`
     (orden 2), reutilizando el nombre.
+  - `platillos.spec.ts` (006/RF-01, RF-09, RF-12): el administrador general crea la categoría `Pozoles`,
+    abre `Platillos` y crea `Pozole rojo` con los ingredientes `Crema` y `Cebolla` (la tabla muestra `2`);
+    al eliminar `Pozoles` ve «Esta categoría tiene 1 platillo» y cancela; elimina `Pozole rojo`
+    confirmando y entonces `Pozoles` se elimina y desaparece.
 
 ## Dependencias de desarrollo con avisos
 

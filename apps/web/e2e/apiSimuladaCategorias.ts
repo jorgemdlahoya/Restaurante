@@ -13,6 +13,8 @@ export type CategoriaSimulada = {
 type OpcionesCategorias = {
   /** Si se indica, el alta (POST) responde con este estado y estos errores por campo. */
   erroresAlta?: { estado: 400 | 409; errors: Record<string, string[]> };
+  /** Platillos sin eliminar de cada categoría (feature 006): si hay alguno, DELETE responde 409. */
+  platillosPorCategoria?: Record<string, number>;
 };
 
 function json(route: Route, status: number, cuerpo: unknown) {
@@ -92,6 +94,19 @@ export async function simularCategorias(
     if (metodo === 'DELETE') {
       eliminaciones.push(id);
       if (indice < 0) return noEncontrada(route);
+      const conPlatillos = opciones.platillosPorCategoria?.[id] ?? 0;
+      if (conPlatillos > 0) {
+        return route.fulfill({
+          status: 409,
+          contentType: 'application/problem+json',
+          body: JSON.stringify({
+            status: 409,
+            title: 'Conflicto',
+            detail: `Esta categoría tiene ${conPlatillos} ${conPlatillos === 1 ? 'platillo' : 'platillos'}`,
+            platillos: conPlatillos,
+          }),
+        });
+      }
       categorias.splice(indice, 1);
       return route.fulfill({ status: 204 });
     }

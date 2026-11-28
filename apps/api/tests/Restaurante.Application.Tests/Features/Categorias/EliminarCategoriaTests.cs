@@ -11,11 +11,52 @@ public class EliminarCategoriaTests
     private static readonly Guid RestauranteId = Guid.NewGuid();
     private readonly ContextoRestauranteFalso _contexto = new(RestauranteId);
     private readonly CategoriaRepositoryEnMemoria _repositorio;
+    private readonly PlatilloRepositoryEnMemoria _platillos;
     private readonly RelojFijo _reloj = new();
 
-    public EliminarCategoriaTests() => _repositorio = new(_contexto);
+    public EliminarCategoriaTests()
+    {
+        _repositorio = new(_contexto);
+        _platillos = new(_contexto);
+    }
 
-    private EliminarCategoriaHandler Eliminar() => new(_repositorio, _reloj);
+    private EliminarCategoriaHandler Eliminar() => new(_repositorio, _platillos, _reloj);
+
+    private void SembrarPlatillo(Categoria c, string nombre, bool activo = true, bool eliminado = false)
+    {
+        var p = Platillo.Crear(RestauranteId, c.Id, new DatosPlatillo(nombre, null, null, 1, []), _reloj.Ahora);
+        if (!activo) p.Desactivar();
+        if (eliminado) p.Eliminar(_reloj.Ahora);
+        _platillos.Agregar(p);
+    }
+
+    [Theory(DisplayName = "006/RF-12: una categoría con platillos lanza conflicto con la cantidad y no se elimina")]
+    [InlineData(1, "Esta categoría tiene 1 platillo")]
+    [InlineData(2, "Esta categoría tiene 2 platillos")]
+    public async Task ConPlatillosLanzaConflicto(int cantidad, string mensaje)
+    {
+        var c = Sembrar("Pozoles");
+        for (var i = 0; i < cantidad; i++) SembrarPlatillo(c, $"P{i}", activo: i == 0);
+
+        var ex = await Assert.ThrowsAsync<CategoriaConPlatillosException>(() =>
+            Eliminar().Handle(new EliminarCategoriaCommand(c.Id), CancellationToken.None));
+
+        Assert.Equal(cantidad, ex.Cantidad);
+        Assert.Equal(mensaje, ex.Message);
+        Assert.Null(c.EliminadaEn);
+        Assert.Equal(0, _repositorio.GuardadosLlamados);
+    }
+
+    [Fact(DisplayName = "006/RF-12: los platillos eliminados no impiden eliminar la categoría")]
+    public async Task PlatillosEliminadosNoCuentan()
+    {
+        var c = Sembrar("Pozoles");
+        SembrarPlatillo(c, "Viejo", eliminado: true);
+
+        await Eliminar().Handle(new EliminarCategoriaCommand(c.Id), CancellationToken.None);
+
+        Assert.NotNull(c.EliminadaEn);
+    }
 
     private Categoria Sembrar(string nombre, Guid? restauranteId = null)
     {
