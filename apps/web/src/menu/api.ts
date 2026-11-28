@@ -21,7 +21,7 @@ export function listarCategorias(token: string, slugRestaurante: string, pagina:
 }
 
 export function obtenerCategoria(token: string, slugRestaurante: string, id: string): Promise<Categoria> {
-  return pedirApi<Categoria>(`${base(slugRestaurante)}/${id}`, { token });
+  return pedirApi<Categoria>(`${base(slugRestaurante)}/${encodeURIComponent(id)}`, { token });
 }
 
 /** Categorías activas (hasta 100), para el selector de categoría de un platillo. */
@@ -40,7 +40,7 @@ export function editarCategoria(
   id: string,
   datos: DatosCategoria,
 ): Promise<Categoria> {
-  return pedirApi<Categoria>(`${base(slugRestaurante)}/${id}`, json('PUT', datos, token));
+  return pedirApi<Categoria>(`${base(slugRestaurante)}/${encodeURIComponent(id)}`, json('PUT', datos, token));
 }
 
 export function cambiarEstadoCategoria(
@@ -49,9 +49,9 @@ export function cambiarEstadoCategoria(
   id: string,
   activa: boolean,
 ): Promise<Categoria> {
-  return pedirApi<Categoria>(`${base(slugRestaurante)}/${id}/estado`, json('PUT', { activa }, token));
+  return pedirApi<Categoria>(`${base(slugRestaurante)}/${encodeURIComponent(id)}/estado`, json('PUT', { activa }, token));
 }
 
 export function eliminarCategoria(token: string, slugRestaurante: string, id: string): Promise<void> {
-  return pedirApi<void>(`${base(slugRestaurante)}/${id}`, { method: 'DELETE', token });
+  return pedirApi<void>(`${base(slugRestaurante)}/${encodeURIComponent(id)}`, { method: 'DELETE', token });
 }

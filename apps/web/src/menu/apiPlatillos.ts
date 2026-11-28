@@ -36,7 +36,7 @@ export function listarPlatillos(
   pagina: number,
 ): Promise<PaginaPlatillos> {
   return pedirApi<PaginaPlatillos>(
-    `${raiz(slugRestaurante)}/categorias/${categoriaId}/platillos?pagina=${pagina}&tamano=${TAMANO_PAGINA}`,
+    `${raiz(slugRestaurante)}/categorias/${encodeURIComponent(categoriaId)}/platillos?pagina=${pagina}&tamano=${TAMANO_PAGINA}`,
     { token },
   );
 }
@@ -47,7 +47,7 @@ export function crearPlatillo(
   categoriaId: string,
   datos: DatosPlatillo,
 ): Promise<Platillo> {
-  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/categorias/${categoriaId}/platillos`, json('POST', datos, token));
+  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/categorias/${encodeURIComponent(categoriaId)}/platillos`, json('POST', datos, token));
 }
 
 export function editarPlatillo(
@@ -56,7 +56,7 @@ export function editarPlatillo(
   id: string,
   datos: DatosPlatillo & { categoriaId: string },
 ): Promise<Platillo> {
-  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/platillos/${id}`, json('PUT', datos, token));
+  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/platillos/${encodeURIComponent(id)}`, json('PUT', datos, token));
 }
 
 export function cambiarEstadoPlatillo(
@@ -65,9 +65,9 @@ export function cambiarEstadoPlatillo(
   id: string,
   activo: boolean,
 ): Promise<Platillo> {
-  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/platillos/${id}/estado`, json('PUT', { activo }, token));
+  return pedirApi<Platillo>(`${raiz(slugRestaurante)}/platillos/${encodeURIComponent(id)}/estado`, json('PUT', { activo }, token));
 }
 
 export function eliminarPlatillo(token: string, slugRestaurante: string, id: string): Promise<void> {
-  return pedirApi<void>(`${raiz(slugRestaurante)}/platillos/${id}`, { method: 'DELETE', token });
+  return pedirApi<void>(`${raiz(slugRestaurante)}/platillos/${encodeURIComponent(id)}`, { method: 'DELETE', token });
 }

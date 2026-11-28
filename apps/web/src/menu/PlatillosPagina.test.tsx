@@ -92,4 +92,13 @@ describe('PlatillosPagina', () => {
     expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Anterior' })).toBeEnabled();
   });
+
+  it('006/RF-14: si fallan las categorías activas, Editar muestra un aviso', async () => {
+    montar();
+
+    await userEvent.click((await screen.findAllByRole('button', { name: 'Editar' }))[0]);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('No se pudieron cargar las categorías.');
+    expect(screen.queryByRole('form', { name: /^Editar / })).not.toBeInTheDocument();
+  });
 });

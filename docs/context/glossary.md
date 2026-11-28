@@ -88,7 +88,14 @@
 - **claveMiSesion / mi-sesion** (frontend, `sesion/miSesion.ts`): `obtenerMiSesion` pide `GET /api/r/{slug}/mi-sesion`;
   `claveMiSesion(slug)` = `['mi-sesion', slug]`. Alimenta la elección de sucursal, el selector del personal, el aviso
   sin sucursales del inicio y las sucursales fijas del formulario de usuarios.
-- **ErrorApi** (frontend): excepción de `pedirApi` con `estado`, título, detalle y `errores` por campo.
+- **ErrorApi** (frontend): excepción de `pedirApi` con `estado`, título, detalle, `errores` por campo y `extensiones`
+  (resto del ProblemDetails, p. ej. `platillos`).
+- **MensajesPlatillo / IPlatilloRepository**: textos de platillos y puerto del repositorio en Application (006).
+- **EditarPlatilloCommand / CambiarEstadoPlatilloCommand**: `PUT /api/r/{slug}/platillos/{id}` (400 en `categoriaId`:
+  `La categoría es obligatoria` / `no existe` / `está inactiva`; 006/RF-07) y `PUT .../platillos/{id}/estado` con
+  `{ activo }` (006/RF-08).
+- **MAXIMO_INGREDIENTES / AVISO_CATEGORIA_INACTIVA / TAMANO_PAGINA / json / DialogoConfirmacion.confirmar** (frontend):
+  constantes y utilidades de `menu/`; sin `confirmar` el diálogo sólo ofrece "Cancelar".
 - **RutaProtegida** (frontend): ruta que exige sesión con un rol (y slug) válidos o redirige al login.
 - **ProveedorTema / paleta** (frontend): escribe `--color-principal|acento|oscuro|fondo|texto` en `:root`
   (por defecto en `tema.css`); sólo se usan `var(--color-*)`.

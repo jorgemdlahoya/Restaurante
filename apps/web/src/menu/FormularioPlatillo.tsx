@@ -79,8 +79,10 @@ export function FormularioPlatillo({
         : await crearPlatillo(token, slugRestaurante, categoriaId, datos);
       onGuardado(guardado);
     } catch (e) {
+      // Al crear no hay campo Categoría: su error va al aviso general.
+      const camposVisibles = platillo ? CAMPOS_CONOCIDOS : CAMPOS_CONOCIDOS.filter((campo) => campo !== 'categoriaId');
       const hayCampoConocido =
-        e instanceof ErrorApi && Object.keys(e.errores).some((campo) => CAMPOS_CONOCIDOS.includes(campo));
+        e instanceof ErrorApi && Object.keys(e.errores).some((campo) => camposVisibles.includes(campo));
       if (e instanceof ErrorApi && (e.estado === 400 || e.estado === 409) && hayCampoConocido) {
         setErrores(e.errores);
       } else {

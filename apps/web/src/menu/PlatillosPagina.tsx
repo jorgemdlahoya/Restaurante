@@ -159,6 +159,10 @@ function ListaPlatillos({ slugRestaurante, categoriaId }: { slugRestaurante: str
         />
       )}
 
+      {activas.isError && (
+        <p role="alert">{mensajeDeError(activas.error, 'No se pudieron cargar las categorías.')}</p>
+      )}
+
       {lista.isPending && <p>Cargando…</p>}
       {lista.isError && <p role="alert">{mensajeDeError(lista.error, 'No se pudo cargar la lista de platillos.')}</p>}
       {errorAccion && (

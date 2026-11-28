@@ -120,6 +120,20 @@ describe('FormularioPlatillo', () => {
     expect(onGuardado).not.toHaveBeenCalled();
   });
 
+  it('006/RF-15: al crear, un error en categoriaId se muestra como aviso general', async () => {
+    simularFetch(() =>
+      respuestaJson(400, {
+        title: 'One or more validation errors occurred.',
+        errors: { categoriaId: ['La categoría está inactiva'] },
+      }),
+    );
+    montar();
+    await userEvent.type(screen.getByLabelText('Nombre'), 'Pozole');
+    await userEvent.type(screen.getByLabelText('Orden'), '1');
+    await userEvent.click(screen.getByRole('button', { name: 'Guardar' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
+
   it('006/RF-15: un error sin campo conocido se muestra como aviso general y un 403 como falta de permiso', async () => {
     simularFetch(() =>
       respuestaJson(400, { title: 'x', detail: 'El cuerpo de la petición no es válido', errors: { cuerpo: ['x'] } }),

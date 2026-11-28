@@ -254,6 +254,29 @@ administrador de sucursal: "Nuevo usuario" y "Editar" esperan a que lleguen).
 
 Excepción de `pedirApi` ante una respuesta no exitosa: lleva el `estado` HTTP, el título y el detalle del
 `problem+json` y, en validaciones, `errores` por campo (claves en camelCase, p. ej. `administrador.nombreUsuario`).
+`extensiones` guarda el resto del ProblemDetails (p. ej. `platillos: N` en el 409 de eliminar una categoría con platillos).
+
+## MensajesPlatillo / IPlatilloRepository
+
+`MensajesPlatillo` (Application): textos de conflicto y no encontrado de platillos (`Ya existe un platillo con ese
+nombre`, `... con ese nombre corto`, `Platillo no encontrado`). `IPlatilloRepository` (puerto en Application; implementado
+por `PlatilloRepository`): obtener, listar paginado, unicidad, contar por categoría y persistencia (006).
+
+## EditarPlatilloCommand / CambiarEstadoPlatilloCommand
+
+`PUT /api/r/{slug}/platillos/{id}` (`EditarPlatilloCommand(Id, CategoriaId?, Datos)`; sólo `administrador_general`;
+006/RF-07): edita los datos y puede mover el platillo de categoría. Errores 400 en `categoriaId`: `La categoría es
+obligatoria` (falta), `La categoría no existe` y `La categoría está inactiva` (moverse a una inactiva; quedarse en la
+actual, aunque esté inactiva, es válido). `PUT /api/r/{slug}/platillos/{id}/estado` (`CambiarEstadoPlatilloCommand(Id,
+Activo?)`, cuerpo `{ activo }`; sin `activo` o no booleano, 400 en `activo`; 006/RF-08) devuelve el `PlatilloDto`.
+
+## Constantes del frontend de platillos
+
+`MAXIMO_INGREDIENTES` (30, `menu/EditorIngredientes.tsx`): tope de ingredientes del editor, espejo del dominio.
+`AVISO_CATEGORIA_INACTIVA` (`menu/PlatillosPagina.tsx`): aviso mostrado cuando la categoría abierta está inactiva.
+`TAMANO_PAGINA` (20) y `json(metodo, cuerpo, token)` (`menu/api.ts`) se exportan y los reutiliza `menu/apiPlatillos.ts`.
+`DialogoConfirmacion` (`componentes/`): su prop `confirmar` es opcional; sin ella el diálogo sólo ofrece "Cancelar"
+(sirve de aviso).
 
 ## RutaProtegida (frontend)
 

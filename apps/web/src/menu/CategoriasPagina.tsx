@@ -201,7 +201,6 @@ function ListaCategorias({ slugRestaurante }: { slugRestaurante: string }) {
   );
 }
 
-
 function esCategoriaConPlatillos(error: unknown): error is ErrorApi {
   return error instanceof ErrorApi && error.estado === 409 && typeof error.extensiones.platillos === 'number';
 }
