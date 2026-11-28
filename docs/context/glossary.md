@@ -158,3 +158,13 @@
 - **CategoriaConPlatillosException**: `Cantidad` + mensaje `Esta categoría tiene N platillos` / `... 1 platillo`; la lanza
   `EliminarCategoriaHandler` si la categoría tiene platillos no eliminados y el filtro responde 409 `Conflicto` con
   `platillos: N` (006/RF-12).
+- **Variante / DatosVariante** (007/RF-03): `Restaurante.Domain.Menu.Variante` es una presentación con precio de un platillo
+  (`PlatilloId`): nombre 1–24 tras `Trim()` (`NombreNormalizado` = `Trim().ToLowerInvariant()`), `Precio` y `Sku` opcional
+  (vacío → `null`, patrón `^[A-Za-z0-9_-]{1,40}\z`, `SkuNormalizado` = `Trim().ToUpperInvariant()`); `Activa` inicia en `true`;
+  `Editar` valida antes de asignar; `Eliminar` marca `EliminadaEn` y conserva los datos (RF-09).
+- **Precio base / PrecioVariante**: `decimal` de 0.00 a 99,999.99 (`Maximo`) con hasta 2 decimales (`decimal.Round(p, 2) == p`).
+  `PrecioVariante.Errores(decimal?)` es la única fuente de los mensajes (`El precio es obligatorio|no puede ser negativo|no puede
+  superar 99,999.99|debe tener como máximo 2 decimales`).
+- **Variante Regular**: variante automática `Variante.Regular(...)` de nombre `Regular`, sin SKU, con el precio base del platillo (RF-01).
+- **Variantes a la venta** (`VariantesALaVenta.De`, RF-14): variantes activas y no eliminadas del platillo, si categoría y platillo
+  están activos y no eliminados; ordenadas por precio, nombre (ordinal) e id.

@@ -484,3 +484,33 @@ Excepción de `Restaurante.Application.Comun.Excepciones` con `Cantidad` y `Mess
 (`Esta categoría tiene 1 platillo` si N = 1). La lanza `EliminarCategoriaHandler` si `IPlatilloRepository.ContarPorCategoriaAsync`
 (platillos activos e inactivos no eliminados) es mayor que 0; `FiltroExcepciones` la traduce a 409 `Conflicto` con la extensión
 `platillos: N` (006/RF-12). Los platillos eliminados no cuentan.
+
+## Variante
+
+Presentación con precio de un platillo (`Restaurante.Domain.Menu.Variante`, 007/RF-03): `PlatilloId`, `Nombre` (1–24 tras
+`Trim()`; `NombreNormalizado` con `Trim().ToLowerInvariant()`), `Precio` (decimal) y `Sku` opcional (vacío → `null`; patrón
+`^[A-Za-z0-9_-]{1,40}\z`; `SkuNormalizado` con `Trim().ToUpperInvariant()`). `Activa` empieza en `true`. Se crea con
+`DatosVariante(Nombre, Precio, Sku)` y se edita con `Editar(datos)`, que valida todo antes de asignar y lanza
+`ArgumentException`. `Eliminar` sólo marca `EliminadaEn` y conserva los datos (RF-09).
+
+## Precio base (PrecioVariante)
+
+Precio de una variante: de 0.00 a 99,999.99 (`Maximo`) con hasta 2 decimales (`decimal.Round(p, 2) == p`); nunca se
+redondea. `PrecioVariante.Errores(decimal?)` devuelve los mensajes (`El precio es obligatorio` si es nulo, `El precio no
+puede ser negativo`, `El precio no puede superar 99,999.99`, `El precio debe tener como máximo 2 decimales`) y es la única
+fuente de la regla (007/RF-03).
+
+## SKU
+
+Código opcional de una variante (`Sku`), único por restaurante entre variantes no eliminadas comparando
+`Trim().ToUpperInvariant()` (`SkuNormalizado`); `abc-1` y `ABC-1` son el mismo SKU (007/RF-03).
+
+## Variante Regular
+
+Variante creada automáticamente con el platillo (`Variante.Regular`): `Nombre` `Regular` (`NombreRegular`), sin SKU y con
+el precio base del platillo (007/RF-01).
+
+## Variantes a la venta (VariantesALaVenta)
+
+`VariantesALaVenta.De(categoria, platillo, variantes)` (007/RF-14): las variantes activas y no eliminadas del platillo, sólo
+si la categoría y el platillo están activos y no eliminados; ordenadas por `Precio`, `Nombre` (ordinal) e `Id`.
